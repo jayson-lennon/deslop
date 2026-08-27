@@ -126,9 +126,9 @@ fn render_json(rows: &[RuleRow], out: &mut impl std::io::Write) {
     let _ = writeln!(out, "{{\"rules\":[");
     for (idx, r) in rows.iter().enumerate() {
         let comma = if idx + 1 < rows.len() { "," } else { "" };
-        let _ = write!(
+        let _ = writeln!(
             out,
-            "  {{\"id\":{},\"tier\":{},\"kind\":{},\"enabled\":{}}}{}\n",
+            "  {{\"id\":{},\"tier\":{},\"kind\":{},\"enabled\":{}}}{}",
             serde_json::to_string(&r.id).expect("str"),
             r.tier,
             serde_json::to_string(&r.kind).expect("str"),
