@@ -70,6 +70,37 @@ mod tests {
     use super::*;
 
     #[test]
+    fn init_writes_template_and_refuses_to_clobber() {
+        // Given an empty directory.
+        let dir = std::env::temp_dir().join(format!("deslop-init-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+
+        // When running init twice.
+        let first = run_in(&dir);
+        let second = run_in(&dir);
+
+        // Then the first writes, the second refuses, and the file parses.
+        assert_eq!(first, 0, "first init succeeds");
+        assert_eq!(second, 2, "second init refuses to clobber");
+        let text = std::fs::read_to_string(dir.join(".deslop.toml")).expect("exists");
+        assert!(
+            deslop_core::config::parse_config_str(&text).is_ok(),
+            "template parses"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Run the init routine with the process cwd temporarily elsewhere.
+    fn run_in(dir: &std::path::Path) -> i32 {
+        let prev = std::env::current_dir().expect("cwd");
+        std::env::set_current_dir(dir).expect("chdir");
+        let code = run();
+        std::env::set_current_dir(prev).expect("restore");
+        code
+    }
+
+    #[test]
     fn template_documents_every_section() {
         // Given the shipped template.
 
