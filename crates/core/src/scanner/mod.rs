@@ -3,6 +3,7 @@
 //! Orchestration order matters: normalize -> mask -> scan -> assemble -> sort.
 
 pub mod regions;
+pub mod use_mention;
 
 use crate::config::Config;
 use crate::doc::Doc;
