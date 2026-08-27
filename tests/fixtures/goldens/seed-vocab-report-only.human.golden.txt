@@ -14,5 +14,5 @@ warning[MODERN-VOCAB-STRONG-FLAG#testament-fix-22]:
   │                     ^^^^^^^^^
   │                     │
   │                     AI-tell vocabulary
-  │                     help: Strong AI tell; one use is worth flagging
+  │                     help: Admiration formula ("a testament to"); state what it demonstrates
 
