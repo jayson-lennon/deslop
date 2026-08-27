@@ -195,6 +195,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "termcolor",
+ "walkdir",
  "wherror",
 ]
 

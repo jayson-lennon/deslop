@@ -58,13 +58,13 @@ impl RulesCmd<'_> {
     /// # Errors
     ///
     /// Fails when packs cannot be located on disk.
-    pub fn run(&mut self) -> Result<i32, ()> {
+    pub fn run(&mut self) -> Result<i32, error_stack::Report<super::CmdError>> {
         let loaded = load_rules(self.cfg);
         if !loaded.errors.is_empty() {
             for err in &loaded.errors {
                 eprintln!("deslop: {err}");
             }
-            return Err(());
+            return Err(super::fail("rules listing failed"));
         }
 
         let rows = flatten(&loaded.rule_set);

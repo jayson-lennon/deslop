@@ -2,7 +2,8 @@
 
 use clap::{Parser, Subcommand};
 
-mod cmd;
+pub mod cmd;
+pub mod render;
 
 /// A linter for AI-writing tells: dynamic TOML rules, three severity tiers.
 #[derive(Debug, Parser)]
@@ -36,6 +37,26 @@ enum ArgFormat {
     Human,
     Json,
     Github,
+}
+
+impl From<ArgFormat> for deslop_core::config::FormatName {
+    fn from(value: ArgFormat) -> Self {
+        match value {
+            ArgFormat::Human => deslop_core::config::FormatName::Human,
+            ArgFormat::Json => deslop_core::config::FormatName::Json,
+            ArgFormat::Github => deslop_core::config::FormatName::Github,
+        }
+    }
+}
+
+impl From<ArgColor> for deslop_core::config::ColorChoice {
+    fn from(value: ArgColor) -> Self {
+        match value {
+            ArgColor::Auto => deslop_core::config::ColorChoice::Auto,
+            ArgColor::Always => deslop_core::config::ColorChoice::Always,
+            ArgColor::Never => deslop_core::config::ColorChoice::Never,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum)]
@@ -119,20 +140,32 @@ fn run(cli: Cli) -> i32 {
                 Err(_) => ExitCode::LoadFailure as i32,
             }
         }
-        Some(Command::Fix { write: _ }) => unimplemented!("phase 5"),
-        Some(Command::Init) => unimplemented!("phase 5"),
+        Some(Command::Fix { write }) => {
+            let mut cmd = cmd::fix_cmd::FixCmd { cfg: &cfg, write };
+            match cmd.run() {
+                Ok(code) => code,
+                Err(_) => ExitCode::LoadFailure as i32,
+            }
+        }
+        Some(Command::Init) => cmd::init_cmd::run(),
         None => {
             // Lint: load rules first; any load failure aborts with exit 2
             // before a single document is scanned (spec exit precedence).
             let loaded = cmd::rules_cmd::load_for_lint(&cfg);
             if !loaded.errors.is_empty() {
-                for err in &loaded.errors {
-                    eprintln!("deslop: {err}");
-                }
+                let stderr = std::io::stderr();
+                let mut lock = stderr.lock();
+                let _ = render::human::render_load_errors(&loaded.errors, &mut lock);
                 return ExitCode::LoadFailure as i32;
             }
-            let _ = (&cli.no_tier3, &cli.format, &cli.color, &loaded.rule_set);
-            unimplemented!("phase 3: scan pipeline")
+            let run = cmd::lint_cmd::ScanRun {
+                cfg: &cfg,
+                paths: cli.paths.clone(),
+                no_tier3: cli.no_tier3,
+                format_override: Some(cli.format.into()),
+                color_override: Some(cli.color.into()),
+            };
+            run.run(loaded)
         }
     }
 }

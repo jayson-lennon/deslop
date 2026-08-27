@@ -64,7 +64,7 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
                                 .as_deref()
                                 .or(group.message.as_deref()),
                             entry.advice_override.as_deref().or(group.advice.as_deref()),
-                            &group.replacement_of(entry),
+                            entry.replacement.clone(),
                             &norm,
                             src,
                         ));
@@ -85,7 +85,7 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
                                 .as_deref()
                                 .or(group.message.as_deref()),
                             entry.advice_override.as_deref().or(group.advice.as_deref()),
-                            &None,
+                            None,
                             &norm,
                             src,
                         ));
@@ -114,7 +114,7 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
                                 .as_deref()
                                 .or(group.message.as_deref()),
                             entry.advice_override.as_deref().or(group.advice.as_deref()),
-                            &None,
+                            None,
                             &norm,
                             src,
                         ));
@@ -125,14 +125,6 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
     }
 
     sort_findings(findings)
-}
-
-impl crate::rule::RuleGroup {
-    /// Vocab entries carry the replacement on the ENTRY in v1 schema terms —
-    /// the loader copies it onto ActiveEntry; groups never have one.
-    fn replacement_of(&self, _entry: &crate::rule::ActiveEntry) -> Option<String> {
-        None
-    }
 }
 
 fn scope_predicate(scope: &str) -> impl Fn(regions::Scope) -> bool + '_ {
@@ -156,7 +148,7 @@ fn make_finding(
     captures: &[(String, String)],
     message_t: Option<&str>,
     advice_t: Option<&str>,
-    _replacement: &Option<String>,
+    replacement: Option<String>,
     norm: &crate::eol::Normalized,
     orig_src: &str,
 ) -> Finding {
@@ -181,6 +173,7 @@ fn make_finding(
         span: Span::new(o_start, o_end),
         excerpt,
         url: group.url.clone(),
+        replacement,
     }
 }
 

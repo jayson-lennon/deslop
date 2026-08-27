@@ -93,4 +93,6 @@ pub struct Finding {
     pub excerpt: String,
     /// `(text, href)` reference note rendered after the diagnostic body.
     pub url: Option<(String, String)>,
+    /// Vocab-only mechanical rewrite; `None` = report-only.
+    pub replacement: Option<String>,
 }
