@@ -326,3 +326,45 @@ regex = 'delve'
     // Then no fixture failures exist.
     assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
 }
+
+#[test]
+fn advice_with_unknown_placeholder_is_refused() {
+    // Given a vocab entry whose advice references a bogus placeholder.
+    let bad = r#"
+id-base = "BAD-TEMPLATE"
+kind = "vocab"
+tier = 2
+category = "c"
+
+[fixtures]
+must_match = ["delve into it"]
+
+[[entries]]
+slug = "delve"
+terms = ["delve"]
+advice = 'replace {bogus} please'
+"#;
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "builtin/pack/bad.toml", bad);
+
+    let cfg = Config {
+        packs: deslop_core::config::Packs {
+            builtin: vec!["pack".into()],
+            extra_paths: vec![],
+        },
+        ..Config::default()
+    };
+
+    // When loading.
+    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+
+    // Then the template error is recorded naming the field.
+    assert!(
+        loaded
+            .errors
+            .iter()
+            .any(|e| e.message.contains("advice template") && e.message.contains("{bogus}")),
+        "{:?}",
+        loaded.errors
+    );
+}

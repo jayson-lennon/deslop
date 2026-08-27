@@ -133,6 +133,36 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
     if group.kind == "metric" {
         return;
     }
+    // Template validation: placeholders must fit the kind's grammar.
+    for entry in &group.entries {
+        let slug = entry
+            .slug
+            .clone()
+            .or_else(|| entry.id.clone())
+            .unwrap_or_default();
+        let allowed: Vec<String> = if group.kind == "pattern" {
+            entry
+                .regex
+                .as_deref()
+                .and_then(|src| fancy_regex::Regex::new(src).ok())
+                .map(|re| re.capture_names().flatten().map(String::from).collect())
+                .unwrap_or_default()
+        } else {
+            group_allowed_for(&group.kind)
+                .iter()
+                .map(|s| (*s).to_owned())
+                .collect()
+        };
+        let allowed: Vec<&str> = allowed.iter().map(String::as_str).collect();
+        for (field, template) in [("advice", &entry.advice), ("message", &entry.message)] {
+            if let Some(text) = template {
+                if let Err(e) = crate::rule::template::validate(text, &allowed) {
+                    push(None, format!("entry `{slug}` {field} template: {e}"));
+                }
+            }
+        }
+    }
+
     // Fixture gate: every entry must prove hit/miss behavior.
     for failure in crate::rule::fixtures::evaluate(group) {
         push(
@@ -282,4 +312,14 @@ fn load_notice(dir: &Utf8Path) -> Option<crate::rule::notice::Notice> {
     let path = dir.join("NOTICE.toml");
     let text = std::fs::read_to_string(&path).ok()?;
     crate::rule::notice::Notice::parse(&text).ok()
+}
+
+/// Allowed template placeholders for a non-pattern kind.
+fn group_allowed_for(kind: &str) -> &'static [&'static str] {
+    match kind {
+        "vocab" => &["match"],
+        "literal-ban" => &["match"],
+        "metric" => &["value", "per_words"],
+        _ => &[],
+    }
 }

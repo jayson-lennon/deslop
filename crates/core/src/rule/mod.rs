@@ -5,6 +5,7 @@ pub mod loader;
 pub mod notice;
 pub mod policy;
 pub mod schema;
+pub mod template;
 
 use crate::finding::Tier;
 
