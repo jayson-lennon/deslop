@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+    branches: [trunk, main, master]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  # Flip to "1" in phase 6 when every enabled entry carries advice.
+  DESLOP_REQUIRE_ADVICE: ""
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - name: fmt
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: test
+        run: cargo test --workspace --all-targets
+
+      # Enabled in phase 4 (converter parity) and phase 6 (advice gate).
+      - name: convert parity check
+        run: cargo run -p deslop-convert -- --check
+        continue-on-error: true
+
+      - name: pack validation (advice gate)
+        run: cargo run -p deslop -- rules --json > /dev/null
+        continue-on-error: true

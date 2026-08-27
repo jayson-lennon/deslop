@@ -1,0 +1,23 @@
+[package]
+name = "deslop-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Core engine for deslop: dynamic TOML rules, markdown-aware scanning, findings"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+fancy-regex = { workspace = true }
+regex = { workspace = true }
+pulldown-cmark = { workspace = true }
+wherror = { workspace = true }
+error-stack = { workspace = true }
+walkdir = { workspace = true }
+camino = { workspace = true }
+
+[dev-dependencies]
+rstest = { workspace = true }
+tempfile = { workspace = true }

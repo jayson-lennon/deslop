@@ -1,0 +1,25 @@
+[package]
+name = "deslop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "deslop: a linter for AI-writing tells, with dynamic TOML rules"
+
+[[bin]]
+name = "deslop"
+path = "src/main.rs"
+
+[dependencies]
+deslop-core = { workspace = true }
+clap = { workspace = true }
+serde_json = { workspace = true }
+codespan-reporting = { workspace = true }
+termcolor = { workspace = true }
+wherror = { workspace = true }
+error-stack = { workspace = true }
+camino = { workspace = true }
+
+[dev-dependencies]
+assert_cmd = { workspace = true }
+tempfile = { workspace = true }

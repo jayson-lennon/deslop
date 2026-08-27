@@ -1,0 +1,20 @@
+[package]
+name = "deslop-convert"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "One-time migration tool: third-party rule sources -> rules/builtin/** (also used by CI --check)"
+
+[dependencies]
+deslop-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+walkdir = { workspace = true }
+camino = { workspace = true }
+wherror = { workspace = true }
+error-stack = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

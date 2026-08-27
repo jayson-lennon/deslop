@@ -1,0 +1,13 @@
+//! Scanning pipeline: regions -> route by kind -> findings.
+//!
+//! Orchestration order matters: normalize -> mask -> scan -> assemble -> sort.
+
+use crate::config::Config;
+use crate::doc::Doc;
+use crate::finding::Finding;
+use crate::rule::RuleSet;
+
+/// Scan one document against a loaded ruleset.
+pub fn scan(_doc: &Doc, _rules: &RuleSet, _cfg: &Config) -> Vec<Finding> {
+    Vec::new()
+}
