@@ -6,7 +6,7 @@
 use crate::config::Config;
 use crate::finding::Tier;
 use crate::rule::RuleSet;
-use crate::rule::schema::GroupToml;
+use crate::rule::schema::{EntryToml, GroupToml};
 use camino::Utf8Path;
 
 /// One validation failure, tied to the file (and where possible, line).
@@ -224,7 +224,15 @@ pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
                     continue;
                 }
             };
-            parse_group_file(&file, &text, notice.as_ref(), &mut seen_ids, &mut loaded);
+            let mut entry_ids = std::collections::BTreeMap::new();
+            parse_group_file(
+                &file,
+                &text,
+                notice.as_ref(),
+                &mut seen_ids,
+                &mut entry_ids,
+                &mut loaded,
+            );
         }
     }
     loaded
@@ -235,8 +243,11 @@ fn parse_group_file(
     text: &str,
     notice: Option<&crate::rule::notice::Notice>,
     seen_ids: &mut std::collections::BTreeMap<String, String>,
+    seen_entry_ids: &mut std::collections::BTreeMap<String, ()>,
     loaded: &mut Loaded,
 ) {
+    let mut active_entry_counter = 0usize;
+
     let parsed: Result<GroupToml, toml::de::Error> = toml::from_str(text);
 
     let group = match parsed {
@@ -294,23 +305,49 @@ fn parse_group_file(
         seen_ids.insert(group.id_base.clone(), path.to_string());
     }
 
-    let tier = crate::finding::Tier::from_number(group.tier);
+    let group_enabled = group.enabled.unwrap_or(true);
+
+    // Build ACTIVE entries with compiled matchers; compile failures were
+    // recorded above, so failure here just skips that entry silently.
+    let mut active_entries = Vec::new();
+    for entry in &group.entries {
+        let slug = entry_slug(entry, &group, active_entry_counter);
+        let id = format!("{}#{slug}", group.id_base);
+        if seen_entry_ids.insert(id.clone(), ()).is_some() {
+            push_error(loaded, path, None, format!("duplicate entry id `{id}`"));
+            continue;
+        }
+        if !group_enabled || !entry_enabled(entry) {
+            continue;
+        }
+        if let Ok(matcher) = crate::rule::fixtures::Matcher::build(&group.kind, entry) {
+            active_entries.push(crate::rule::ActiveEntry {
+                id,
+                message_override: entry.message.clone(),
+                advice_override: entry.advice.clone(),
+                matcher,
+                replacement: entry.replacement.clone(),
+            });
+        }
+    }
+
     loaded.rule_set.groups.push(crate::rule::RuleGroup {
         id_base: group.id_base.clone(),
-        tier: tier.unwrap_or(crate::finding::Tier::Tell),
-        kind: kind_of(&group),
+        tier: group.tier,
+        kind: group.kind.clone(),
+        category: group.category.clone(),
+        message: group.message.clone(),
+        advice: group.advice.clone(),
+        enabled: group_enabled,
+        scope: group
+            .scope
+            .clone()
+            .unwrap_or_else(|| default_scope(&group.kind)),
+        url: group.url.as_ref().map(|u| (u.text.clone(), u.href.clone())),
+        entries: active_entries,
     });
-}
 
-/// Map the raw kind string to the typed enum (defaults to a permissive
-/// placeholder when invalid; the error was already recorded).
-fn kind_of(group: &GroupToml) -> crate::rule::Kind {
-    match group.kind.as_str() {
-        "pattern" => crate::rule::Kind::Pattern(crate::rule::PatternBody::default()),
-        "literal-ban" => crate::rule::Kind::LiteralBan(crate::rule::LitBody::default()),
-        "metric" => crate::rule::Kind::Metric(crate::rule::MetricBody::default()),
-        _ => crate::rule::Kind::Vocab(crate::rule::VocabBody::default()),
-    }
+    active_entry_counter += 1;
 }
 
 /// Byte offset -> 1-based line number.
@@ -337,4 +374,36 @@ fn group_allowed_for(kind: &str) -> &'static [&'static str] {
         "metric" => &["value", "per_words"],
         _ => &[],
     }
+}
+
+fn entry_slug(entry: &EntryToml, group: &GroupToml, counter: usize) -> String {
+    entry
+        .slug
+        .clone()
+        .or_else(|| entry.id.clone())
+        .unwrap_or_else(|| format!("e{}-{counter}", group.id_base.to_lowercase()))
+}
+
+fn entry_enabled(entry: &EntryToml) -> bool {
+    entry.advice.is_some() || true // enabled always v1; advice gate separate
+}
+
+fn default_scope(kind: &str) -> String {
+    match kind {
+        "literal-ban" => "anywhere".into(),
+        _ => "prose".into(),
+    }
+}
+
+pub(crate) fn push_error(
+    loaded: &mut Loaded,
+    path: &Utf8Path,
+    line: Option<usize>,
+    message: String,
+) {
+    loaded.errors.push(LoadError {
+        path: path.to_string(),
+        line,
+        message,
+    });
 }

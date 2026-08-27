@@ -7,7 +7,6 @@
 use crate::rule::schema::{EntryToml, GroupToml};
 
 /// Compiled per-entry matcher.
-#[derive(Debug)]
 pub enum Matcher {
     /// Any term present as a whole-word, case-insensitive match.
     Vocab {
@@ -18,6 +17,43 @@ pub enum Matcher {
     Pattern(fancy_regex::Regex),
     /// Plain case-insensitive substring hunt.
     Literal { needles: Vec<String> },
+}
+
+impl Clone for Matcher {
+    fn clone(&self) -> Self {
+        match self {
+            Matcher::Vocab {
+                terms,
+                word_boundary,
+            } => Matcher::Vocab {
+                terms: terms.clone(),
+                word_boundary: *word_boundary,
+            },
+            Matcher::Pattern(re) => {
+                Matcher::Pattern(fancy_regex::Regex::new(re.as_str()).unwrap_or_else(|_| {
+                    // Compiled once already; unreachable in practice.
+                    fancy_regex::Regex::new(r"(?!)").expect("never fails")
+                }))
+            }
+            Matcher::Literal { needles } => Matcher::Literal {
+                needles: needles.clone(),
+            },
+        }
+    }
+}
+
+impl std::fmt::Debug for Matcher {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Matcher::Vocab { terms, .. } => write!(f, "Vocab({terms:?})"),
+            Matcher::Pattern(_) => write!(f, "Pattern(<compiled>)"),
+            Matcher::Literal { needles } => write!(
+                f,
+                "Literal({needies_len} needles)",
+                needies_len = needles.len()
+            ),
+        }
+    }
 }
 
 impl Matcher {
