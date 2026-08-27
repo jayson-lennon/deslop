@@ -1,3 +1,3 @@
 [
-  {"rule_id":"MODERN-VOCAB-STRONG-FLAG#leverage-fix-14","kind":"vocab","tier":2,"category":"ai-vocabulary","path":"tests/fixtures/docs/seed-vocab-replacement.md","span":{"start":17,"end":25,"line":1,"col":18},"excerpt":"leverage","message":"AI-tell vocabulary","advice":"Replace \"leverage\" with its plain verb (\"use\") — nominalized business-speak is a top frequency signal in Kobak 2025"}
+  {"rule_id":"MODERN-VOCAB-STRONG-FLAG#leverage-fix-14","kind":"vocab","tier":2,"category":"ai-vocabulary","path":"tests/fixtures/docs/seed-vocab-replacement.md","span":{"start":17,"end":25,"line":1,"col":18},"excerpt":"leverage","message":"AI-tell vocabulary","replacement":"use","advice":"Replace \"leverage\" with its plain verb (\"use\") — nominalized business-speak is a top frequency signal in Kobak 2025"}
 ]

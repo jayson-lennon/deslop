@@ -81,7 +81,11 @@ pub fn render_json(filed: &[FiledFinding<'_>], out: &mut dyn Write) -> std::io::
         )?;
         write!(
             out,
-            "\"advice\":{}",
+            "\"replacement\":{},\"advice\":{}",
+            match &f.finding.replacement {
+                Some(r) => quote(r),
+                None => "null".to_owned(),
+            },
             match &f.finding.advice {
                 Some(a) => quote(a),
                 None => "null".to_owned(),
