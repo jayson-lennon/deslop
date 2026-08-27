@@ -21,7 +21,7 @@ enabled = true
 must_match = ["we must delve deeper"]
 
 [[entries]]
-slug = "delve"
+slug = "SLUG-X"
 terms = ["delve"]
 "#;
 
@@ -115,11 +115,20 @@ fn missing_slug_and_missing_stat_accumulate_together() {
 }
 
 #[test]
-fn duplicate_group_ids_across_files_are_flagged() {
-    // Given two files sharing an id-base.
+fn duplicate_group_ids_across_files_share_one_pack_legally() {
+    // Given two files in the SAME pack sharing an id-base, load succeeds;
+    // cross-pack collisions are the error (chunked vocab packs rely on this).
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/one.toml", GOOD_VOCAB);
-    write(tmp.path(), "rules/builtin/pack/two.toml", GOOD_VOCAB);
+    write(
+        tmp.path(),
+        "rules/builtin/pack/one.toml",
+        &GOOD_VOCAB.replace("SLUG-X", "a"),
+    );
+    write(
+        tmp.path(),
+        "rules/builtin/pack/two.toml",
+        &GOOD_VOCAB.replace("SLUG-X", "b"),
+    );
 
     let cfg = Config {
         packs: deslop_core::config::Packs {
@@ -132,12 +141,41 @@ fn duplicate_group_ids_across_files_are_flagged() {
     // When loading.
     let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
 
-    // Then a duplicate-id error appears pointing at the second file.
+    // Then no group-collision error appears; both groups are active.
     assert!(
         loaded
             .errors
             .iter()
-            .any(|e| e.message.contains("duplicate group id-base") && e.path.ends_with("two.toml")),
+            .all(|e| !e.message.contains("another pack")),
+        "errors: {:?}",
+        loaded.errors
+    );
+    assert_eq!(loaded.rule_set.groups.len(), 2);
+}
+
+#[test]
+fn duplicate_group_ids_across_packs_are_flagged() {
+    // Given the same id-base in two different packs.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "rules/builtin/pack-a/one.toml", GOOD_VOCAB);
+    write(tmp.path(), "rules/builtin/pack-b/two.toml", GOOD_VOCAB);
+
+    let cfg = Config {
+        packs: deslop_core::config::Packs {
+            builtin: vec!["pack-a".into(), "pack-b".into()],
+            extra_paths: vec![],
+        },
+        ..Config::default()
+    };
+
+    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+
+    // Then a cross-pack collision error appears.
+    assert!(
+        loaded
+            .errors
+            .iter()
+            .any(|e| e.message.contains("already defined in another pack")),
         "errors: {:?}",
         loaded.errors
     );
@@ -157,7 +195,7 @@ commit = "aaaa1111bbbb2222cccc3333dddd4444eeee5555"
 must_match = ["delve now"]
 
 [[entries]]
-slug = "delve"
+slug = "SLUG-X"
 terms = ["delve"]
 "#;
 

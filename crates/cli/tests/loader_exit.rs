@@ -23,6 +23,16 @@ fn cfg_for(tmp: &std::path::Path, pack: &str) -> String {
     cfg_path.to_string_lossy().into_owned()
 }
 
+fn cfg_for_two(tmp: &std::path::Path, pack_a: &str, pack_b: &str) -> String {
+    let cfg_path = tmp.join("cfg2.toml");
+    std::fs::write(
+        &cfg_path,
+        format!("[packs]\nbuiltin = [\"{pack_a}\", \"{pack_b}\"]\nextra_paths = []\n"),
+    )
+    .expect("cfg");
+    cfg_path.to_string_lossy().into_owned()
+}
+
 const OK_RULE: &str = r#"
 id-base = "OK-VOCAB"
 kind = "vocab"
@@ -112,8 +122,34 @@ terms = ["delve"]
 }
 
 #[test]
-fn duplicate_group_ids_in_two_files_exit_two() {
-    // Given the same id-base in two files.
+fn duplicate_group_ids_across_packs_exit_two() {
+    // Given the same id-base in two DIFFERENT packs.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "rules/builtin/pack-a/a.toml", OK_RULE);
+    write(tmp.path(), "rules/builtin/pack-b/b.toml", OK_RULE);
+    let cfg = cfg_for_two(tmp.path(), "pack-a", "pack-b");
+
+    // When linting.
+    let output = deslop()
+        .arg("--config")
+        .arg(&cfg)
+        .arg(".")
+        .current_dir(tmp.path())
+        .output()
+        .expect("runs");
+
+    // Then exit 2 flags the collision.
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("already defined in another pack"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn duplicate_entry_ids_within_pack_exit_two() {
+    // Given two same-pack files sharing BOTH id-base and entry slug.
     let tmp = tempfile::tempdir().expect("tempdir");
     write(tmp.path(), "rules/builtin/pack/a.toml", OK_RULE);
     write(tmp.path(), "rules/builtin/pack/b.toml", OK_RULE);
@@ -128,10 +164,10 @@ fn duplicate_group_ids_in_two_files_exit_two() {
         .output()
         .expect("runs");
 
-    // Then exit 2 flags the duplicate group id.
+    // Then exit 2 flags the duplicated composite entry id.
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("duplicate group id-base"), "{stderr}");
+    assert!(stderr.contains("duplicate entry id"), "{stderr}");
 }
 
 #[test]

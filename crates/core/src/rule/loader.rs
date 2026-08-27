@@ -204,8 +204,10 @@ pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
         pack_dirs.push(extra.clone());
     }
 
-    // Entry-id uniqueness spans the whole effective ruleset, not one file.
+    // Group and ENTRY id uniqueness span the whole effective ruleset,
+    // not one file.
     let mut seen_ids = std::collections::BTreeMap::new();
+    let mut entry_ids = std::collections::BTreeMap::new();
 
     for dir in pack_dirs {
         let notice = load_notice(&dir);
@@ -224,7 +226,6 @@ pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
                     continue;
                 }
             };
-            let mut entry_ids = std::collections::BTreeMap::new();
             parse_group_file(
                 &file,
                 &text,
@@ -291,18 +292,29 @@ fn parse_group_file(
         }
     }
 
-    // Detect cross-file duplicate GROUP ids by recording id_base -> first path.
-    if let Some(first) = seen_ids.get(&group.id_base) {
-        loaded.errors.push(LoadError {
-            path: path.to_string(),
-            line: None,
-            message: format!(
-                "duplicate group id-base `{}` (first defined in {first})",
-                group.id_base
-            ),
-        });
-    } else {
-        seen_ids.insert(group.id_base.clone(), path.to_string());
+    // Detect cross-PACK duplicate GROUP ids. Chunked files within one pack
+    // may share an id_base (their entries differ); different packs may not.
+    let pack_of = |p: &str| {
+        p.rsplit_once('/')
+            .map(|(dir, _)| dir.to_string())
+            .unwrap_or_default()
+    };
+    match seen_ids.get(&group.id_base) {
+        Some(first) if pack_of(first) != pack_of(path.as_str()) => {
+            loaded.errors.push(LoadError {
+                path: path.to_string(),
+                line: None,
+                message: format!(
+                    "group id-base `{}` already defined in another pack ({first})",
+                    group.id_base
+                ),
+            });
+        }
+        _ => {
+            seen_ids
+                .entry(group.id_base.clone())
+                .or_insert_with(|| path.to_string());
+        }
     }
 
     let group_enabled = group.enabled.unwrap_or(true);

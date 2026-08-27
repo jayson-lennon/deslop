@@ -1,7 +1,198 @@
 //! deslop-convert: dev-time migrator from `third-party/*` sources to
 //! committed TOML packs under `rules/builtin/**`.
-pub mod notice_gen;
+//!
+//! Deterministic: same third-party snapshots always produce byte-identical
+//! output, which is what CI parity checks assert.
+
+mod aatell;
+mod emit;
+mod merge;
+mod notice_gen;
+mod slop_json;
+mod stopslop;
+mod unslop_map;
+#[doc(hidden)]
+pub mod wsc_ts;
+
+use std::path::Path;
+
+use merge::MergedTerm;
 
 fn main() {
-    todo!("phase 4: converter dispatch + --check parity mode");
+    let args: Vec<String> = std::env::args().collect();
+    let check = args.iter().any(|a| a == "--check");
+    if let Err(e) = run(check) {
+        eprintln!("deslop-convert: {e}");
+        std::process::exit(1);
+    }
+}
+
+const MIN_VOCAB_RAW: usize = 480;
+const MIN_VOCAB_UNIQUE: usize = 400;
+
+fn run(check: bool) -> Result<(), String> {
+    let root = Path::new("third-party");
+    let mut raw = Vec::new();
+
+    let slop_terms =
+        slop_json::read(&root.join("anti-ai-slop/skill/scripts/anti_ai_slop/patterns.json"))?;
+    println!("anti-ai-slop: {}", slop_terms.len());
+    raw.extend(slop_terms);
+
+    let wsc_src = read_file(&root.join("wsc/src/core/words.ts"))?;
+    let wsc_words = wsc_ts::vocabulary(&wsc_src);
+    let wsc_phrases = wsc_ts::phrases(&wsc_src);
+    println!(
+        "wsc: {} words + {} phrases",
+        wsc_words.len(),
+        wsc_phrases.len()
+    );
+    raw.extend(wsc_words);
+    raw.extend(wsc_phrases);
+
+    let aatell_terms = aatell::read(&root.join("anti-ai-tell/data/vocabulary.json"))?;
+    println!("anti-ai-tell: {}", aatell_terms.len());
+    raw.extend(aatell_terms);
+
+    let stopslop_terms = stopslop::read(&root.join("stop-slop/references/phrases.md"))?;
+    println!("stop-slop: {}", stopslop_terms.len());
+    raw.extend(stopslop_terms);
+
+    let raw_count = raw.len();
+    let merged = merge::merge_vocab(raw);
+    if merged.len() < MIN_VOCAB_UNIQUE || raw_count < MIN_VOCAB_RAW {
+        return Err(format!(
+            "minimum-count assertion failed: {raw_count} raw (min {MIN_VOCAB_RAW}), {} unique (min {MIN_VOCAB_UNIQUE})",
+            merged.len()
+        ));
+    }
+    println!("vocab: {raw_count} raw -> {} unique", merged.len());
+
+    let patterns = wsc_ts::patterns(&wsc_src);
+    println!("wsc patterns: {}", patterns.len());
+
+    // unslop byte-map: verified readable, used later for normalization
+    // parity tests (phase 5 goldens).
+    let unslop_rules = unslop_map::read(&root.join("unslop/src/main.zig"))?;
+    if unslop_rules.len() < 4 {
+        return Err("unslop byte-map extraction came up short".into());
+    }
+    let byte_index = unslop_map::index(&unslop_rules);
+    println!("unslop substitution rules: {}", byte_index.len());
+
+    emit_all(&merged, &patterns)?;
+
+    if check {
+        verify_parity()?;
+    }
+    Ok(())
+}
+
+fn read_file(p: &Path) -> Result<String, String> {
+    std::fs::read_to_string(p).map_err(|e| format!("{}: {e}", p.display()))
+}
+
+/// Emit every generated pack + NOTICE.
+fn emit_all(terms: &[MergedTerm], patterns: &[wsc_ts::TsPattern]) -> Result<(), String> {
+    let rules = Path::new("rules/builtin");
+
+    // modern-vocabulary: deterministic chunked files.
+    let pack = rules.join("modern-vocabulary");
+    std::fs::create_dir_all(&pack).map_err(|e| e.to_string())?;
+    clear_generated(&pack)?;
+    for (i, chunk) in terms.chunks(200).enumerate() {
+        let name = format!("vocab-{}.toml", i + 1);
+        let body = emit::vocab_group(
+            i,
+            "MODERN-VOCAB",
+            "ai-vocabulary",
+            Some("AI-tell vocabulary; state the idea in your own plain words"),
+            chunk,
+        );
+        std::fs::write(pack.join(&name), body).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(
+        pack.join("NOTICE.toml"),
+        notice_gen::render(&["anti-ai-slop", "wsc", "anti-ai-tell", "stop-slop"]),
+    )
+    .map_err(|e| e.to_string())?;
+
+    // prose-constructions: one pattern file per wsc rule.
+    let ppack = rules.join("prose-constructions");
+    std::fs::create_dir_all(&ppack).map_err(|e| e.to_string())?;
+    clear_generated(&ppack)?;
+    for pat in patterns {
+        let fname = format!("{}.toml", emit::slugify(&pat.name));
+        std::fs::write(ppack.join(fname), pattern_group(pat)).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(ppack.join("NOTICE.toml"), notice_gen::render(&["wsc"]))
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+fn clear_generated(pack: &Path) -> Result<(), String> {
+    for entry in std::fs::read_dir(pack).map_err(|e| e.to_string())? {
+        let path = entry.map_err(|e| e.to_string())?.path();
+        if path.extension().is_some_and(|x| x == "toml") {
+            std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+fn pattern_group(pat: &wsc_ts::TsPattern) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = writeln!(out, "# Generated by crates/convert — do not edit by hand.");
+    let _ = writeln!(
+        out,
+        "id-base = \"PROSE-PAT-{}\"",
+        emit::slugify(&pat.name).to_uppercase()
+    );
+    let _ = writeln!(out, "kind = \"pattern\"");
+    let _ = writeln!(out, "tier = 2");
+    let _ = writeln!(out, "category = \"{}\"", pat.name);
+    let _ = writeln!(out);
+    let _ = writeln!(out, "[fixtures]");
+    let _ = writeln!(out, "must_match = [] # TODO seed from upstream test corpus");
+    let _ = writeln!(out, "must_not_match = []");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "[[entries]]");
+    let _ = writeln!(out, "slug = \"main\"");
+    let _ = writeln!(out, "regex = {}", toml_lit_multiline(&pat.pattern));
+    let _ = writeln!(
+        out,
+        "advice = \"Rewrite the construction plainly (wsc: {})\"",
+        escape_double(&pat.reason)
+    );
+    out
+}
+
+fn escape_double(s: &str) -> String {
+    s.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+}
+
+fn toml_lit_multiline(s: &str) -> String {
+    format!("'''\n{}\n'''", s.replace("'''", "'\\u0027\\u0027\\u0027'"))
+}
+
+/// Byte-compare emitted output vs committed packs. Because emission writes
+/// relative ./rules paths, parity is proven by regenerating into a clean
+/// checkout in CI and asserting empty `git status --porcelain` on rules/.
+fn verify_parity() -> Result<(), String> {
+    let out = std::process::Command::new("git")
+        .args(["status", "--porcelain", "rules/"])
+        .output()
+        .map_err(|e| e.to_string())?;
+    let status = String::from_utf8_lossy(&out.stdout);
+    if status.trim().is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "parity check FAILED — committed rules/ differ from regenerated output:\n{status}"
+        ))
+    }
 }
