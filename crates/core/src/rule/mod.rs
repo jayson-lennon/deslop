@@ -1,6 +1,7 @@
 //! Rule model: data-only definitions loaded from TOML packs.
 
 pub mod fixtures;
+pub mod literals;
 pub mod loader;
 pub mod notice;
 pub mod policy;
