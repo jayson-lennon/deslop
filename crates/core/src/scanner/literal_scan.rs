@@ -41,7 +41,7 @@ pub fn scan(map: &RegionMap, compiled: &[(String, Vec<Segment>)]) -> Vec<Literal
         }
     }
     hits.sort_by_key(|h| (h.start, h.end));
-    hits.dedup_by_key(|h| (h.start.clone(), h.end.clone()));
+    hits.dedup_by_key(|h| (h.start, h.end));
     hits
 }
 
