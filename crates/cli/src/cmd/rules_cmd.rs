@@ -79,6 +79,11 @@ impl RulesCmd<'_> {
     }
 }
 
+/// Loader access for other commands; pub(crate) within the binary.
+pub fn load_for_lint(cfg: &deslop_core::config::Config) -> deslop_core::rule::loader::Loaded {
+    load_rules(cfg)
+}
+
 fn load_rules(cfg: &deslop_core::config::Config) -> deslop_core::rule::loader::Loaded {
     // Builtin names resolve under ./rules; extra_paths are absolute or
     // cwd-relative already.

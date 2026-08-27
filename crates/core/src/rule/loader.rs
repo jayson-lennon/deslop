@@ -154,6 +154,18 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
                 .collect()
         };
         let allowed: Vec<&str> = allowed.iter().map(String::as_str).collect();
+
+        // Pattern entries must compile (policy + engine) to load.
+        if group.kind == "pattern" {
+            if let Some(src) = &entry.regex {
+                if let Err(violation) = crate::rule::policy::check(src) {
+                    push(None, format!("entry `{slug}` regex policy: {violation}"));
+                }
+                if let Err(e) = fancy_regex::Regex::new(src) {
+                    push(None, format!("entry `{slug}` invalid regex: {e}"));
+                }
+            }
+        }
         for (field, template) in [("advice", &entry.advice), ("message", &entry.message)] {
             if let Some(text) = template {
                 if let Err(e) = crate::rule::template::validate(text, &allowed) {

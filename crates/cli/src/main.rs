@@ -122,8 +122,17 @@ fn run(cli: Cli) -> i32 {
         Some(Command::Fix { write: _ }) => unimplemented!("phase 5"),
         Some(Command::Init) => unimplemented!("phase 5"),
         None => {
-            let _ = (&cli.no_tier3, &cli.format, &cli.color);
-            unimplemented!("phase 3")
+            // Lint: load rules first; any load failure aborts with exit 2
+            // before a single document is scanned (spec exit precedence).
+            let loaded = cmd::rules_cmd::load_for_lint(&cfg);
+            if !loaded.errors.is_empty() {
+                for err in &loaded.errors {
+                    eprintln!("deslop: {err}");
+                }
+                return ExitCode::LoadFailure as i32;
+            }
+            let _ = (&cli.no_tier3, &cli.format, &cli.color, &loaded.rule_set);
+            unimplemented!("phase 3: scan pipeline")
         }
     }
 }
