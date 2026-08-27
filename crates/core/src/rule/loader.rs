@@ -6,7 +6,7 @@
 use crate::config::Config;
 use crate::finding::Tier;
 use crate::rule::RuleSet;
-use crate::rule::schema::{FixturesToml, GroupToml};
+use crate::rule::schema::GroupToml;
 use camino::Utf8Path;
 
 /// One validation failure, tied to the file (and where possible, line).
@@ -133,12 +133,15 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
     if group.kind == "metric" {
         return;
     }
-    check_fixtures(&group.fixtures, &mut push);
-}
-
-fn check_fixtures(fixtures: &FixturesToml, push: &mut dyn FnMut(Option<usize>, String)) {
-    if fixtures.must_match.is_empty() {
-        push(None, "[fixtures] must_match may not be empty".into());
+    // Fixture gate: every entry must prove hit/miss behavior.
+    for failure in crate::rule::fixtures::evaluate(group) {
+        push(
+            None,
+            format!(
+                "entry `{}` fixture failure: {} — sample: {:?}",
+                failure.slug, failure.problem, failure.fixture
+            ),
+        );
     }
 }
 

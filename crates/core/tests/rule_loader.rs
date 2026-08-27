@@ -250,3 +250,79 @@ fn converted_rule_without_notice_file_is_refused() {
         loaded.errors
     );
 }
+
+#[test]
+fn rule_failing_own_fixture_is_refused() {
+    // Given a rule whose must_match sample cannot hit.
+    let broken = r#"
+id-base = "BROKEN-FIXTURE"
+kind = "pattern"
+tier = 2
+category = "c"
+
+[fixtures]
+must_match = ["no keyword present here at all"]
+
+[[entries]]
+slug = "delve"
+regex = 'delve'
+"#;
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "builtin/pack/broken.toml", broken);
+
+    let cfg = Config {
+        packs: deslop_core::config::Packs {
+            builtin: vec!["pack".into()],
+            extra_paths: vec![],
+        },
+        ..Config::default()
+    };
+
+    // When loading.
+    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+
+    // Then a fixture failure is recorded naming the entry.
+    assert!(
+        loaded
+            .errors
+            .iter()
+            .any(|e| e.message.contains("fixture failure") && e.message.contains("delve")),
+        "{:?}",
+        loaded.errors
+    );
+}
+
+#[test]
+fn rule_passing_fixtures_reports_no_error() {
+    // Given the same pattern rule with a hitting positive and clean negative.
+    let good = r#"
+id-base = "GOOD-PATTERN"
+kind = "pattern"
+tier = 2
+category = "c"
+
+[fixtures]
+must_match = ["we must delve deeper"]
+must_not_match = ["studying the study of studies"]
+
+[[entries]]
+slug = "delve"
+regex = 'delve'
+"#;
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "builtin/pack/good.toml", good);
+
+    let cfg = Config {
+        packs: deslop_core::config::Packs {
+            builtin: vec!["pack".into()],
+            extra_paths: vec![],
+        },
+        ..Config::default()
+    };
+
+    // When loading.
+    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+
+    // Then no fixture failures exist.
+    assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+}
