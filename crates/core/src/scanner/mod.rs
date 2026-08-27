@@ -5,6 +5,7 @@
 pub mod literal_scan;
 pub mod regions;
 pub mod use_mention;
+pub mod vocab_scan;
 
 use crate::config::Config;
 use crate::doc::Doc;
