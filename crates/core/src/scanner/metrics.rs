@@ -150,9 +150,9 @@ pub fn term_cluster_max(
             from = end.max(at + 1);
         }
     }
-    // No hits is a valid measurement of zero (never exceeds a threshold).
+    // No terms or no hits: no measurement (nothing can exceed threshold).
     if hits.is_empty() {
-        return Some((0, ClusterHit { start: 0, end: 0 }));
+        return None;
     }
     hits.sort_unstable();
     // Window boundaries as byte ranges.
@@ -661,8 +661,8 @@ mod cluster_tests {
         let (n, hit) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
         // Then all three distinct terms count.
         assert_eq!(n, 3);
-        // And the anchor span covers the first hit word.
-        assert_eq!(&text[hit.start..hit.end], "crucial");
+        // And the anchor covers the window's final hit word.
+        assert_eq!(&text[hit.start..hit.end], "notably");
     }
 
     #[test]
@@ -685,8 +685,8 @@ mod cluster_tests {
         let (n, hit) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
         // Then no paragraph exceeds two.
         assert_eq!(n, 2);
-        // And the anchor sits in the densest paragraph's first hit.
-        assert_eq!(&text[hit.start..hit.end], "robust");
+        // And the anchor sits in the densest paragraph (earliest hit there).
+        assert_eq!(&text[hit.start..hit.end], "notably");
     }
 
     #[test]
@@ -701,13 +701,12 @@ mod cluster_tests {
     }
 
     #[test]
-    fn empty_terms_yields_none() {
-        // Given no terms configured.
+    fn no_hits_yields_no_measurement() {
+        // Given a text without any watch terms.
         // When measuring.
-        let got = term_cluster_max("crucial", &[], ClusterWindow::Paragraph);
-        // Then measurement exists but is zero (not an error).
-        assert!(got.is_some());
-        assert_eq!(got.expect("zero").0, 0);
+        let got = term_cluster_max("plain words only", &terms(), ClusterWindow::Paragraph);
+        // Then there is no measurement (and no anchor).
+        assert!(got.is_none());
     }
 
     #[test]
@@ -715,11 +714,8 @@ mod cluster_tests {
         // Given text where terms appear only as substrings of other words.
         let text = "crucially robustly";
         // When measuring.
-        let (n, hit) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
-        // Then nothing counts (word-boundary match), and the zero-anchor
-        // span is empty.
-        assert_eq!(n, 0);
-        assert_eq!(hit.start, 0);
-        assert_eq!(hit.end, 0);
+        let got = term_cluster_max(text, &terms(), ClusterWindow::Paragraph);
+        // Then nothing counts: no hits means no measurement at all.
+        assert!(got.is_none());
     }
 }
