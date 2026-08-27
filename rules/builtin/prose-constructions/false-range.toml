@@ -5,8 +5,12 @@ tier = 2
 category = "false-range"
 
 [fixtures]
-must_match = [] # TODO seed from upstream test corpus
-must_not_match = []
+must_match = [
+  "The course spans from baking basics to pastry arts, from grilling to sous-vide.",
+]
+must_not_match = [
+  "The trail runs from the parking lot to the lake and back again.",
+]
 
 [[entries]]
 slug = "main"

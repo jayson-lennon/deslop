@@ -5,8 +5,12 @@ tier = 2
 category = "pivotal-role-claim"
 
 [fixtures]
-must_match = [] # TODO seed from upstream test corpus
-must_not_match = []
+must_match = [
+  "Fiber plays a crucial role in digestive health.",
+]
+must_not_match = [
+  "The crane operator played an important cassette during the demolition.",
+]
 
 [[entries]]
 slug = "main"

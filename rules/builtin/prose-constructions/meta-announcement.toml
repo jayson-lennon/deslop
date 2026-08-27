@@ -5,8 +5,12 @@ tier = 2
 category = "meta-announcement"
 
 [fixtures]
-must_match = [] # TODO seed from upstream test corpus
-must_not_match = []
+must_match = [
+  "This article aims to explore the history of the canal system.",
+]
+must_not_match = [
+  "The professor asked the article aims to be cited properly, awkwardly.",
+]
 
 [[entries]]
 slug = "main"

@@ -5,8 +5,12 @@ tier = 2
 category = "dance-metaphor"
 
 [fixtures]
-must_match = [] # TODO seed from upstream test corpus
-must_not_match = []
+must_match = [
+  "Negotiating the treaty required a delicate dance between allies.",
+]
+must_not_match = [
+  "The critics praised the film's delicate balance of humor and dread.",
+]
 
 [[entries]]
 slug = "main"

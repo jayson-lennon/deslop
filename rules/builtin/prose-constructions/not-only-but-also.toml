@@ -5,8 +5,12 @@ tier = 2
 category = "not-only-but-also"
 
 [fixtures]
-must_match = [] # TODO seed from upstream test corpus
-must_not_match = []
+must_match = [
+  "The update is not only faster but also more stable.",
+]
+must_not_match = [
+  "She is the only child in the class who can also drive.",
+]
 
 [[entries]]
 slug = "main"

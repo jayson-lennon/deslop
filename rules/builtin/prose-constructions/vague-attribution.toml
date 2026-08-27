@@ -5,8 +5,12 @@ tier = 2
 category = "vague-attribution"
 
 [fixtures]
-must_match = [] # TODO seed from upstream test corpus
-must_not_match = []
+must_match = [
+  "Experts agree that the method works better than the control.",
+]
+must_not_match = [
+  "Dr. Maria Lane, the study's lead author, agrees the sample was small.",
+]
 
 [[entries]]
 slug = "main"

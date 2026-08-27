@@ -5,8 +5,12 @@ tier = 2
 category = "trailing-participial-analysis"
 
 [fixtures]
-must_match = [] # TODO seed from upstream test corpus
-must_not_match = []
+must_match = [
+  "The results improved by 40%, highlighting the new cache design.",
+]
+must_not_match = [
+  "The clause returned to the committee, and the highlighting of each error was manual."
+]
 
 [[entries]]
 slug = "main"

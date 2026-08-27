@@ -5,8 +5,12 @@ tier = 2
 category = "copula-puffery"
 
 [fixtures]
-must_match = [] # TODO seed from upstream test corpus
-must_not_match = []
+must_match = [
+  "The cathedral stands as a testament to medieval craft.",
+]
+must_not_match = [
+  "The report stands on the desk and serves as a reference.",
+]
 
 [[entries]]
 slug = "main"

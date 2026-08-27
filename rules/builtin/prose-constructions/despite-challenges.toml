@@ -5,8 +5,12 @@ tier = 2
 category = "despite-challenges"
 
 [fixtures]
-must_match = [] # TODO seed from upstream test corpus
-must_not_match = []
+must_match = [
+  "Despite its modest budget, the film faces challenges few blockbusters attempt.",
+]
+must_not_match = [
+  "Despite the rain, the picnic continued in good spirits.",
+]
 
 [[entries]]
 slug = "main"
