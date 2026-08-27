@@ -1,0 +1,34 @@
+# Hand-authored Tier-1 pack fragment: chatbot markup artifacts.
+# See NOTICE.toml for provenance. kind = literal-ban semantics:
+# CASE-INSENSITIVE substring except `{N}` = digits, `{{`/`}}` = braces.
+
+id-base = "ARTIFACT-LIT"
+kind = "literal-ban"
+tier = 1
+category = "gemini-artifacts"
+message = "Chatbot markup artifact"
+scope = "anywhere"
+
+[url]
+text = "Wikipedia:Signs of AI writing"
+href = "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup"
+
+[fixtures]
+must_match = [
+  "Sources: [cite: 3, 12, 13].",
+  "span[cite_start] begins",
+
+]
+
+[[entries]]
+slug = "gemini-cite"
+advice = "Replace Gemini's rendered `[cite: N]` / `[cite_start]` scaffold with a proper reference or remove it"
+terms = [
+  '[cite: {N}, {N}, {N}, {N}]',
+  '[cite: {N}, {N}, {N}]',
+  '[cite: {N}, {N}]',
+  '[cite: {N}]',
+  '[cite_start]',
+  '[cite_end]',
+
+]

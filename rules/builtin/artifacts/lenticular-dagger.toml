@@ -1,0 +1,30 @@
+# Hand-authored Tier-1 pack fragment: chatbot markup artifacts.
+# See NOTICE.toml for provenance. kind = literal-ban semantics:
+# CASE-INSENSITIVE substring except `{N}` = digits, `{{`/`}}` = braces.
+
+id-base = "ARTIFACT-LIT"
+kind = "literal-ban"
+tier = 1
+category = "deepseek-daggers"
+message = "Chatbot markup artifact"
+scope = "anywhere"
+
+[url]
+text = "Wikipedia:Signs of AI writing"
+href = "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup"
+
+[fixtures]
+must_match = [
+  "Claim one. \u2020\u2020\u2020\u2020 Claim two. \u2020\u2020\u2020\u2020",
+
+]
+
+[[entries]]
+slug = "lenticular-dagger"
+advice = "DeepSeek-style \u2020/\u2021 dagger chains left where citations should be \u2014 use real references or nothing"
+terms = [
+  '†††††',
+  '††††',
+  '[citation: {N}]',
+
+]

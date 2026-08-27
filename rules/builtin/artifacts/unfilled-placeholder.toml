@@ -1,0 +1,39 @@
+# Hand-authored Tier-1 pack fragment: chatbot markup artifacts.
+# See NOTICE.toml for provenance. kind = literal-ban semantics:
+# CASE-INSENSITIVE substring except `{N}` = digits, `{{`/`}}` = braces.
+
+id-base = "ARTIFACT-LIT"
+kind = "literal-ban"
+tier = 1
+category = "placeholder-scaffolding"
+message = "Chatbot markup artifact"
+scope = "anywhere"
+
+[url]
+text = "Wikipedia:Signs of AI writing"
+href = "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup"
+
+[fixtures]
+must_match = [
+  "|url=URL |title=untitled",
+  "[Your Name] left unsigned",
+
+]
+
+[[entries]]
+slug = "unfilled-placeholder"
+advice = "This template placeholder was never filled in ('[Your Name]', 'url=URL', 'PASTE_X_HERE', 'INSERT_X') \u2014 complete the value or delete the scaffolding line"
+terms = [
+  '[your name]',
+  '[client name]',
+  '[company name]',
+  '[insert {N} words]',
+  'url=url ',
+  'url=paste_spotify_track_url_here',
+  'title=title goes here',
+  'paste_{N}_word_description_here',
+  'insert_meta_description_here',
+  '<insert here>',
+  'lorem ipsum dolor sit amet, consectetur adipiscing elit',
+
+]

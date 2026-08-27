@@ -236,6 +236,11 @@ pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
             );
         }
     }
+    // Deterministic listing order: by id-base then file-derived insertion.
+    loaded
+        .rule_set
+        .groups
+        .sort_by(|a, b| a.id_base.cmp(&b.id_base));
     loaded
 }
 
