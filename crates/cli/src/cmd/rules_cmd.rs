@@ -99,20 +99,32 @@ fn load_rules(cfg: &deslop_core::config::Config) -> deslop_core::rule::loader::L
 }
 
 fn flatten(rule_set: &deslop_core::rule::RuleSet) -> Vec<RuleRow> {
-    rule_set
-        .groups
-        .iter()
-        .flat_map(|g| {
-            g.entries.iter().map(move |e| RuleRow {
-                id: e.id.clone(),
-                tier: g.tier,
-                kind: g.kind.clone(),
-                category: g.category.clone(),
-                enabled: g.enabled,
-                has_advice: e.advice_override.is_some() || g.advice.is_some(),
-            })
-        })
-        .collect()
+    let mut rows = Vec::new();
+    for group in &rule_set.groups {
+        // Metric rules live at group level (no entries).
+        if group.entries.is_empty() {
+            rows.push(RuleRow {
+                id: group.id_base.clone(),
+                tier: group.tier,
+                kind: group.kind.clone(),
+                category: group.category.clone(),
+                enabled: group.enabled,
+                has_advice: group.advice.is_some(),
+            });
+            continue;
+        }
+        for entry in &group.entries {
+            rows.push(RuleRow {
+                id: entry.id.clone(),
+                tier: group.tier,
+                kind: group.kind.clone(),
+                category: group.category.clone(),
+                enabled: group.enabled,
+                has_advice: entry.advice_override.is_some() || group.advice.is_some(),
+            });
+        }
+    }
+    rows
 }
 
 fn render_json(rows: &[RuleRow], out: &mut impl std::io::Write) {

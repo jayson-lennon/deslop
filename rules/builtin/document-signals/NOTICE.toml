@@ -1,0 +1,15 @@
+# NOTICE for rules/builtin/document-signals
+#
+# Hand-authored pack: thresholds derived from the thresholds table in the
+# deslop spec, cross-checked against Wikipedia:Signs of AI writing's
+# style-section guidance (CC BY-SA 4.0; no text copied).
+
+[[origin]]
+repo = "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing"
+commit = "lore-version-2025"
+license = "CC-BY-SA-4.0"
+
+[[origin]]
+repo = "https://github.com/MikkoParkkola/anti-ai-tell"
+commit = "c7ab8a388228587359c626e929052ce291435fd2"
+license = "MIT"

@@ -59,11 +59,17 @@ impl std::fmt::Debug for Matcher {
 impl Matcher {
     /// Build from an entry within its group kind context.
     ///
+    /// Metric kinds carry their logic at GROUP level; a sentinel matcher is
+    /// returned so loaders can treat metric groups uniformly.
+    ///
     /// # Errors
     ///
     /// Pattern entries whose regex fails to compile return the engine error.
     pub fn build(kind: &str, entry: &EntryToml) -> Result<Matcher, String> {
         match kind {
+            "metric" => Ok(Matcher::Literal {
+                needles: Vec::new(),
+            }),
             "pattern" => {
                 let source = entry
                     .regex

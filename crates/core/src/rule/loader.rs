@@ -348,6 +348,10 @@ fn parse_group_file(
         }
     }
 
+    let has_group_level_rule = group.kind == "metric";
+    if active_entries.is_empty() && !has_group_level_rule {
+        return;
+    }
     loaded.rule_set.groups.push(crate::rule::RuleGroup {
         id_base: group.id_base.clone(),
         tier: group.tier,

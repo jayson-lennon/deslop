@@ -1,0 +1,26 @@
+# Hand-authored Tier-3 metric rule: em-dash-rate.
+# Thresholds marked `# TODO tune` are provisional; phase-6 triage tunes them.
+# Floors (metrics.rs): <250 words skips ratio stats; <20 quotes skips the
+# quote ratio; <6 sentences skips sent_len_cv.
+
+id-base = "DOC-METRIC-EM-DASH-RATE"
+kind = "metric"
+tier = 3
+category = "document-signals"
+message = "Em-dash density {value} per {per_words} words"
+advice = "Em-dash density {value}/1000 words exceeds conversational norms — swap most for commas, parentheses, or colons (# TODO tune)"
+scope = "anywhere"
+
+stat = "em_dash_rate"
+per_words = 1000
+threshold_gt = 6.0
+
+[url]
+text = "Wikipedia:Signs of AI writing § Style"
+href = "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style"
+
+
+[fixtures]
+must_match = []   # metric rules are aggregate-only; fixture eval exempt
+must_not_match = []
+
