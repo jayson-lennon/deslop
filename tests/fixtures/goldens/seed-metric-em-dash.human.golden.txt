@@ -1,0 +1,11 @@
+note[DOC-METRIC-EM-DASH-RATE]: 
+  ┌─ tests/fixtures/docs/seed-metric-em-dash.md:1:1
+  │
+1 │ # Notes
+  │ ^
+  │ │
+  │ Em-dash density 13.4 per 1000 words
+  │ help: Em-dash density 13.4/1000 words exceeds conversational norms — swap most for commas, parentheses, or colons (# TODO tune)
+  │
+  = see: Wikipedia:Signs of AI writing § Style — https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style
+

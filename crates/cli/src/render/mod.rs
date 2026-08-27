@@ -14,6 +14,20 @@ pub struct FiledFinding<'a> {
     pub finding: &'a deslop_core::finding::Finding,
 }
 
+/// 1-based char column for a byte offset within its line (shared by the
+/// JSON and GitHub formatters so both count chars identically).
+pub(crate) fn line_col(src: &str, offset: usize) -> (usize, usize) {
+    let clamped = offset.min(src.len());
+    let prefix = &src.as_bytes()[..clamped];
+    let line_start = prefix
+        .iter()
+        .rposition(|b| *b == b'\n')
+        .map_or(0, |pos| pos + 1);
+    let line = prefix.iter().filter(|b| **b == b'\n').count() + 1;
+    let col = src[line_start..clamped].chars().count() + 1;
+    (line, col)
+}
+
 /// Render findings in the configured format.
 ///
 /// # Errors

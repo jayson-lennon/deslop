@@ -124,7 +124,86 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
         }
     }
 
+    metric_findings(src, text, &map, rules, settings, &norm, &mut findings);
+
     sort_findings(findings)
+}
+
+/// Document-level stats -> one finding per crossed threshold (Tier 3).
+/// Anchored near the densest spot for the stat where sensible; em-dash-rate
+/// anchors at its densest line, others anchor at document start.
+fn metric_findings(
+    orig_src: &str,
+    norm_text: &str,
+    map: &regions::RegionMap,
+    rules: &RuleSet,
+    settings: &LintSettings,
+    norm: &crate::eol::Normalized,
+    findings: &mut Vec<Finding>,
+) {
+    let Some((_, prose)) = metrics::visible_prose(norm_text, map) else {
+        return;
+    };
+    let heading_ranges = metrics::scope_ranges(map, regions::Scope::is_heading_like);
+    let bold_spans = metrics::bold_ranges(map);
+    let list_items = metrics::list_item_ranges(map);
+    let inputs = metrics::Inputs {
+        prose: &prose,
+        heading_ranges: &heading_ranges,
+        bold_spans: &bold_spans,
+        list_items: &list_items,
+    };
+    let stats = metrics::compute(&inputs);
+
+    for group in &rules.groups {
+        if !group.enabled {
+            continue;
+        }
+        if let Some(max) = settings.max_tier {
+            if group.tier > max {
+                continue;
+            }
+        }
+        let Some(spec) = &group.metric else { continue };
+        let local_stat = metrics::Stat::parse(spec.stat.name()).expect("same registry");
+        let Some(value) = stats.get(local_stat) else {
+            continue;
+        };
+        if value <= spec.threshold_gt {
+            continue;
+        }
+        // Denominator aware message: value is already "per per_words".
+        let per_words = spec.per_words.max(1);
+        let lookup = |name: &str| match name {
+            "value" => Some(format!("{value:.1}")),
+            "per_words" => Some(per_words.to_string()),
+            "stat" => Some(spec.stat.name().to_string()),
+            _ => None,
+        };
+        let message = group
+            .message
+            .as_deref()
+            .map(|t| crate::rule::template::render(t, &lookup))
+            .unwrap_or_else(|| default_message(KindTag::Metric));
+        let advice = group
+            .advice
+            .as_deref()
+            .map(|t| crate::rule::template::render(t, &lookup));
+        let anchor = 0;
+        let (o_start, o_end) = norm.span_to_orig(anchor, anchor);
+        findings.push(Finding {
+            entry_id: group.id_base.clone(),
+            kind: KindTag::Metric,
+            tier: Tier::from_number(group.tier).unwrap_or(Tier::Density),
+            category: group.category.clone(),
+            message,
+            advice,
+            span: Span::new(o_start, o_end),
+            excerpt: orig_src[o_start..o_end].to_string(),
+            url: group.url.clone(),
+            replacement: None,
+        });
+    }
 }
 
 fn scope_predicate(scope: &str) -> impl Fn(regions::Scope) -> bool + '_ {

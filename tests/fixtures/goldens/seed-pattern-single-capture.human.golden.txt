@@ -1,0 +1,9 @@
+warning[PROSE-PAT-AUDIENCE-HEDGE#main]: 
+  ┌─ tests/fixtures/docs/seed-pattern-single-capture.md:1:1
+  │
+1 │ Whether you're new to Rust or a veteran of C++, this guide helps.
+  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  │ │
+  │ AI writing construction
+  │ help: "Whether you're new to Rust or" flattens the audience into a marketing segment; address THIS reader's actual situation
+

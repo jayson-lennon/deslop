@@ -84,10 +84,41 @@ pub fn load_for_lint(cfg: &deslop_core::config::Config) -> deslop_core::rule::lo
     load_rules(cfg)
 }
 
+/// Where the builtin packs live, resolved once per run:
+/// 1. `$DESLOP_RULES_DIR` when set,
+/// 2. `./rules` when present (repo development layout, incl. tests),
+/// 3. alongside the executable (`<exe_dir>/rules` — installed layout).
+fn rules_root() -> camino::Utf8PathBuf {
+    if let Some(dir) = std::env::var_os("DESLOP_RULES_DIR") {
+        return camino::Utf8PathBuf::from_path_buf(std::path::PathBuf::from(dir))
+            .unwrap_or_else(|_| camino::Utf8PathBuf::from("."));
+    }
+    if camino::Utf8Path::new("rules").is_dir() {
+        return camino::Utf8PathBuf::from(".");
+    }
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(std::path::Path::to_path_buf));
+    if let Some(dir) = exe_dir {
+        if let Ok(utf8) = camino::Utf8PathBuf::from_path_buf(dir.clone()) {
+            if utf8.join("rules").is_dir() {
+                return utf8;
+            }
+        }
+        // Cargo target layout: target/debug -> crate root two levels up.
+        for ancestor in dir.ancestors().skip(1) {
+            let candidate = ancestor.join("rules");
+            if candidate.is_dir() {
+                return camino::Utf8PathBuf::from_path_buf(ancestor.to_path_buf())
+                    .unwrap_or_else(|_| camino::Utf8PathBuf::from("."));
+            }
+        }
+    }
+    camino::Utf8PathBuf::from(".")
+}
+
 fn load_rules(cfg: &deslop_core::config::Config) -> deslop_core::rule::loader::Loaded {
-    // Builtin names resolve under ./rules; extra_paths are absolute or
-    // cwd-relative already.
-    let loaded = deslop_core::rule::loader::load(cfg, camino::Utf8Path::new("."));
+    let loaded = deslop_core::rule::loader::load(cfg, &rules_root());
     if std::env::var_os("DESLOP_DEBUG_LOAD").is_some() {
         eprintln!(
             "debug: errors={:?} groups={}",

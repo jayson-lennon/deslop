@@ -74,8 +74,13 @@ impl Matcher {
                 let source = entry
                     .regex
                     .as_deref()
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
                     .ok_or_else(|| "pattern entry missing `regex`".to_string())?;
-                let re = fancy_regex::Regex::new(source)
+                // Rule authors write lowercase-intent patterns (wsc
+                // heritage); matching is case-insensitive like upstream's
+                // `gi` flags.
+                let re = fancy_regex::Regex::new(&format!(r"(?i){source}"))
                     .map_err(|e| format!("regex `{source}`: {e}"))?;
                 Ok(Matcher::Pattern(re))
             }

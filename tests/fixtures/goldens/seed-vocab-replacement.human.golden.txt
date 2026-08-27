@@ -1,0 +1,9 @@
+warning[MODERN-VOCAB#leverage-fix-3]: 
+  ┌─ tests/fixtures/docs/seed-vocab-replacement.md:1:18
+  │
+1 │ The rollout will leverage existing infrastructure.
+  │                  ^^^^^^^^
+  │                  │
+  │                  AI-tell vocabulary
+  │                  help: Replace "leverage" with its plain verb ("use") — nominalized business-speak is a top frequency signal in Kobak 2025
+

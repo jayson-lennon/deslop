@@ -29,24 +29,7 @@ fn command(tier: Tier) -> &'static str {
     }
 }
 
-/// 1-based (line, col) for a byte offset.
-fn line_col(src: &str, offset: usize) -> (usize, usize) {
-    let offset = offset.min(src.len());
-    let mut line = 1usize;
-    let mut col = 1usize;
-    for (i, ch) in src.char_indices() {
-        if i >= offset {
-            break;
-        }
-        if ch == '\n' {
-            line += 1;
-            col = 1;
-        } else {
-            col += 1;
-        }
-    }
-    (line, col)
-}
+use super::line_col;
 
 /// Render all findings as workflow commands to `out`.
 ///

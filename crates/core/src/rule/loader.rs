@@ -144,6 +144,7 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
             entry
                 .regex
                 .as_deref()
+                .map(str::trim)
                 .and_then(|src| fancy_regex::Regex::new(src).ok())
                 .map(|re| re.capture_names().flatten().map(String::from).collect())
                 .unwrap_or_default()
@@ -158,10 +159,11 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
         // Pattern entries must compile (policy + engine) to load.
         if group.kind == "pattern" {
             if let Some(src) = &entry.regex {
-                if let Err(violation) = crate::rule::policy::check(src) {
+                let trimmed = src.trim();
+                if let Err(violation) = crate::rule::policy::check(trimmed) {
                     push(None, format!("entry `{slug}` regex policy: {violation}"));
                 }
-                if let Err(e) = fancy_regex::Regex::new(src) {
+                if let Err(e) = fancy_regex::Regex::new(trimmed) {
                     push(None, format!("entry `{slug}` invalid regex: {e}"));
                 }
             }
@@ -366,6 +368,19 @@ fn parse_group_file(
             .unwrap_or_else(|| default_scope(&group.kind)),
         url: group.url.as_ref().map(|u| (u.text.clone(), u.href.clone())),
         entries: active_entries,
+        // Only materialize when validation actually passed; broken groups
+        // already recorded errors and abort the run before scanning.
+        metric: if group.kind == "metric" && loaded.errors.is_empty() {
+            crate::metric_stats::Stat::from_name(group.stat.as_deref().unwrap_or_default()).map(
+                |stat| crate::rule::MetricSpec {
+                    stat,
+                    per_words: group.per_words.unwrap_or(1000),
+                    threshold_gt: group.threshold_gt.unwrap_or(0.0),
+                },
+            )
+        } else {
+            None
+        },
     });
 }
 

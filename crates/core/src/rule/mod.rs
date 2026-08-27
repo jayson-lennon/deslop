@@ -33,6 +33,16 @@ pub struct RuleGroup {
     pub scope: String,
     pub url: Option<(String, String)>,
     pub entries: Vec<ActiveEntry>,
+    /// metric-only fields (kind == "metric").
+    pub metric: Option<MetricSpec>,
+}
+
+/// Threshold spec for a document-level metric rule.
+#[derive(Debug, Clone)]
+pub struct MetricSpec {
+    pub stat: crate::metric_stats::Stat,
+    pub per_words: u32,
+    pub threshold_gt: f64,
 }
 
 /// One scannable entry with its compiled matcher.
@@ -390,6 +400,7 @@ fn parse_group_file(
             .unwrap_or_else(|| default_scope(&group.kind)),
         url: group.url.as_ref().map(|u| (u.text.clone(), u.href.clone())),
         entries: active_entries,
+        metric: None,
     });
 }
 

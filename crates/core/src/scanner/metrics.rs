@@ -199,6 +199,99 @@ fn is_titlecase(text: &str) -> bool {
     capitalized * 100 >= content.len() * 80
 }
 
+/// Prose text with code/inline-code stripped: the visible (non-NUL) runs
+/// of the masked buffer, joined. Returns (byte span inside `text`, joined
+/// prose). Newlines between runs are preserved so sentence math still works.
+pub fn visible_prose(
+    text: &str,
+    map: &crate::scanner::regions::RegionMap,
+) -> Option<(usize, String)> {
+    let _ = text;
+    let bytes = map.masked.as_bytes();
+    if bytes.is_empty() {
+        return Some((0, String::new()));
+    }
+    // Build a keep/drop filter; copy kept bytes verbatim.
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            0 => {
+                // Masked hole: keep structural newlines only.
+                while i < bytes.len() && (bytes[i] == 0 || bytes[i] == b'\n') {
+                    if bytes[i] == b'\n' {
+                        out.push(b'\n');
+                    } else {
+                        out.push(b' ');
+                    }
+                    i += 1;
+                }
+            }
+            _ => {
+                out.push(bytes[i]);
+                i += 1;
+            }
+        }
+    }
+    let prose = String::from_utf8_lossy(&out).into_owned();
+    Some((0, prose))
+}
+
+/// Ranges of one scope kind (headings etc.) as sorted pairs.
+pub fn scope_ranges(
+    map: &crate::scanner::regions::RegionMap,
+    pred: impl Fn(&crate::scanner::regions::Scope) -> bool,
+) -> Vec<(usize, usize)> {
+    map.scopes
+        .iter()
+        .filter(|(_, _, sc)| pred(sc))
+        .map(|(s, e, _)| (*s, *e))
+        .collect()
+}
+
+/// Bold spans extracted from masked markers? The region map does not track
+/// emphasis separately; re-derive from the ORIGINAL normalized text via a
+/// lightweight pass is done here with regex over the plain text.
+pub fn bold_ranges(map: &crate::scanner::regions::RegionMap) -> Vec<(usize, usize)> {
+    bold_from_masked(&map.masked)
+}
+
+fn bold_from_masked(masked: &str) -> Vec<(usize, usize)> {
+    let mut out = Vec::new();
+    let bytes = masked.as_bytes();
+    let mut i = 0;
+    while i + 1 < bytes.len() {
+        if bytes[i] == b'*' && bytes[i + 1] == b'*' {
+            if let Some(rel) = masked[i + 2..].find("**") {
+                out.push((i, i + 2 + rel));
+                i += 2 + rel + 2;
+                continue;
+            }
+        }
+        i += 1;
+    }
+    out
+}
+
+pub fn list_item_ranges(map: &crate::scanner::regions::RegionMap) -> Vec<(usize, usize)> {
+    scope_ranges(map, |sc| {
+        matches!(sc, crate::scanner::regions::Scope::ListItem)
+    })
+}
+
+/// Where a metric finding anchors: at the densest spot of its signal when
+/// meaningful, else document start.
+#[allow(clippy::match_single_binding)]
+pub fn anchor_for(stat: Stat, _text: &str, _map: &crate::scanner::regions::RegionMap) -> usize {
+    match stat {
+        // A zero-width anchor renders an empty span; diagnostics prefer a
+        // caret on something real, so anchor line starts suffice. Keep 0
+        // for all stats v1 (T9 says "near densest cluster" — refine in the
+        // phase-6 triage window).
+        _ => 0,
+    }
+}
+
 /// Compute stats. Deterministic; no allocation-heavy work.
 pub fn compute(inputs: &Inputs<'_>) -> DocStats {
     let prose = inputs.prose;

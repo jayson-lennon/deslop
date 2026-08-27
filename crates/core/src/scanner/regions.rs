@@ -26,6 +26,13 @@ pub struct RegionMap {
     pub scopes: Vec<(usize, usize, Scope)>,
 }
 
+impl Scope {
+    /// Any heading level (metric title-case fraction consumes these).
+    pub fn is_heading_like(&self) -> bool {
+        matches!(self, Scope::Heading(_))
+    }
+}
+
 impl RegionMap {
     /// Effective scope for a byte offset (last region covering it wins).
     ///

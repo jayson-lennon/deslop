@@ -28,15 +28,8 @@ fn quote(s: &str) -> String {
     format!("\"{}\"", json_escape(s))
 }
 
-/// 1-based char column for a byte offset within its line.
 fn col_of(src: &str, offset: usize) -> usize {
-    let clamped = offset.min(src.len());
-    let prefix = &src.as_bytes()[..clamped];
-    let line_start = prefix
-        .iter()
-        .rposition(|b| *b == b'\n')
-        .map_or(0, |pos| pos + 1);
-    src[line_start..clamped].chars().count() + 1
+    super::line_col(src, offset).1
 }
 
 /// `KindTag` name as serialized in JSON.
@@ -108,9 +101,5 @@ pub fn render_json(filed: &[FiledFinding<'_>], out: &mut dyn Write) -> std::io::
 }
 
 fn line_of(src: &str, offset: usize) -> usize {
-    src.as_bytes()[..offset.min(src.len())]
-        .iter()
-        .filter(|b| **b == b'\n')
-        .count()
-        + 1
+    super::line_col(src, offset).0
 }
