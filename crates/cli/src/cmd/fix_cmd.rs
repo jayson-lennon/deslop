@@ -25,6 +25,8 @@ pub struct FixSummary {
 pub struct FixCmd<'a> {
     pub cfg: &'a Config,
     pub write: bool,
+    pub color_override: Option<deslop_core::config::ColorChoice>,
+    pub format_override: Option<deslop_core::config::FormatName>,
 }
 
 impl FixCmd<'_> {

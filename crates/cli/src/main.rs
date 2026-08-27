@@ -69,6 +69,12 @@ enum Command {
         /// Apply edits (default is a dry-run summary).
         #[arg(long)]
         write: bool,
+        /// Output format for the summary.
+        #[arg(long, value_enum, default_value_t = ArgFormat::Human)]
+        format: ArgFormat,
+        /// Color control for the summary.
+        #[arg(long, value_enum, default_value_t = ArgColor::Auto)]
+        color: ArgColor,
     },
     /// List the effective merged ruleset.
     Rules {
@@ -136,8 +142,17 @@ fn run(cli: Cli) -> i32 {
                 Err(_) => ExitCode::LoadFailure as i32,
             }
         }
-        Some(Command::Fix { write }) => {
-            let mut cmd = cmd::fix_cmd::FixCmd { cfg: &cfg, write };
+        Some(Command::Fix {
+            write,
+            color,
+            format,
+        }) => {
+            let mut cmd = cmd::fix_cmd::FixCmd {
+                cfg: &cfg,
+                write,
+                color_override: Some(color.into()),
+                format_override: Some(format.into()),
+            };
             match cmd.run() {
                 Ok(code) => code,
                 Err(_) => ExitCode::LoadFailure as i32,
