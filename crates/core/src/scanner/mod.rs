@@ -2,6 +2,7 @@
 //!
 //! Orchestration order matters: normalize -> mask -> scan -> assemble -> sort.
 
+pub mod literal_scan;
 pub mod regions;
 pub mod use_mention;
 
