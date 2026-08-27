@@ -1,5 +1,8 @@
 //! Rule model: data-only definitions loaded from TOML packs.
 
+pub mod loader;
+pub mod schema;
+
 use crate::finding::Tier;
 
 /// Globally unique rule identity: `<GROUP>#<slug>`.
