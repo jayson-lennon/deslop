@@ -175,7 +175,10 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
     }
 }
 
-/// Load packs declared in `cfg` (builtin names resolve under `rules_root`).
+/// Load packs declared in `cfg`.
+///
+/// Builtin names resolve under `<rules_root>/rules/builtin/<name>`;
+/// `extra_paths` are used as-is.
 ///
 /// Never panics on bad data: problems land in [`Loaded::errors`].
 pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
@@ -183,7 +186,7 @@ pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
 
     let mut pack_dirs = Vec::new();
     for name in &cfg.packs.builtin {
-        pack_dirs.push(rules_root.join("builtin").join(name));
+        pack_dirs.push(rules_root.join("rules").join("builtin").join(name));
     }
     for extra in &cfg.packs.extra_paths {
         pack_dirs.push(extra.clone());

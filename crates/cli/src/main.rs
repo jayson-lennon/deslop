@@ -2,6 +2,8 @@
 
 use clap::{Parser, Subcommand};
 
+mod cmd;
+
 /// A linter for AI-writing tells: dynamic TOML rules, three severity tiers.
 #[derive(Debug, Parser)]
 #[command(name = "deslop", version, about, propagate_version = true)]
@@ -110,7 +112,13 @@ fn run(cli: Cli) -> i32 {
     let _ = &cfg;
 
     match cli.command {
-        Some(Command::Rules { json: _ }) => unimplemented!("phase 2"),
+        Some(Command::Rules { json }) => {
+            let mut cmd = cmd::rules_cmd::RulesCmd { cfg: &cfg, json };
+            match cmd.run() {
+                Ok(code) => code,
+                Err(_) => ExitCode::LoadFailure as i32,
+            }
+        }
         Some(Command::Fix { write: _ }) => unimplemented!("phase 5"),
         Some(Command::Init) => unimplemented!("phase 5"),
         None => {

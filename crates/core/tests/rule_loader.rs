@@ -47,7 +47,7 @@ terms = ["delve"]
 fn loads_good_pack_with_zero_errors() {
     // Given a pack with one well-formed rule file.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "builtin/pack/a.toml", GOOD_VOCAB);
+    write(tmp.path(), "rules/builtin/pack/a.toml", GOOD_VOCAB);
 
     let cfg = Config {
         packs: deslop_core::config::Packs {
@@ -69,7 +69,7 @@ fn loads_good_pack_with_zero_errors() {
 fn bad_toml_yields_error_with_line_number() {
     // Given a file with broken TOML.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "builtin/pack/bad.toml", BAD_TOML);
+    write(tmp.path(), "rules/builtin/pack/bad.toml", BAD_TOML);
 
     let cfg = Config {
         packs: deslop_core::config::Packs {
@@ -94,8 +94,8 @@ fn bad_toml_yields_error_with_line_number() {
 fn missing_slug_and_missing_stat_accumulate_together() {
     // Given two separate bad files.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "builtin/pack/noslug.toml", NO_SLUG);
-    write(tmp.path(), "builtin/pack/bad.toml", BAD_TOML);
+    write(tmp.path(), "rules/builtin/pack/noslug.toml", NO_SLUG);
+    write(tmp.path(), "rules/builtin/pack/bad.toml", BAD_TOML);
 
     let cfg = Config {
         packs: deslop_core::config::Packs {
@@ -118,8 +118,8 @@ fn missing_slug_and_missing_stat_accumulate_together() {
 fn duplicate_group_ids_across_files_are_flagged() {
     // Given two files sharing an id-base.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "builtin/pack/one.toml", GOOD_VOCAB);
-    write(tmp.path(), "builtin/pack/two.toml", GOOD_VOCAB);
+    write(tmp.path(), "rules/builtin/pack/one.toml", GOOD_VOCAB);
+    write(tmp.path(), "rules/builtin/pack/two.toml", GOOD_VOCAB);
 
     let cfg = Config {
         packs: deslop_core::config::Packs {
@@ -172,8 +172,8 @@ commit = "aaaa1111bbbb2222cccc3333dddd4444eeee5555"
 fn converted_rule_with_matching_notice_loads() {
     // Given a converted rule and a NOTICE covering its origin.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "builtin/pack/rule.toml", CONVERTED);
-    write(tmp.path(), "builtin/pack/NOTICE.toml", NOTICE_OK);
+    write(tmp.path(), "rules/builtin/pack/rule.toml", CONVERTED);
+    write(tmp.path(), "rules/builtin/pack/NOTICE.toml", NOTICE_OK);
 
     let cfg = Config {
         packs: deslop_core::config::Packs {
@@ -194,10 +194,10 @@ fn converted_rule_with_matching_notice_loads() {
 fn origin_missing_from_notice_is_refused() {
     // Given a rule whose commit is absent from the NOTICE.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "builtin/pack/rule.toml", CONVERTED);
+    write(tmp.path(), "rules/builtin/pack/rule.toml", CONVERTED);
     write(
         tmp.path(),
-        "builtin/pack/NOTICE.toml",
+        "rules/builtin/pack/NOTICE.toml",
         "license = \"MIT\"\n[[origin]]\nrepo = \"https://github.com/other\"\ncommit = \"ffff\"\n",
     );
 
@@ -227,7 +227,7 @@ fn origin_missing_from_notice_is_refused() {
 fn converted_rule_without_notice_file_is_refused() {
     // Given a converted rule with NO NOTICE.toml beside it.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "builtin/pack/rule.toml", CONVERTED);
+    write(tmp.path(), "rules/builtin/pack/rule.toml", CONVERTED);
 
     let cfg = Config {
         packs: deslop_core::config::Packs {
@@ -268,7 +268,7 @@ slug = "delve"
 regex = 'delve'
 "#;
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "builtin/pack/broken.toml", broken);
+    write(tmp.path(), "rules/builtin/pack/broken.toml", broken);
 
     let cfg = Config {
         packs: deslop_core::config::Packs {
@@ -310,7 +310,7 @@ slug = "delve"
 regex = 'delve'
 "#;
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "builtin/pack/good.toml", good);
+    write(tmp.path(), "rules/builtin/pack/good.toml", good);
 
     let cfg = Config {
         packs: deslop_core::config::Packs {
@@ -345,7 +345,7 @@ terms = ["delve"]
 advice = 'replace {bogus} please'
 "#;
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "builtin/pack/bad.toml", bad);
+    write(tmp.path(), "rules/builtin/pack/bad.toml", bad);
 
     let cfg = Config {
         packs: deslop_core::config::Packs {

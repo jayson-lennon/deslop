@@ -1,0 +1,12 @@
+id-base = "DEMO-VOCAB"
+kind = "vocab"
+tier = 2
+category = "demo"
+enabled = true
+
+[fixtures]
+must_match = ["we must delve deeper"]
+
+[[entries]]
+slug = "delve"
+terms = ["delve"]
