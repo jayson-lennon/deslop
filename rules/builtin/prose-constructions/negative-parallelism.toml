@@ -11,6 +11,6 @@ must_not_match = []
 [[entries]]
 slug = "main"
 regex = '''
-\bn(?:ot|[''’]t) (?:just|only|merely|simply|about) [^.!?\n]{1,80}?[,;.:—–-] ?(?:it[''’]s|it is|this is|that[''’]s|they[''’]re|but rather)\b|\b(?:it|this|that)(?:[''’]s| is) not (?:a|an|the) [^.!?\n]{1,60}?[.;,—–] ?(?:it|this|that)(?:[''’]s| is) (?:a|an|the)\b
+\bn(?:ot|[''’]t) (?:just|only|merely|simply|about) [^.!?\n]{1,80}?[,;.:—–-](?P<payload>[^.!?\n]{1,160}) ?(?:it[''’]s|it is|this is|that[''’]s|they[''’]re|but rather)\b|\b(?:it|this|that)(?:[''’]s| is) not (?:a|an|the) [^.!?\n]{1,60}?[.;,—–] ?(?:it|this|that)(?:[''’]s| is) (?:a|an|the)\b
 '''
-advice = "Rewrite the construction plainly (wsc: \"It's not just X — it's Y\" negative parallelism is a signature LLM construction (WP:AISIGNS; Kriss/NYT 2025))"
+advice = "Drop the negation scaffold and state it positively: roughly \"{payload}\""

@@ -10,22 +10,16 @@ slug = "chunk-2"
 advice = "AI-tell vocabulary; state the idea in your own plain words"
 terms = [
   "exciting",
-  "excitingly,",
   "exemplary",
   "exemplifies",
   "exhibited",
   "expanded",
-  "expanding",
   "expect",
   "experts agree",
   "exploration",
-  "explore",
   "exquisite",
   "faced numerous challenges",
   "faces several challenges",
-  "facilitate",
-  "facilitates",
-  "facilitating",
   "fancy",
   "features a",
   "features an",
@@ -33,51 +27,18 @@ terms = [
   "feel free to personalize",
   "figure",
   "findings",
-  "findings contribute to",
   "first and foremost",
-  "firstly",
-  "firstly,",
-  "folks,",
-  "for instance,",
   "form",
-  "foster",
-  "fostering",
-  "fostering a sense",
-  "fosters",
-  "frequently,",
   "full stop.\" / \"period",
   "fundamentally",
-  "fundamentally,",
-  "furthermore",
-  "furthermore,",
-  "gain a comprehensive understanding",
-  "gain a deeper understanding",
-  "gain valuable insights",
-  "galvanize",
-  "game changer",
-  "game-changer",
   "game-changing",
-  "garner",
-  "garnered",
-  "garnered a significant",
-  "garners",
-  "generally,",
   "genuinely",
-  "given that",
-  "given that,",
   "glad you asked",
   "gossamer",
   "grapple",
-  "grasp",
   "great question",
-  "groundbreaking",
-  "harmonize",
-  "harness",
   "harness the power",
-  "harnessing",
   "help to feel a sense",
-  "hence",
-  "hence,",
   "here's that x",
   "here's the kicker",
   "here's the problem though",
@@ -87,21 +48,13 @@ terms = [
   "here's what x",
   "here's why that matters",
   "here's why x",
-  "hey,",
   "hidden gem",
-  "highlight",
   "highlighting",
-  "highlights",
   "highlights the importance of",
-  "highlights the importance of considering",
-  "hinder",
   "hint:",
   "hit the nail on the head",
   "hold",
-  "holds a significant",
-  "holistic",
   "honestly",
-  "however,",
   "hung heavy",
   "i don't have access to real-time",
   "i hope this helps",
@@ -110,77 +63,38 @@ terms = [
   "i want to explore",
   "i'll say it again:",
   "i'm going to be honest",
-  "illuminate",
-  "illuminates",
-  "illuminating",
   "illustrious",
   "immerse",
   "impactful",
-  "implement",
-  "implements",
   "implications",
   "implications of various",
-  "importantly",
-  "importantly,",
   "in a world where",
   "in an era of",
-  "in conclusion",
-  "in conclusion,",
-  "in contrast,",
   "in essence,",
-  "in light of",
-  "in many cases",
-  "in order to",
-  "in other words,",
-  "in summary",
-  "in summary,",
-  "in the event that",
   "in the provided search results",
-  "in the realm of",
-  "in the world of",
   "in this section, we'll",
-  "in today's digital age",
-  "in today's digital era",
   "in today's fast-paced world",
   "in today's rapidly evolving",
   "in today's world",
   "in today's x",
-  "indeed",
-  "indelible",
   "indulge",
   "inevitably",
   "informative",
-  "ingenious",
   "inherently",
-  "innovate",
-  "innovative",
   "insightful",
   "insights",
   "inspirational",
   "inspiring",
-  "integrate",
-  "integrates",
   "interactions",
   "interestingly",
   "interplay",
   "intersection",
-  "intricacies",
-  "intricate",
   "intriguing",
-  "intrinsic",
   "introspective",
-  "invaluable",
   "is there anything else i can",
   "it can be argued",
-  "it is advisable",
   "it is essential to",
   "it is evident that",
-  "it is important to note",
-  "it is important to note that",
-  "it is widely accepted",
-  "it is worth noting",
-  "it is worth noting that",
-  "it stands to reason",
   "it turns out",
   "it's essential to",
   "it's important to note that",
@@ -188,26 +102,576 @@ terms = [
   "it's worth mentioning that",
   "it's worth noting",
   "it's worth noting that",
-  "iterative",
   "journey",
   "just",
   "kaleidoscope",
   "keen",
   "key takeaway",
   "labyrinth",
-  "landscape",
-  "landscape (context)",
   "latest",
   "laudable",
-  "lean into",
-  "left an indelible",
-  "left an indelible mark",
   "let me be clear",
   "let me know if you'd like",
   "let me walk you through",
   "let that sink in",
-  "let us delve",
   "let's break this down",
   "let's delve",
 ]
+[[entries]]
+slug = "excitingly-fix-1"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["excitingly,"]
+replacement = ""
+
+[[entries]]
+slug = "expanding-fix-2"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["expanding"]
+replacement = "growing"
+
+[[entries]]
+slug = "explore-fix-3"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["explore"]
+replacement = "look at"
+
+[[entries]]
+slug = "facilitate-fix-4"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["facilitate"]
+replacement = "help"
+
+[[entries]]
+slug = "facilitates-fix-5"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["facilitates"]
+replacement = "helps"
+
+[[entries]]
+slug = "facilitating-fix-6"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["facilitating"]
+replacement = "helping"
+
+[[entries]]
+slug = "findings-contribute-to-fix-7"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["findings contribute to"]
+replacement = "findings add to"
+
+[[entries]]
+slug = "firstly-fix-8"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["firstly"]
+replacement = "first"
+
+[[entries]]
+slug = "firstly-fix-9"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["firstly,"]
+replacement = "first,"
+
+[[entries]]
+slug = "folks-fix-10"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["folks,"]
+replacement = ""
+
+[[entries]]
+slug = "for-instance-fix-11"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["for instance,"]
+replacement = ""
+
+[[entries]]
+slug = "foster-fix-12"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["foster"]
+replacement = "build"
+
+[[entries]]
+slug = "fostering-fix-13"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["fostering"]
+replacement = "building"
+
+[[entries]]
+slug = "fostering-a-sense-fix-14"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["fostering a sense"]
+replacement = "building"
+
+[[entries]]
+slug = "fosters-fix-15"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["fosters"]
+replacement = "builds"
+
+[[entries]]
+slug = "frequently-fix-16"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["frequently,"]
+replacement = ""
+
+[[entries]]
+slug = "fundamentally-fix-17"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["fundamentally,"]
+replacement = ""
+
+[[entries]]
+slug = "furthermore-fix-18"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["furthermore"]
+replacement = ""
+
+[[entries]]
+slug = "furthermore-fix-19"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["furthermore,"]
+replacement = ""
+
+[[entries]]
+slug = "gain-a-comprehensive-understanding-fix-20"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["gain a comprehensive understanding"]
+replacement = "fully understand"
+
+[[entries]]
+slug = "gain-a-deeper-understanding-fix-21"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["gain a deeper understanding"]
+replacement = "understand better"
+
+[[entries]]
+slug = "gain-valuable-insights-fix-22"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["gain valuable insights"]
+replacement = "see what's going on"
+
+[[entries]]
+slug = "galvanize-fix-23"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["galvanize"]
+replacement = "push"
+
+[[entries]]
+slug = "game-changer-fix-24"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["game changer"]
+replacement = "shift"
+
+[[entries]]
+slug = "game-changer-fix-25"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["game-changer"]
+replacement = "shift"
+
+[[entries]]
+slug = "garner-fix-26"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["garner"]
+replacement = "get"
+
+[[entries]]
+slug = "garnered-fix-27"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["garnered"]
+replacement = "got"
+
+[[entries]]
+slug = "garnered-a-significant-fix-28"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["garnered a significant"]
+replacement = "got a lot of"
+
+[[entries]]
+slug = "garners-fix-29"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["garners"]
+replacement = "gets"
+
+[[entries]]
+slug = "generally-fix-30"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["generally,"]
+replacement = ""
+
+[[entries]]
+slug = "given-that-fix-31"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["given that"]
+replacement = "since"
+
+[[entries]]
+slug = "given-that-fix-32"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["given that,"]
+replacement = "since"
+
+[[entries]]
+slug = "grasp-fix-33"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["grasp"]
+replacement = "get"
+
+[[entries]]
+slug = "groundbreaking-fix-34"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["groundbreaking"]
+replacement = "new"
+
+[[entries]]
+slug = "harmonize-fix-35"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["harmonize"]
+replacement = "align"
+
+[[entries]]
+slug = "harness-fix-36"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["harness"]
+replacement = "use"
+
+[[entries]]
+slug = "harnessing-fix-37"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["harnessing"]
+replacement = "using"
+
+[[entries]]
+slug = "hence-fix-38"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["hence"]
+replacement = "so"
+
+[[entries]]
+slug = "hence-fix-39"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["hence,"]
+replacement = "so"
+
+[[entries]]
+slug = "hey-fix-40"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["hey,"]
+replacement = ""
+
+[[entries]]
+slug = "highlight-fix-41"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["highlight"]
+replacement = "show"
+
+[[entries]]
+slug = "highlights-fix-42"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["highlights"]
+replacement = "shows"
+
+[[entries]]
+slug = "highlights-the-importance-of-considering-fix-43"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["highlights the importance of considering"]
+replacement = "shows you should consider"
+
+[[entries]]
+slug = "hinder-fix-44"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["hinder"]
+replacement = "slow"
+
+[[entries]]
+slug = "holds-a-significant-fix-45"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["holds a significant"]
+replacement = "has a"
+
+[[entries]]
+slug = "holistic-fix-46"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["holistic"]
+replacement = "whole"
+
+[[entries]]
+slug = "however-fix-47"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["however,"]
+replacement = "but"
+
+[[entries]]
+slug = "illuminate-fix-48"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["illuminate"]
+replacement = "explain"
+
+[[entries]]
+slug = "illuminates-fix-49"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["illuminates"]
+replacement = "explains"
+
+[[entries]]
+slug = "illuminating-fix-50"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["illuminating"]
+replacement = "clear"
+
+[[entries]]
+slug = "implement-fix-51"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["implement"]
+replacement = "build"
+
+[[entries]]
+slug = "implements-fix-52"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["implements"]
+replacement = "builds"
+
+[[entries]]
+slug = "importantly-fix-53"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["importantly"]
+replacement = ""
+
+[[entries]]
+slug = "importantly-fix-54"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["importantly,"]
+replacement = ""
+
+[[entries]]
+slug = "in-conclusion-fix-55"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in conclusion"]
+replacement = ""
+
+[[entries]]
+slug = "in-conclusion-fix-56"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in conclusion,"]
+replacement = ""
+
+[[entries]]
+slug = "in-contrast-fix-57"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in contrast,"]
+replacement = ""
+
+[[entries]]
+slug = "in-light-of-fix-58"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in light of"]
+replacement = "given"
+
+[[entries]]
+slug = "in-many-cases-fix-59"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in many cases"]
+replacement = "often"
+
+[[entries]]
+slug = "in-order-to-fix-60"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in order to"]
+replacement = "to"
+
+[[entries]]
+slug = "in-other-words-fix-61"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in other words,"]
+replacement = ""
+
+[[entries]]
+slug = "in-summary-fix-62"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in summary"]
+replacement = ""
+
+[[entries]]
+slug = "in-summary-fix-63"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in summary,"]
+replacement = ""
+
+[[entries]]
+slug = "in-the-event-that-fix-64"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in the event that"]
+replacement = "if"
+
+[[entries]]
+slug = "in-the-realm-of-fix-65"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in the realm of"]
+replacement = "in"
+
+[[entries]]
+slug = "in-the-world-of-fix-66"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in the world of"]
+replacement = "in"
+
+[[entries]]
+slug = "in-today-s-digital-age-fix-67"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in today's digital age"]
+replacement = "today"
+
+[[entries]]
+slug = "in-today-s-digital-era-fix-68"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["in today's digital era"]
+replacement = "today"
+
+[[entries]]
+slug = "indeed-fix-69"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["indeed"]
+replacement = ""
+
+[[entries]]
+slug = "indelible-fix-70"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["indelible"]
+replacement = "lasting"
+
+[[entries]]
+slug = "ingenious-fix-71"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["ingenious"]
+replacement = "clever"
+
+[[entries]]
+slug = "innovate-fix-72"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["innovate"]
+replacement = "build new"
+
+[[entries]]
+slug = "innovative-fix-73"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["innovative"]
+replacement = "new"
+
+[[entries]]
+slug = "integrate-fix-74"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["integrate"]
+replacement = "connect"
+
+[[entries]]
+slug = "integrates-fix-75"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["integrates"]
+replacement = "connects"
+
+[[entries]]
+slug = "intricacies-fix-76"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["intricacies"]
+replacement = "details"
+
+[[entries]]
+slug = "intricate-fix-77"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["intricate"]
+replacement = "detailed"
+
+[[entries]]
+slug = "intrinsic-fix-78"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["intrinsic"]
+replacement = "built-in"
+
+[[entries]]
+slug = "invaluable-fix-79"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["invaluable"]
+replacement = "useful"
+
+[[entries]]
+slug = "it-is-advisable-fix-80"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["it is advisable"]
+replacement = "you should"
+
+[[entries]]
+slug = "it-is-important-to-note-fix-81"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["it is important to note"]
+replacement = ""
+
+[[entries]]
+slug = "it-is-important-to-note-that-fix-82"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["it is important to note that"]
+replacement = ""
+
+[[entries]]
+slug = "it-is-widely-accepted-fix-83"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["it is widely accepted"]
+replacement = "most agree"
+
+[[entries]]
+slug = "it-is-worth-noting-fix-84"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["it is worth noting"]
+replacement = ""
+
+[[entries]]
+slug = "it-is-worth-noting-that-fix-85"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["it is worth noting that"]
+replacement = ""
+
+[[entries]]
+slug = "it-stands-to-reason-fix-86"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["it stands to reason"]
+replacement = ""
+
+[[entries]]
+slug = "iterative-fix-87"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["iterative"]
+replacement = "step-by-step"
+
+[[entries]]
+slug = "landscape-fix-88"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["landscape"]
+replacement = "space"
+
+[[entries]]
+slug = "landscape-context-fix-89"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["landscape (context)"]
+replacement = "Situation, field"
+
+[[entries]]
+slug = "lean-into-fix-90"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["lean into"]
+replacement = "Accept, embrace"
+
+[[entries]]
+slug = "left-an-indelible-fix-91"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["left an indelible"]
+replacement = "left a"
+
+[[entries]]
+slug = "left-an-indelible-mark-fix-92"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["left an indelible mark"]
+replacement = "left a mark"
+
+[[entries]]
+slug = "let-us-delve-fix-93"
+advice = "AI-tell vocabulary; state the idea in your own plain words"
+terms = ["let us delve"]
+replacement = "let's look"
 

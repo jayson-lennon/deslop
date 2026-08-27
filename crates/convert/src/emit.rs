@@ -23,8 +23,34 @@ pub fn slugify(term: &str) -> String {
     out
 }
 
+/// Phase-4 seed advice (spec t7c7): exactly one entry per representative
+/// shape, consumed by golden snapshot tests before bulk rollout.
+pub fn seed_advice(kind_seed: &str) -> Option<&'static str> {
+    Some(match kind_seed {
+        // vocab-with-replacement: fixable rewrite instruction
+        "term=leverage" => {
+            "Replace \"{match}\" with its plain verb (\"use\") — nominalized business-speak is a top frequency signal in Kobak 2025"
+        }
+        // vocab-without: report-only framing guidance
+        "term=a testament to" => {
+            "\"{match}\" performs admiration instead of analysis; state what it actually demonstrates"
+        }
+        _ => return None,
+    })
+}
+
+/// Override used by pattern emission for named-capture seeds.
+pub fn seed_pattern_advice(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "negative-parallelism" => {
+            "Drop the negation scaffold and state it positively: roughly \"{payload}\""
+        }
+        _ => return None,
+    })
+}
+
 /// TOML basic string with proper escapes (handles apostrophes cleanly).
-fn toml_lit(s: &str) -> String {
+pub fn toml_lit(s: &str) -> String {
     let mut out = String::with_capacity(s.len() + 2);
     out.push('"');
     for c in s.chars() {
@@ -63,18 +89,69 @@ pub fn vocab_group(
     let _ = writeln!(out, "category = {}", toml_lit(category));
     let _ = writeln!(out, "enabled = true");
     let _ = writeln!(out);
-    // One [[entries]] block per chunk: terms share group-level advice.
+    // Split report-only terms: seeded ones become their own entries.
+    let report_only: Vec<&MergedTerm> = terms.iter().filter(|t| t.replacement.is_none()).collect();
+
+    // Seed report-only terms: carve the seeded term into its own entry so
+    // golden tests exercise the vocab-without-replacement shape.
+    let seeded: Vec<&MergedTerm> = terms
+        .iter()
+        .filter(|t| t.replacement.is_none() && seed_advice(&format!("term={}", t.term)).is_some())
+        .collect();
+    let report_only: Vec<&MergedTerm> = report_only
+        .into_iter()
+        .filter(|t| seed_advice(&format!("term={}", t.term)).is_none())
+        .collect();
+    for t in seeded {
+        let _ = writeln!(out, "[[entries]]");
+        let _ = writeln!(out, "slug = {}", toml_lit(&slugify(&t.term)));
+        let _ = writeln!(
+            out,
+            "advice = {}",
+            toml_lit(seed_advice(&format!("term={}", t.term)).expect("seeded"))
+        );
+        let _ = writeln!(out, "terms = [{}]", toml_lit(&t.term));
+        let _ = writeln!(out);
+    }
+    if report_only.is_empty() {
+        return out;
+    }
     let _ = writeln!(out, "[[entries]]");
     let _ = writeln!(out, "slug = \"chunk-{}\"", chunk_index + 1);
     if let Some(advice) = advice_group {
         let _ = writeln!(out, "advice = {}", toml_lit(advice));
     }
-
     let _ = writeln!(out, "terms = [");
-    for t in terms {
+    for t in &report_only {
         let _ = writeln!(out, "  {},", toml_lit(&t.term));
     }
     let _ = writeln!(out, "]");
-    let _ = writeln!(out);
+
+    // Fixable entries: one `[[entries]]` per replacement-bearing term so
+    // each carries its own machine-fixable `replacement`. Slugs carry a
+    // disambiguating ordinal because normalized terms can collide
+    // ("additionally" vs "additionally,").
+    let mut fix_ord = 0usize;
+    for t in terms.iter().filter(|t| t.replacement.is_some()) {
+        fix_ord += 1;
+        let _ = writeln!(out, "[[entries]]");
+        let _ = writeln!(
+            out,
+            "slug = {}",
+            toml_lit(&format!("{}-fix-{fix_ord}", slugify(&t.term)))
+        );
+        let seed = seed_advice(&format!("term={}", t.term));
+        if let Some(advice) = seed.or(advice_group) {
+            let _ = writeln!(out, "advice = {}", toml_lit(advice));
+        }
+        let _ = writeln!(out, "terms = [{}]", toml_lit(&t.term));
+        let _ = writeln!(
+            out,
+            "replacement = {}",
+            toml_lit(t.replacement.as_deref().unwrap_or_default())
+        );
+        let _ = writeln!(out);
+    }
+
     out
 }

@@ -11,6 +11,6 @@ must_not_match = []
 [[entries]]
 slug = "main"
 regex = '''
-\bwhether you[''’]re (?:a|an|new|just|looking|building|running)\b[^.!?\n]{1,80}?\bor\b
+(?P<hedge>\bwhether you[''’]re (?:a|an|new|just|looking|building|running)[^.!?\n]{1,80}?\bor\b)
 '''
-advice = "Rewrite the construction plainly (wsc: \"Whether you're a X or a Y\" audience-flattening openers are an AI content-marketing formula)"
+advice = "\"{hedge}\" flattens the audience into a marketing segment; address THIS reader's actual situation"

@@ -160,12 +160,47 @@ fn pattern_group(pat: &wsc_ts::TsPattern) -> String {
     let _ = writeln!(out);
     let _ = writeln!(out, "[[entries]]");
     let _ = writeln!(out, "slug = \"main\"");
-    let _ = writeln!(out, "regex = {}", toml_lit_multiline(&pat.pattern));
-    let _ = writeln!(
-        out,
-        "advice = \"Rewrite the construction plainly (wsc: {})\"",
-        escape_double(&pat.reason)
-    );
+    // Seed (t7c7): negative-parallelism carries a named capture so golden
+    // tests exercise {payload} interpolation.
+    if pat.name == "negative-parallelism" {
+        let class_end = "{1,80}?[,;.:—–-]";
+        let seeded = pat.pattern.replacen(
+            class_end,
+            &format!("{class_end}(?P<payload>[^.!?\\n]{{1,160}})"),
+            1,
+        );
+        let _ = writeln!(out, "regex = {}", toml_lit_multiline(&seeded));
+        let _ = writeln!(
+            out,
+            "advice = {}",
+            emit::toml_lit(emit::seed_pattern_advice(&pat.name).expect("pattern seed"),)
+        );
+    } else if pat.name == "audience-hedge" {
+        // Seed (t7c7): single named capture, advice echoes it back.
+        let seeded = pat
+            .pattern
+            .replacen("\\bwhether you", "(?P<hedge>\\bwhether you", 1);
+        let seeded = seeded.replacen(
+            "\\b[^.!?\\n]{1,80}?\\bor\\b",
+            "[^.!?\\n]{1,80}?\\bor\\b)",
+            1,
+        );
+        let _ = writeln!(out, "regex = {}", toml_lit_multiline(&seeded));
+        let _ = writeln!(
+            out,
+            "advice = {}",
+            emit::toml_lit(
+                "\"{hedge}\" flattens the audience into a marketing segment; address THIS reader's actual situation"
+            )
+        );
+    } else {
+        let _ = writeln!(out, "regex = {}", toml_lit_multiline(&pat.pattern));
+        let _ = writeln!(
+            out,
+            "advice = \"Rewrite the construction plainly (wsc: {})\"",
+            escape_double(&pat.reason)
+        );
+    }
     out
 }
 
