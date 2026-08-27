@@ -5,6 +5,7 @@
 
 pub mod config;
 pub mod doc;
+pub mod eol;
 pub mod finding;
 pub mod metric_stats;
 pub mod rule;
