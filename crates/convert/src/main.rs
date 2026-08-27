@@ -29,6 +29,9 @@ fn main() {
 
 const MIN_VOCAB_RAW: usize = 480;
 const MIN_VOCAB_UNIQUE: usize = 400;
+const MIN_WSC_PATTERNS: usize = 12;
+const MIN_ARTIFACT_TERMS: usize = 40;
+const MIN_METRIC_RULES: usize = 8;
 
 fn run(check: bool) -> Result<(), String> {
     let root = Path::new("third-party");
@@ -70,6 +73,14 @@ fn run(check: bool) -> Result<(), String> {
 
     let patterns = wsc_ts::patterns(&wsc_src);
     println!("wsc patterns: {}", patterns.len());
+    if patterns.len() < MIN_WSC_PATTERNS {
+        return Err(format!(
+            "minimum-count assertion failed: {} wsc patterns (min {MIN_WSC_PATTERNS})",
+            patterns.len()
+        ));
+    }
+
+    assert_authored_pack_counts()?;
 
     // unslop byte-map: verified readable, used later for normalization
     // parity tests (phase 5 goldens).
@@ -212,6 +223,56 @@ fn escape_double(s: &str) -> String {
 
 fn toml_lit_multiline(s: &str) -> String {
     format!("'''\n{}\n'''", s.replace("'''", "'\\u0027\\u0027\\u0027'"))
+}
+
+/// Authored-pack minimums (AC4): artifact terms >= 40, metric rules >= 8.
+fn assert_authored_pack_counts() -> Result<(), String> {
+    let artifact_terms: usize = std::fs::read_dir(Path::new("rules/builtin/artifacts"))
+        .map_err(|e| e.to_string())?
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().is_some_and(|x| x == "toml"))
+        .filter(|e| e.file_name() != "NOTICE.toml")
+        .map(|e| std::fs::read_to_string(e.path()).unwrap_or_default())
+        .map(|t| {
+            let mut in_terms = false;
+            t.lines()
+                .filter(|l| {
+                    let t = l.trim();
+                    if t == "terms = [" {
+                        in_terms = true;
+                        return false;
+                    }
+                    if in_terms && (t == "]" || t == "],") {
+                        in_terms = false;
+                        return false;
+                    }
+                    in_terms && t.len() >= 3 && (t.starts_with('\'') || t.starts_with('"')) && {
+                        let b = t.as_bytes();
+                        b[b.len() - 1] == b','
+                            && (b[b.len() - 2] == b'\'' || b[b.len() - 2] == b'"')
+                    }
+                })
+                .count()
+        })
+        .sum();
+    if artifact_terms < MIN_ARTIFACT_TERMS {
+        return Err(format!(
+            "minimum-count assertion failed: {artifact_terms} artifact terms (min {MIN_ARTIFACT_TERMS})"
+        ));
+    }
+    let metric_rules = std::fs::read_dir(Path::new("rules/builtin/document-signals"))
+        .map_err(|e| e.to_string())?
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.path().extension().is_some_and(|x| x == "toml") && e.file_name() != "NOTICE.toml"
+        })
+        .count();
+    if metric_rules < MIN_METRIC_RULES {
+        return Err(format!(
+            "minimum-count assertion failed: {metric_rules} metric rules (min {MIN_METRIC_RULES})"
+        ));
+    }
+    Ok(())
 }
 
 /// Byte-compare emitted output vs committed packs. Because emission writes

@@ -29,11 +29,8 @@ jobs:
       - name: test
         run: cargo test --workspace --all-targets
 
-      # Enabled in phase 4 (converter parity) and phase 6 (advice gate).
-      - name: convert parity check
+      - name: convert parity + minimum counts
         run: cargo run -p deslop-convert -- --check
-        continue-on-error: true
 
-      - name: pack validation (advice gate)
+      - name: pack validation
         run: cargo run -p deslop -- rules --json > /dev/null
-        continue-on-error: true
