@@ -14,9 +14,9 @@ pub struct MergedTerm {
     pub replacement_src: Option<String>,
     /// Concatenated evidence notes from contributing sources.
     pub evidence: Vec<String>,
-    /// anti-ai-tell class, strongest wins: hard_ban(3) > strong_flag(2)
-    /// > density_watch(1) > none(0). Drives the group split (hard-ban /
-    /// strong-flag / watch).
+    /// anti-ai-tell class rank, strongest wins: `hard_ban`=3,
+    /// `strong_flag`=2, `density_watch`=1, none=0. Drives the group split
+    /// into hard-ban / strong-flag / watch files.
     pub severity: u8,
 }
 
