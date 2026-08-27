@@ -258,6 +258,61 @@ mod tests {
         assert!(start.is_none(), "{}", map.masked);
     }
 
+    /// Randomized invariant check (spec property): for arbitrary doc-shaped
+    /// inputs, masked length == src length and newline offsets survive.
+    #[test]
+    fn property_length_invariance_on_random_docs() {
+        // Given deterministic pseudo-random docs built from real fragments.
+        let pieces: &[&str] = &[
+            "# Head\n\n",
+            "para ",
+            "`code`",
+            " [l](https://x/y) ",
+            "bare https://b.example/p?q=1 tail",
+            "\n```rs\nfn f(){}\n```\n",
+            "- item **bold**",
+            "> quote",
+            "héllo 🌍 coûte",
+            "\n---\n",
+            "<https://auto.example>",
+            "text with | pipe\n",
+            "\r\n",
+            "tâble",
+        ];
+        let mut state: u64 = 0x5EED_1234_ABCD_EF01;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        for _case in 0..200 {
+            let n_docs = 1 + (next() % 12) as usize;
+            let mut src = String::new();
+            for _ in 0..n_docs {
+                src.push_str(pieces[(next() as usize) % pieces.len()]);
+            }
+
+            // When building regions.
+            let map = build_regions(&src);
+
+            // Then lengths agree and newlines keep their absolute indices.
+            assert_eq!(map.masked.len(), src.len(), "src was {src:?}");
+            for (idx, orig_byte) in src.bytes().enumerate() {
+                if orig_byte == b'\n' {
+                    assert_eq!(map.masked.as_bytes()[idx], b'\n');
+                }
+            }
+            // And any NUL replaced a byte that was inside some masked span
+            // (spot guarantee via inverse: unmasked bytes equal originals).
+            for (idx, (m, o)) in map.masked.bytes().zip(src.bytes()).enumerate() {
+                if m != 0 {
+                    assert_eq!(m, o, "byte {idx} mutated outside mask");
+                }
+            }
+        }
+    }
+
     #[test]
     fn multibyte_doc_survives_masking() {
         // Given emoji-laden text with an autolink.
