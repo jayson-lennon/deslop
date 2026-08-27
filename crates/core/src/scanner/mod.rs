@@ -17,10 +17,23 @@ use crate::finding::{Finding, KindTag, Span, Tier};
 use crate::rule::{RuleSet, fixtures::Matcher};
 
 /// Options affecting scan behavior (subset of config; resolved by CLI).
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct LintSettings {
     /// Tier filter; None = all tiers.
     pub max_tier: Option<u8>,
+    /// `[lints]` overrides keyed `GROUP` or `GROUP#slug` (slug wins).
+    pub levels: std::collections::BTreeMap<String, crate::config::LintLevel>,
+}
+
+impl LintSettings {
+    /// Effective override for a lint id: exact `GROUP#slug` first, then
+    /// `GROUP`. `None` = use the rule's tier.
+    pub fn level_for(&self, group: &str, id: &str) -> Option<crate::config::LintLevel> {
+        self.levels
+            .get(id)
+            .or_else(|| self.levels.get(group))
+            .copied()
+    }
 }
 
 /// One document's lint result set, sorted deterministically.
@@ -38,12 +51,23 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
         if !group.enabled {
             continue;
         }
+        // Group-level override: allow prunes the whole group; other levels
+        // demote/promote its findings' severity via entry tier resolution.
+        let group_level = settings.level_for(&group.id_base, "");
+        if group_level == Some(crate::config::LintLevel::Allow) {
+            continue;
+        }
         if let Some(max) = settings.max_tier {
             if group.tier > max {
                 continue;
             }
         }
         for entry in &group.entries {
+            let entry_level = settings.level_for(&group.id_base, &entry.id);
+            if entry_level == Some(crate::config::LintLevel::Allow) {
+                continue;
+            }
+            let _ = entry_level;
             match &entry.matcher {
                 Matcher::Vocab { terms, .. } => {
                     let index = vocab_scan::VocabIndex::build(
@@ -55,6 +79,7 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
                             group,
                             entry.id.as_str(),
                             KindTag::Vocab,
+                            effective_tier(settings, group, &entry.id),
                             hit.start,
                             hit.end,
                             hit.matched.clone(),
@@ -76,6 +101,7 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
                             group,
                             entry.id.as_str(),
                             KindTag::Pattern,
+                            effective_tier(settings, group, &entry.id),
                             hit.start,
                             hit.end,
                             text[hit.start..hit.end].to_string(),
@@ -105,6 +131,7 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
                             group,
                             entry.id.as_str(),
                             KindTag::LiteralBan,
+                            effective_tier(settings, group, &entry.id),
                             hit.start,
                             hit.end,
                             hit.term.clone(),
@@ -159,6 +186,11 @@ fn metric_findings(
         if !group.enabled {
             continue;
         }
+        if settings.level_for(&group.id_base, &group.id_base)
+            == Some(crate::config::LintLevel::Allow)
+        {
+            continue;
+        }
         if let Some(max) = settings.max_tier {
             if group.tier > max {
                 continue;
@@ -166,7 +198,17 @@ fn metric_findings(
         }
         let Some(spec) = &group.metric else { continue };
         let local_stat = metrics::Stat::parse(spec.stat.name()).expect("same registry");
-        let Some(value) = stats.get(local_stat) else {
+        // Cluster stat is per-rule (terms vary); compute directly on masked.
+        // (value, anchor offset in norm text). Cluster stat is per-rule
+        // (terms vary); other stats read the precomputed DocStats.
+        let measured: Option<(f64, usize)> = match local_stat {
+            metrics::Stat::TermClusterMax => {
+                metrics::term_cluster_max(norm_text, &spec.terms, spec.window)
+                    .map(|(n, at)| (n as f64, at))
+            }
+            _ => stats.get(local_stat).map(|v| (v, 0)),
+        };
+        let Some((value, hit_at)) = measured else {
             continue;
         };
         if value <= spec.threshold_gt {
@@ -178,6 +220,7 @@ fn metric_findings(
             "value" => Some(format!("{value:.1}")),
             "per_words" => Some(per_words.to_string()),
             "stat" => Some(spec.stat.name().to_string()),
+            "window" => Some(spec.window.name().to_string()),
             _ => None,
         };
         let message = group
@@ -189,12 +232,16 @@ fn metric_findings(
             .advice
             .as_deref()
             .map(|t| crate::rule::template::render(t, &lookup));
-        let anchor = 0;
+        let anchor = if local_stat == metrics::Stat::TermClusterMax {
+            hit_at
+        } else {
+            0
+        };
         let (o_start, o_end) = norm.span_to_orig(anchor, anchor);
         findings.push(Finding {
             entry_id: group.id_base.clone(),
             kind: KindTag::Metric,
-            tier: Tier::from_number(group.tier).unwrap_or(Tier::Density),
+            tier: effective_tier(settings, group, &group.id_base),
             category: group.category.clone(),
             message,
             advice,
@@ -221,6 +268,7 @@ fn make_finding(
     group: &crate::rule::RuleGroup,
     entry_id: &str,
     kind: KindTag,
+    tier: Tier,
     start: usize,
     end: usize,
     matched: String,
@@ -245,7 +293,7 @@ fn make_finding(
     Finding {
         entry_id: entry_id.to_string(),
         kind,
-        tier: tier_of(group.tier),
+        tier,
         category: group.category.clone(),
         message,
         advice,
@@ -288,4 +336,16 @@ fn sort_findings(mut f: Vec<Finding>) -> Vec<Finding> {
 
 fn tier_of(n: u8) -> Tier {
     Tier::from_number(n).unwrap_or(Tier::Tell)
+}
+
+/// Tier after `[lints]` override; `None` = suppressed at the group gate.
+fn effective_tier(settings: &LintSettings, group: &crate::rule::RuleGroup, entry_id: &str) -> Tier {
+    let base = tier_of(group.tier);
+    let level = settings.level_for(&group.id_base, entry_id);
+    match level {
+        Some(crate::config::LintLevel::Error) => Tier::Artifact,
+        Some(crate::config::LintLevel::Warn) => Tier::Tell,
+        Some(crate::config::LintLevel::Note) => Tier::Density,
+        _ => base,
+    }
 }

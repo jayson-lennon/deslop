@@ -1,0 +1,48 @@
+# Authored: vocabulary-density cluster metric. The watch list is "fine
+# individually; a cluster in one paragraph is a tell" (anti-ai-tell
+# density_watch). This rule fires only on clusters, complementing the
+# per-word vocab rule (which users typically set to "allow").
+# TODO tune: threshold 2 = 3 distinct watch terms in one paragraph.
+id-base = "DOC-METRIC-VOCAB-CLUSTER"
+kind = "metric"
+tier = 3
+category = "vocabulary-density"
+stat = "term_cluster_max"
+window = "paragraph"
+threshold_gt = 2
+terms = [
+  "across",
+  "additionally",
+  "align",
+  "aligned",
+  "aligns",
+  "comprehensive",
+  "crucial",
+  "emphasizing",
+  "enhance",
+  "enhancing",
+  "exhibited",
+  "findings",
+  "furthermore",
+  "highlighting",
+  "insights",
+  "moreover",
+  "notably",
+  "particularly",
+  "potential",
+  "robust",
+  "significant",
+  "significantly",
+  "within",
+]
+message = "{value} distinct watch-list words cluster in one {window}"
+advice = "Vary the vocabulary; clustered intensity words read as machine-generated emphasis"
+
+[url]
+text = "Wikipedia:Signs of AI writing"
+href = "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing"
+
+[fixtures]
+must_match = []
+must_not_match = []
+

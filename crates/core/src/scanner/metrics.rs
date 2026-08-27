@@ -16,6 +16,8 @@ pub enum Stat {
     TricolonMaxStreak,
     SentLenCv,
     OpeningNgramRepeat,
+    /// Max DISTINCT cluster terms found in one window (paragraph default).
+    TermClusterMax,
 }
 
 impl Stat {
@@ -31,6 +33,7 @@ impl Stat {
             "tricolon_max_streak" => Stat::TricolonMaxStreak,
             "sent_len_cv" => Stat::SentLenCv,
             "opening_ngram_repeat" => Stat::OpeningNgramRepeat,
+            "term_cluster_max" => Stat::TermClusterMax,
             _ => return None,
         })
     }
@@ -46,6 +49,7 @@ impl Stat {
             Stat::TricolonMaxStreak => "tricolon_max_streak",
             Stat::SentLenCv => "sent_len_cv",
             Stat::OpeningNgramRepeat => "opening_ngram_repeat",
+            Stat::TermClusterMax => "term_cluster_max",
         }
     }
 }
@@ -103,6 +107,82 @@ impl DocStats {
 
 /// Anchor for a metric finding (densest spot approximation).
 pub type Anchor = (usize, usize);
+
+/// Max DISTINCT `terms` in any `window`, plus the norm-offset of that
+/// window's first term hit (anchor). Windows are split on blank lines
+/// (paragraph) or sentence enders (sentence); document = whole text.
+pub fn term_cluster_max(
+    masked: &str,
+    terms: &[String],
+    window: crate::rule::ClusterWindow,
+) -> Option<(usize, usize)> {
+    use crate::rule::ClusterWindow as W;
+    if terms.is_empty() {
+        return None;
+    }
+    // First term occurrence per term (norm offsets). Terms are ASCII
+    // (sanitized at load), so byte scanning is char-boundary safe.
+    let lower = masked.to_lowercase();
+    let lb = lower.as_bytes();
+    let mut hits: Vec<(usize, usize)> = Vec::new(); // (start, term_idx)
+    for (ti, t) in terms.iter().enumerate() {
+        if t.is_empty() {
+            continue;
+        }
+        let mut from = 0usize;
+        while let Some(rel) = lower[from..].find(t.as_str()) {
+            let at = from + rel;
+            let end = at + t.len();
+            let before_ok = at == 0 || !lb[at - 1].is_ascii_alphanumeric();
+            let after_ok = end >= lb.len() || !lb[end].is_ascii_alphanumeric();
+            if before_ok && after_ok {
+                hits.push((at, ti));
+            }
+            from = end.max(at + 1);
+        }
+    }
+    // No hits is a valid measurement of zero (never exceeds a threshold).
+    if hits.is_empty() {
+        return Some((0, 0));
+    }
+    hits.sort_unstable();
+    // Window boundaries as byte ranges.
+    let bounds: Vec<usize> = match window {
+        W::Document => vec![0, masked.len()],
+        W::Paragraph => {
+            let mut b = vec![0usize];
+            let bytes = masked.as_bytes();
+            for i in 0..bytes.len() {
+                if bytes[i] == b'\n' && i + 1 < bytes.len() && bytes[i + 1] == b'\n' {
+                    b.push(i + 1);
+                }
+            }
+            b.push(masked.len());
+            b
+        }
+        W::Sentence => sentences(masked)
+            .into_iter()
+            .flat_map(|(s, e)| [s, e])
+            .collect(),
+    };
+    // Distinct per window: walk hits, reset at each boundary.
+    let mut best = 0usize;
+    let mut best_at = hits[0].0;
+    let mut bi = 0usize;
+    let mut seen = std::collections::BTreeSet::new();
+    for &(at, ti) in &hits {
+        while bi + 1 < bounds.len() && bounds[bi + 1] <= at {
+            bi += 1;
+            seen.clear();
+        }
+        seen.insert(ti);
+        if seen.len() > best {
+            best = seen.len();
+            best_at = at;
+        }
+    }
+    Some((best, best_at))
+}
 
 /// Compute every stat over a prepared document.
 ///
@@ -549,5 +629,74 @@ mod tests {
 
         // Then max streak is two even though floors mute the stat itself.
         assert_eq!(s.tricolon_max_streak, 2);
+    }
+}
+
+#[cfg(test)]
+mod cluster_tests {
+    use super::term_cluster_max;
+    use crate::rule::ClusterWindow;
+
+    fn terms() -> Vec<String> {
+        vec!["crucial".into(), "robust".into(), "notably".into()]
+    }
+
+    #[test]
+    fn counts_distinct_terms_in_one_paragraph() {
+        // Given one paragraph with three distinct watch terms.
+        let text = "The crucial part is robust and notably quick.";
+        // When measuring the cluster.
+        let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        // Then all three distinct terms count.
+        assert_eq!(n, 3);
+    }
+
+    #[test]
+    fn repeated_same_term_counts_once() {
+        // Given a paragraph repeating a single term.
+        let text = "crucial crucial crucial crucial";
+        // When measuring the cluster.
+        let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        // Then only one distinct term counts.
+        assert_eq!(n, 1);
+    }
+
+    #[test]
+    fn separate_paragraphs_do_not_pool() {
+        // Given terms spread across two paragraphs.
+        let text = "crucial here.\n\nrobust and notably there";
+        // When measuring per-paragraph.
+        let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        // Then no paragraph exceeds two.
+        assert_eq!(n, 2);
+    }
+
+    #[test]
+    fn document_window_pools_everything() {
+        // Given the same two-paragraph spread.
+        let text = "crucial here.\n\nrobust and notably there";
+        // When measuring over the whole document.
+        let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Document).unwrap();
+        // Then all three pool to three.
+        assert_eq!(n, 3);
+    }
+
+    #[test]
+    fn empty_terms_yields_none() {
+        // Given no terms configured.
+        // When measuring.
+        let got = term_cluster_max("crucial", &[], ClusterWindow::Paragraph);
+        // Then there is no measurement.
+        assert!(got.is_none());
+    }
+
+    #[test]
+    fn subsequence_words_do_not_match() {
+        // Given text where terms appear only as substrings of other words.
+        let text = "crucially robustly";
+        // When measuring.
+        let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        // Then nothing counts (space-padded whole-word match).
+        assert_eq!(n, 0);
     }
 }

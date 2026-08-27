@@ -6,8 +6,18 @@ pub struct RuleRow {
     pub tier: u8,
     pub kind: String,
     pub category: String,
-    pub enabled: bool,
+    /// Effective clippy-style level after `[lints]` overrides.
+    pub level: &'static str,
     pub has_advice: bool,
+}
+
+/// Tier number -> default level name.
+fn tier_level(tier: u8) -> &'static str {
+    match tier {
+        1 => "error",
+        2 => "warn",
+        _ => "note",
+    }
 }
 
 /// Render rows as an aligned text table.
@@ -21,12 +31,12 @@ pub fn render_table(rows: &[RuleRow]) -> String {
         .max(8);
     let mut out = String::new();
     out.push_str(&format!(
-        "{:<idw$}  {:<4}  {:<12}  {:<catw$}  {:<8}  advice\n",
+        "{:<idw$}  {:<4}  {:<12}  {:<catw$}  {:<5}  advice\n",
         "ID",
         "tier",
         "kind",
         "category",
-        "enabled",
+        "level",
         idw = id_w,
         catw = cat_w
     ));
@@ -37,7 +47,7 @@ pub fn render_table(rows: &[RuleRow]) -> String {
             r.tier,
             r.kind,
             r.category,
-            if r.enabled { "yes" } else { "no" },
+            r.level,
             if r.has_advice { "yes" } else { "-" },
             idw = id_w,
             catw = cat_w
@@ -67,7 +77,7 @@ impl RulesCmd<'_> {
             return Err(super::fail("rules listing failed"));
         }
 
-        let rows = flatten(&loaded.rule_set);
+        let rows = flatten(&loaded.rule_set, self.cfg);
         let stdout = std::io::stdout();
         let mut out = stdout.lock();
         if self.json {
@@ -129,28 +139,51 @@ fn load_rules(cfg: &deslop_core::config::Config) -> deslop_core::rule::loader::L
     loaded
 }
 
-fn flatten(rule_set: &deslop_core::rule::RuleSet) -> Vec<RuleRow> {
+fn flatten(
+    rule_set: &deslop_core::rule::RuleSet,
+    cfg: &deslop_core::config::Config,
+) -> Vec<RuleRow> {
+    let settings = deslop_core::scanner::LintSettings {
+        max_tier: None,
+        levels: cfg.lint.clone(),
+    };
     let mut rows = Vec::new();
     for group in &rule_set.groups {
         // Metric rules live at group level (no entries).
         if group.entries.is_empty() {
+            let level = if group.enabled {
+                settings
+                    .level_for(&group.id_base, &group.id_base)
+                    .map(|l| l.name())
+                    .unwrap_or_else(|| tier_level(group.tier))
+            } else {
+                "allow"
+            };
             rows.push(RuleRow {
                 id: group.id_base.clone(),
                 tier: group.tier,
                 kind: group.kind.clone(),
                 category: group.category.clone(),
-                enabled: group.enabled,
+                level,
                 has_advice: group.advice.is_some(),
             });
             continue;
         }
         for entry in &group.entries {
+            let level = if group.enabled {
+                settings
+                    .level_for(&group.id_base, &entry.id)
+                    .map(|l| l.name())
+                    .unwrap_or_else(|| tier_level(group.tier))
+            } else {
+                "allow"
+            };
             rows.push(RuleRow {
                 id: entry.id.clone(),
                 tier: group.tier,
                 kind: group.kind.clone(),
                 category: group.category.clone(),
-                enabled: group.enabled,
+                level,
                 has_advice: entry.advice_override.is_some() || group.advice.is_some(),
             });
         }
@@ -164,11 +197,11 @@ fn render_json(rows: &[RuleRow], out: &mut impl std::io::Write) {
         let comma = if idx + 1 < rows.len() { "," } else { "" };
         let _ = writeln!(
             out,
-            "  {{\"id\":{},\"tier\":{},\"kind\":{},\"enabled\":{}}}{}",
+            "  {{\"id\":{},\"tier\":{},\"kind\":{},\"level\":{}}}{}",
             serde_json::to_string(&r.id).expect("str"),
             r.tier,
             serde_json::to_string(&r.kind).expect("str"),
-            r.enabled,
+            serde_json::to_string(r.level).expect("str"),
             comma
         );
     }

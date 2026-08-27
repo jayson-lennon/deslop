@@ -98,7 +98,6 @@ fn is_lintable(path: &std::path::Path) -> bool {
 pub struct ScanRun<'a> {
     pub cfg: &'a Config,
     pub paths: Vec<camino::Utf8PathBuf>,
-    pub no_tier3: bool,
     pub format_override: Option<FormatName>,
     pub color_override: Option<ColorChoice>,
 }
@@ -106,9 +105,17 @@ pub struct ScanRun<'a> {
 impl ScanRun<'_> {
     /// Execute the lint; returns the process exit code.
     pub fn run(&self, loaded: loader::Loaded) -> i32 {
-        // Tier filter: --no-tier3 caps at 2.
-        let max_tier = if self.no_tier3 { Some(2u8) } else { None };
-        let settings = scanner::LintSettings { max_tier };
+        // Tier filter comes from config ([scan].tiers); lint levels from
+        // [lints]. No CLI lint control by design.
+        let max_tier = {
+            let tiers = &self.cfg.scan.tiers;
+            let highest = tiers.iter().copied().max().unwrap_or(3);
+            (highest != 3).then_some(highest)
+        };
+        let settings = scanner::LintSettings {
+            max_tier,
+            levels: self.cfg.lint.clone(),
+        };
 
         let corpus = match Corpus::gather(&self.paths, self.cfg.scan.respect_gitignore) {
             Ok(c) => c,

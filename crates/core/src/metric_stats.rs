@@ -15,11 +15,12 @@ pub enum Stat {
     TricolonMaxStreak,
     SentLenCv,
     OpeningNgramRepeat,
+    TermClusterMax,
 }
 
 impl Stat {
     /// Closed set, deterministic order for validation messages.
-    pub const ALL: [Stat; 9] = [
+    pub const ALL: [Stat; 10] = [
         Stat::EmDashRate,
         Stat::CurlyDoubleRatio,
         Stat::BoldDensity,
@@ -29,6 +30,7 @@ impl Stat {
         Stat::TricolonMaxStreak,
         Stat::SentLenCv,
         Stat::OpeningNgramRepeat,
+        Stat::TermClusterMax,
     ];
 
     pub const fn name(self) -> &'static str {
@@ -42,6 +44,7 @@ impl Stat {
             Stat::TricolonMaxStreak => "tricolon_max_streak",
             Stat::SentLenCv => "sent_len_cv",
             Stat::OpeningNgramRepeat => "opening_ngram_repeat",
+            Stat::TermClusterMax => "term_cluster_max",
         }
     }
 

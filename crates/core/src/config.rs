@@ -11,8 +11,8 @@ pub struct Config {
     pub packs: Packs,
     pub scan: Scan,
     pub output: OutputFormatSection,
-    /// Per-entry / per-group silencing keyed by `GROUP` or `GROUP#slug`.
-    pub lint: BTreeMap<String, LintOverride>,
+    /// Per-entry / per-group level overrides: `[lints] ID = "level"`.
+    pub lint: BTreeMap<String, LintLevel>,
 }
 
 /// Pack selection: which builtin packs load, plus extra user packs.
@@ -63,11 +63,36 @@ pub enum ColorChoice {
     Never,
 }
 
-/// Silencing directive: group-wide or entry-scoped disable.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct LintOverride {
-    pub enabled: bool,
+/// Effective level for a lint, clippy-style. Default is the rule's tier;
+/// config overrides per GROUP or GROUP#slug (slug wins).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LintLevel {
+    Allow,
+    Note,
+    Warn,
+    Error,
+}
+
+impl LintLevel {
+    /// Parse a `[lints]` value string; `None` = unknown level (config error).
+    pub fn parse(s: &str) -> Option<LintLevel> {
+        Some(match s {
+            "allow" => LintLevel::Allow,
+            "note" => LintLevel::Note,
+            "warn" => LintLevel::Warn,
+            "error" => LintLevel::Error,
+            _ => return None,
+        })
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            LintLevel::Allow => "allow",
+            LintLevel::Note => "note",
+            LintLevel::Warn => "warn",
+            LintLevel::Error => "error",
+        }
+    }
 }
 
 impl Default for Config {
@@ -107,6 +132,8 @@ pub enum ConfigError {
         path: camino::Utf8PathBuf,
         source: std::io::Error,
     },
+    #[error("invalid [lints] entry: {detail}")]
+    LintLevel { detail: String },
 }
 
 /// Discover the nearest `.deslop.toml` walking up from `start`, falling back
@@ -154,9 +181,15 @@ fn parse_config_file(path: &camino::Utf8Path) -> Result<Config, error_stack::Rep
 /// # Errors
 ///
 /// Invalid TOML yields a report carrying the toml error detail.
-pub fn parse_config_str(text: &str) -> Result<Config, error_stack::Report<toml::de::Error>> {
-    let raw: RawConfig = toml::from_str(text)?;
-    Ok(raw.into_config())
+pub fn parse_config_str(text: &str) -> Result<Config, error_stack::Report<ConfigError>> {
+    let raw: RawConfig = toml::from_str(text).map_err(|e| {
+        error_stack::Report::new(ConfigError::Read {
+            path: "".into(),
+            source: std::io::Error::other(e.to_string()),
+        })
+    })?;
+    raw.into_config()
+        .map_err(|detail| error_stack::Report::new(ConfigError::LintLevel { detail }))
 }
 
 /// Raw serde mirror of the file format.
@@ -170,7 +203,23 @@ struct RawConfig {
     #[serde(default)]
     output: RawOutput,
     #[serde(default)]
-    lint: BTreeMap<String, LintOverride>,
+    lints: BTreeMap<String, RawLintLevel>,
+}
+
+/// String-newtype enabling validation of level values at parse time.
+#[derive(Debug, serde::Deserialize)]
+struct RawLintLevel(String);
+
+impl RawLintLevel {
+    /// Convert to a level; `Err` names the bad value.
+    fn into_level(self) -> Result<LintLevel, String> {
+        LintLevel::parse(&self.0).ok_or_else(|| {
+            format!(
+                "unknown lint level {:?} (expected allow|note|warn|error)",
+                self.0
+            )
+        })
+    }
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -196,9 +245,15 @@ struct RawOutput {
 }
 
 impl RawConfig {
-    fn into_config(self) -> Config {
+    /// Convert with level validation; `Err` carries the offending key+level.
+    fn into_config(self) -> Result<Config, String> {
+        let mut lint = std::collections::BTreeMap::new();
+        for (key, level) in self.lints {
+            let level = level.into_level().map_err(|e| format!("{key}: {e}"))?;
+            lint.insert(key, level);
+        }
         let mut cfg = Config {
-            lint: self.lint,
+            lint,
             ..Config::default()
         };
         if let Some(builtin) = self.packs.builtin {
@@ -230,7 +285,7 @@ impl RawConfig {
                 _ => ColorChoice::Auto,
             };
         }
-        cfg
+        Ok(cfg)
     }
 }
 
@@ -254,8 +309,8 @@ mod tests {
     fn unknown_lint_keys_are_preserved_for_tolerance() {
         // Given a lint override naming a rule that may not exist yet.
         let text = r#"
-[lint."MODERN-VOCAB#showcase"]
-enabled = false
+[lints]
+"MODERN-VOCAB#showcase" = "allow"
 "#;
 
         // When parsing.
@@ -263,9 +318,37 @@ enabled = false
 
         // Then the override survives under its exact key.
         assert_eq!(
-            cfg.lint.get("MODERN-VOCAB#showcase").map(|o| o.enabled),
-            Some(false)
+            cfg.lint.get("MODERN-VOCAB#showcase").copied(),
+            Some(LintLevel::Allow)
         );
+    }
+
+    #[test]
+    fn unknown_lint_level_is_rejected() {
+        // Given a misspelled level value.
+        let text = "[lints]\nfoo = \"silent\"\n";
+
+        // When parsing.
+        let result = parse_config_str(text);
+
+        // Then it is a lint-level error mentioning the bad value.
+        let err = format!("{:?}", result.expect_err("reject"));
+        assert!(err.contains("silent"));
+    }
+
+    #[test]
+    fn lint_levels_parse_from_config() {
+        // Given every supported level.
+        let text = "[lints]\na = \"allow\"\nb = \"note\"\nc = \"warn\"\nd = \"error\"\n";
+
+        // When parsing.
+        let cfg = parse_config_str(text).expect("parse");
+
+        // Then each key maps to its level.
+        assert_eq!(cfg.lint.get("a"), Some(&LintLevel::Allow));
+        assert_eq!(cfg.lint.get("b"), Some(&LintLevel::Note));
+        assert_eq!(cfg.lint.get("c"), Some(&LintLevel::Warn));
+        assert_eq!(cfg.lint.get("d"), Some(&LintLevel::Error));
     }
 
     #[test]

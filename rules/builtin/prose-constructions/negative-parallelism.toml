@@ -5,12 +5,18 @@ tier = 2
 category = "negative-parallelism"
 
 [fixtures]
-must_match = [] # TODO seed from upstream test corpus
-must_not_match = []
+must_match = [
+  "It's not merely faster; it's transformative for the whole pipeline.",
+  "This is not just a feature update, it's a complete rethinking of the workflow.",
+]
+must_not_match = [
+  "We did not enjoy the film, but finished it anyway.",
+  "The engine is not only powerful; the brakes are excellent.",
+]
 
 [[entries]]
 slug = "main"
 regex = '''
-\bn(?:ot|[''’]t) (?:just|only|merely|simply|about) [^.!?\n]{1,80}?[,;.:—–-](?P<payload>[^.!?\n]{1,160}) ?(?:it[''’]s|it is|this is|that[''’]s|they[''’]re|but rather)\b|\b(?:it|this|that)(?:[''’]s| is) not (?:a|an|the) [^.!?\n]{1,60}?[.;,—–] ?(?:it|this|that)(?:[''’]s| is) (?:a|an|the)\b
+\bn(?:ot|[''’]t) (?:just|only|merely|simply|about) [^.!?\n]{1,80}?[,;.:—–-] ?(?P<payload>(?:(?:it|this|that)[''’]s|it is|this is|that[''’]s|they[''’]re|but rather)\b[^.!?\n]{0,160})
 '''
 advice = "Drop the negation scaffold and state it positively: roughly \"{payload}\""

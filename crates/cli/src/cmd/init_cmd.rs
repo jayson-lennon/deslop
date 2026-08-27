@@ -17,7 +17,7 @@ builtin = ["artifacts", "modern-vocabulary", "prose-constructions", "document-si
 extra_paths = []
 
 [scan]
-tiers = [1, 2, 3]        # or cap with [1, 2] / [1]; `--no-tier3` overrides 3 off per run
+tiers = [1, 2, 3]        # or cap with [1, 2] / [1]
 respect_gitignore = true # skip gitignored paths when scanning directories
 extra_globs = []         # extra include globs for directory scans
 
@@ -25,13 +25,12 @@ extra_globs = []         # extra include globs for directory scans
 format = "human"         # human | json | github
 color = "auto"           # auto | always | never
 
-# Silence one rule group entirely:
-#[lint."MODERN-VOCAB"]
-#enabled = false
-
-# ...or silence exactly one entry (note the `GROUP#slug` form):
-#[lint."MODERN-VOCAB#leverage"]
-#enabled = false
+# Per-lint levels, clippy-style. Key is GROUP or GROUP#slug; value is
+# allow | note | warn | error (default = the rule's tier).
+#[lints]
+#MODERN-VOCAB-WATCH = "allow"                 # whole group off
+#"MODERN-VOCAB-HARD-BAN#delve" = "allow"      # one entry off
+#"PROSE-PAT-NEGATIVE-PARALLELISM" = "error"   # escalate to error
 
 # Rule authoring quickstart (full guide in README):
 #   - every rule file is ONE group sharing envelope + category,
@@ -79,7 +78,7 @@ mod tests {
             "[packs]",
             "[scan]",
             "[output]",
-            "lint.",
+            "[lints]",
             "DESLOP_REQUIRE_ADVICE",
         ];
 

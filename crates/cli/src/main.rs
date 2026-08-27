@@ -16,10 +16,6 @@ struct Cli {
     #[arg(long)]
     config: Option<camino::Utf8PathBuf>,
 
-    /// Disable all Tier 3 hints.
-    #[arg(long)]
-    no_tier3: bool,
-
     /// Output format override.
     #[arg(long, value_enum, default_value_t = ArgFormat::Human)]
     format: ArgFormat,
@@ -161,7 +157,6 @@ fn run(cli: Cli) -> i32 {
             let run = cmd::lint_cmd::ScanRun {
                 cfg: &cfg,
                 paths: cli.paths.clone(),
-                no_tier3: cli.no_tier3,
                 format_override: Some(cli.format.into()),
                 color_override: Some(cli.color.into()),
             };

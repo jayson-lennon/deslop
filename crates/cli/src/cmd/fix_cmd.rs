@@ -49,7 +49,10 @@ impl FixCmd<'_> {
                 Err(e) => return Err(super::fail(format!("cannot read input: {e}"))),
             };
 
-        let settings = scanner::LintSettings { max_tier: None };
+        let settings = scanner::LintSettings {
+            max_tier: None,
+            levels: self.cfg.lint.clone(),
+        };
         let grand_total = {
             let mut total = FixSummary::default();
             for doc in &corpus.docs {

@@ -73,6 +73,22 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
             if !group.entries.is_empty() {
                 push(None, "metric rules must not carry [[entries]]".into());
             }
+            let is_cluster = group.stat.as_deref() == Some("term_cluster_max");
+            if is_cluster {
+                if group.terms.as_ref().is_none_or(Vec::is_empty) {
+                    push(None, "term_cluster_max requires `terms`".into());
+                }
+                if let Some(w) = &group.window {
+                    if crate::rule::ClusterWindow::parse(w).is_none() {
+                        push(None, format!("unknown window {w:?}"));
+                    }
+                }
+            } else if group.window.is_some() || group.terms.is_some() {
+                push(
+                    None,
+                    "`window`/`terms` only apply to term_cluster_max".into(),
+                );
+            }
         }
         _ => {
             if group.entries.is_empty() {
@@ -376,6 +392,18 @@ fn parse_group_file(
                     stat,
                     per_words: group.per_words.unwrap_or(1000),
                     threshold_gt: group.threshold_gt.unwrap_or(0.0),
+                    window: group
+                        .window
+                        .as_deref()
+                        .and_then(crate::rule::ClusterWindow::parse)
+                        .unwrap_or(crate::rule::ClusterWindow::Paragraph),
+                    terms: group
+                        .terms
+                        .clone()
+                        .unwrap_or_default()
+                        .iter()
+                        .map(|t| t.trim().to_lowercase())
+                        .collect(),
                 },
             )
         } else {

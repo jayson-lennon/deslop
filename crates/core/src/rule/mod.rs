@@ -43,6 +43,37 @@ pub struct MetricSpec {
     pub stat: crate::metric_stats::Stat,
     pub per_words: u32,
     pub threshold_gt: f64,
+    /// term_cluster_max: granularity of the counted window.
+    pub window: ClusterWindow,
+    /// term_cluster_max: distinct terms counted per window (lowercased).
+    pub terms: Vec<String>,
+}
+
+/// Window granularity for cluster stats.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClusterWindow {
+    Paragraph,
+    Sentence,
+    Document,
+}
+
+impl ClusterWindow {
+    pub fn parse(name: &str) -> Option<ClusterWindow> {
+        Some(match name {
+            "paragraph" => ClusterWindow::Paragraph,
+            "sentence" => ClusterWindow::Sentence,
+            "document" => ClusterWindow::Document,
+            _ => return None,
+        })
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            ClusterWindow::Paragraph => "paragraph",
+            ClusterWindow::Sentence => "sentence",
+            ClusterWindow::Document => "document",
+        }
+    }
 }
 
 /// One scannable entry with its compiled matcher.
