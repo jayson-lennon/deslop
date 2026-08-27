@@ -50,7 +50,9 @@ impl VocabIndex {
                 .find_map(|len| self.try_run(src, map, allow, &words[i..], len));
             match matched {
                 Some(hit) => {
-                    i += hit_words(&words[i..], &hit);
+                    // Advance past every word the matched phrase consumed.
+                    let span_words = phrase_word_count(src, &words[i..], &hit);
+                    i += span_words.max(1);
                     hits.push(hit);
                 }
                 None => i += 1,
@@ -98,8 +100,13 @@ struct Word {
     end: usize,
 }
 
-fn hit_words(words: &[Word], _hit: &VocabHit) -> usize {
-    1.max(words.len()) // consume at least the first word; simple + safe
+/// Count how many word tokens the hit's byte span actually covers.
+fn phrase_word_count(src: &str, remaining: &[Word], hit: &VocabHit) -> usize {
+    remaining
+        .iter()
+        .take_while(|w| w.start < hit.end && w.end > hit.start)
+        .filter(|w| src[w.start..w.end].chars().any(char::is_alphanumeric))
+        .count()
 }
 
 /// Split on non-alphanumeric boundaries, keeping spans; skip masked words.

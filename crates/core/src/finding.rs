@@ -77,7 +77,7 @@ pub enum KindTag {
 }
 
 /// A single lint result, ready for rendering.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Finding {
     /// Globally unique rule identity, e.g. `PROSE-PAT-NEGPAR#not-merely`.
     pub entry_id: String,

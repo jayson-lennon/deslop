@@ -73,15 +73,38 @@ impl Matcher {
                     .map_err(|e| format!("regex `{source}`: {e}"))?;
                 Ok(Matcher::Pattern(re))
             }
-            "literal-ban" => Ok(Matcher::Literal {
-                needles: entry.terms.iter().map(|t| t.to_lowercase()).collect(),
-            }),
+            "literal-ban" => {
+                // Compile BEFORE any casing: `{N}` tokens are case-sensitive;
+                // matching itself stays case-insensitive at find time.
+                let mut needles = Vec::with_capacity(entry.terms.len());
+                for term in &entry.terms {
+                    if crate::rule::literals::compile(term).is_err() {
+                        return Err(format!("bad literal-ban term {term:?}"));
+                    }
+                    needles.push(term.clone());
+                }
+                Ok(Matcher::Literal { needles })
+            }
             // vocab (and the tolerant default) share word-list semantics;
-            // stem expansion happens upstream in `stems.rs`.
-            _ => Ok(Matcher::Vocab {
-                terms: entry.terms.iter().map(|t| t.to_lowercase()).collect(),
-                word_boundary: entry.word_boundary.unwrap_or(true),
-            }),
+            // stems=true mechanically expands inflections here so every
+            // consumer (fixtures, scanner, use-mention dict) sees one set.
+            _ => {
+                let mut terms = Vec::new();
+                for term in &entry.terms {
+                    terms.push(term.to_lowercase());
+                    if entry.stems && term.chars().count() >= 3 {
+                        for form in crate::rule::stems::expand(term) {
+                            terms.push(form.to_lowercase());
+                        }
+                    }
+                }
+                terms.sort();
+                terms.dedup();
+                Ok(Matcher::Vocab {
+                    terms,
+                    word_boundary: entry.word_boundary.unwrap_or(true),
+                })
+            }
         }
     }
 
@@ -90,8 +113,14 @@ impl Matcher {
         match self {
             Matcher::Pattern(re) => re.is_match(text).unwrap_or(false),
             Matcher::Literal { needles } => {
-                let lower = text.to_lowercase();
-                needles.iter().any(|n| lower.contains(n))
+                // Segment-aware: honors {N} digit runs; case-insensitive via
+                // find()'s internal lowercasing. Uncompilable terms were
+                // rejected at build, so compile().ok() is safe here.
+                needles.iter().any(|n| {
+                    crate::rule::literals::compile(n)
+                        .map(|segs| crate::rule::literals::find(text, &segs).is_some())
+                        .unwrap_or(false)
+                })
             }
             Matcher::Vocab {
                 terms,
