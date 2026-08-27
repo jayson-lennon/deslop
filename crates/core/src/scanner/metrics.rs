@@ -391,7 +391,8 @@ mod tests {
         // Given >250 words with a few dashes.
         let filler = "word ".repeat(260);
         let doc = format!("{filler}— end — done");
-        let s = stats(&doc);
+        let doc = doc.as_str();
+        let s = stats(doc);
 
         // When reading the stat.
         let v = s.get(Stat::EmDashRate).expect("above floor");
@@ -451,7 +452,7 @@ mod tests {
     fn tricolon_streak_counts_consecutive() {
         // Given two adjacent sentences each containing a tricolon.
         let doc = "we ship speed, scale, and soul. we love rust, cargo, and crabs.";
-        let s = stats(&doc);
+        let s = stats(doc);
 
         // Then max streak is two even though floors mute the stat itself.
         assert_eq!(s.tricolon_max_streak, 2);
