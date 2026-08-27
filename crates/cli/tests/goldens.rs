@@ -52,8 +52,7 @@ fn human_goldens_match() {
         }
         let expected = std::fs::read_to_string(&expected_path).expect("read golden");
         assert_eq!(
-            actual,
-            expected,
+            actual, expected,
             "{doc} human render drifted; regenerate goldens only with user approval"
         );
     }
@@ -70,8 +69,7 @@ fn json_goldens_match() {
         }
         let expected = std::fs::read_to_string(&expected_path).expect("read golden");
         assert_eq!(
-            actual,
-            expected,
+            actual, expected,
             "{doc} json render drifted; regenerate goldens only with user approval"
         );
     }

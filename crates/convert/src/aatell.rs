@@ -21,11 +21,17 @@ pub fn read(path: &std::path::Path) -> Result<Vec<RawTerm>, String> {
     ] {
         if let Some(words) = data[&key]["words"].as_array() {
             for w in words.iter().filter_map(Value::as_str) {
+                let severity = match key {
+                    "hard_ban" => Some("hard_ban"),
+                    "strong_flag" => Some("strong_flag"),
+                    _ => Some("density_watch"),
+                };
                 out.push(RawTerm {
                     term: w.to_string(),
                     replacement: None,
                     evidence: format!("anti-ai-tell tier={label}"),
                     source: "anti-ai-tell".into(),
+                    severity,
                 });
             }
         }
@@ -37,6 +43,7 @@ pub fn read(path: &std::path::Path) -> Result<Vec<RawTerm>, String> {
                 replacement: None,
                 evidence: "anti-ai-tell copulative_avoidance".into(),
                 source: "anti-ai-tell".into(),
+                severity: Some("strong_flag"),
             });
         }
     }

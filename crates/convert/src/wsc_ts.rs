@@ -234,6 +234,7 @@ pub fn vocabulary(source: &str) -> Vec<crate::slop_json::RawTerm> {
                 replacement: None,
                 evidence: format!("wsc: {reason}"),
                 source: "wsc".into(),
+                severity: None,
             }];
             if let Some(variants_raw) = frag.find("variants:") {
                 let variants = field(&frag[variants_raw..], "");
@@ -245,6 +246,7 @@ pub fn vocabulary(source: &str) -> Vec<crate::slop_json::RawTerm> {
                             replacement: None,
                             evidence: format!("wsc variant: {reason}"),
                             source: "wsc".into(),
+                            severity: None,
                         });
                     }
                 }
@@ -265,6 +267,7 @@ pub fn phrases(source: &str) -> Vec<crate::slop_json::RawTerm> {
                 replacement: None,
                 evidence: format!("wsc phrase: {}", field(&frag, "reason").unwrap_or_default()),
                 source: "wsc".into(),
+                severity: None,
             })
         })
         .collect()

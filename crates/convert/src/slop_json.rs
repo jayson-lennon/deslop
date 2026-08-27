@@ -34,6 +34,7 @@ pub fn read(path: &std::path::Path) -> Result<Vec<RawTerm>, String> {
             replacement: e.replace,
             evidence: format!("severity={}", e.severity.unwrap_or_else(|| "n/a".into())),
             source: "anti-ai-slop".into(),
+            severity: None,
         });
     }
     Ok(out)
@@ -46,4 +47,7 @@ pub struct RawTerm {
     pub replacement: Option<String>,
     pub evidence: String,
     pub source: String,
+    /// anti-ai-tell class: "hard_ban" | "strong_flag" | "density_watch";
+    /// None for other sources.
+    pub severity: Option<&'static str>,
 }

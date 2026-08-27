@@ -21,6 +21,7 @@ pub fn read(path: &std::path::Path) -> Result<Vec<crate::slop_json::RawTerm>, St
                     replacement: Some(clean(cells[1])),
                     evidence: "stop-slop jargon table".into(),
                     source: "stop-slop".into(),
+                    severity: None,
                 });
             }
             // A table row signals being inside a table only for body rows.
@@ -60,6 +61,7 @@ fn push_phrase(out: &mut Vec<crate::slop_json::RawTerm>, phrase: &str) {
         replacement: None,
         evidence: "stop-slop phrases list".into(),
         source: "stop-slop".into(),
+        severity: None,
     });
 }
 

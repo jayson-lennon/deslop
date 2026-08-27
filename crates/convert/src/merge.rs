@@ -14,6 +14,30 @@ pub struct MergedTerm {
     pub replacement_src: Option<String>,
     /// Concatenated evidence notes from contributing sources.
     pub evidence: Vec<String>,
+    /// anti-ai-tell class, strongest wins: hard_ban(3) > strong_flag(2)
+    /// > density_watch(1) > none(0). Drives the group split (hard-ban /
+    /// strong-flag / watch).
+    pub severity: u8,
+}
+
+/// Severity rank for a raw class label.
+pub fn severity_rank(label: Option<&str>) -> u8 {
+    match label {
+        Some("hard_ban") => 3,
+        Some("strong_flag") => 2,
+        Some("density_watch") => 1,
+        _ => 0,
+    }
+}
+
+/// Group id-base for a severity rank.
+pub fn group_for_severity(rank: u8) -> &'static str {
+    match rank {
+        3 => "MODERN-VOCAB-HARD-BAN",
+        2 => "MODERN-VOCAB-STRONG-FLAG",
+        1 => "MODERN-VOCAB-WATCH",
+        _ => "MODERN-VOCAB",
+    }
 }
 
 /// Source priority for replacement selection (index = strength).
@@ -44,8 +68,10 @@ pub fn merge_vocab(all: Vec<RawTerm>) -> Vec<MergedTerm> {
             replacement: None,
             replacement_src: None,
             evidence: Vec::new(),
+            severity: severity_rank(term.severity),
         });
         entry.tier = entry.tier.max(source_tier(&term.source));
+        entry.severity = entry.severity.max(severity_rank(term.severity));
         if !entry.evidence.contains(&term.evidence) && !term.evidence.is_empty() {
             entry.evidence.push(term.evidence.clone());
         }
@@ -81,6 +107,7 @@ mod tests {
             replacement: replacement.map(Into::into),
             evidence: format!("evidence from {source}"),
             source: source.into(),
+            severity: None,
         }
     }
 

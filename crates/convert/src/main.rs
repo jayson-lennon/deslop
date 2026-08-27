@@ -6,7 +6,7 @@
 
 mod aatell;
 mod emit;
-mod merge;
+pub mod merge;
 mod notice_gen;
 mod slop_json;
 mod stopslop;
@@ -107,11 +107,44 @@ fn read_file(p: &Path) -> Result<String, String> {
 fn emit_all(terms: &[MergedTerm], patterns: &[wsc_ts::TsPattern]) -> Result<(), String> {
     let rules = Path::new("rules/builtin");
 
-    // modern-vocabulary: deterministic chunked files.
+    // modern-vocabulary: severity-ranked groups first (hard-ban /
+    // strong-flag / watch: the user's [lints] control surface), then the
+    // unclassified remainder chunked alphabetically as vocab-N.
     let pack = rules.join("modern-vocabulary");
     std::fs::create_dir_all(&pack).map_err(|e| e.to_string())?;
     clear_generated(&pack)?;
-    for (i, chunk) in terms.chunks(200).enumerate() {
+    for rank in (1u8..=3).rev() {
+        let picked: Vec<crate::merge::MergedTerm> = terms
+            .iter()
+            .filter(|t| t.severity == rank)
+            .cloned()
+            .collect();
+        if picked.is_empty() {
+            continue;
+        }
+        let (fname, id_base, advice) = match rank {
+            3 => (
+                "hard-ban.toml",
+                "MODERN-VOCAB-HARD-BAN",
+                Some("Highest measured AI ratios; no legitimate use offsets the signal"),
+            ),
+            2 => (
+                "strong-flag.toml",
+                "MODERN-VOCAB-STRONG-FLAG",
+                Some("Strong AI tell; one use is worth flagging"),
+            ),
+            _ => (
+                "watch.toml",
+                "MODERN-VOCAB-WATCH",
+                Some("Common word with measured AI excess; fine alone, a cluster is a tell"),
+            ),
+        };
+        let body = emit::vocab_group(0, id_base, "ai-vocabulary", advice, &picked);
+        std::fs::write(pack.join(fname), body).map_err(|e| e.to_string())?;
+    }
+    let rest: Vec<crate::merge::MergedTerm> =
+        terms.iter().filter(|t| t.severity == 0).cloned().collect();
+    for (i, chunk) in rest.chunks(200).enumerate() {
         let name = format!("vocab-{}.toml", i + 1);
         let body = emit::vocab_group(
             i,

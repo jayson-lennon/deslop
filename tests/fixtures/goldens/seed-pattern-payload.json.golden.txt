@@ -1,4 +1,4 @@
 [
   {"rule_id":"PROSE-PAT-NEGATIVE-PARALLELISM#main","kind":"pattern","tier":2,"category":"negative-parallelism","path":"tests/fixtures/docs/seed-pattern-payload.md","span":{"start":5,"end":28,"line":1,"col":6},"excerpt":"not merely faster; it's","message":"AI writing construction","advice":"Drop the negation scaffold and state it positively: roughly \" \""},
-  {"rule_id":"MODERN-VOCAB#transformative-fix-12","kind":"vocab","tier":2,"category":"ai-vocabulary","path":"tests/fixtures/docs/seed-pattern-payload.md","span":{"start":29,"end":43,"line":1,"col":30},"excerpt":"transformative","message":"AI-tell vocabulary","advice":"AI-tell vocabulary; state the idea in your own plain words"}
+  {"rule_id":"MODERN-VOCAB-STRONG-FLAG#transformative-fix-23","kind":"vocab","tier":2,"category":"ai-vocabulary","path":"tests/fixtures/docs/seed-pattern-payload.md","span":{"start":29,"end":43,"line":1,"col":30},"excerpt":"transformative","message":"AI-tell vocabulary","advice":"Strong AI tell; one use is worth flagging"}
 ]
