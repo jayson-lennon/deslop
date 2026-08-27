@@ -3,6 +3,7 @@
 pub mod fixtures;
 pub mod loader;
 pub mod notice;
+pub mod policy;
 pub mod schema;
 
 use crate::finding::Tier;
