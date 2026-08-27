@@ -102,27 +102,15 @@ fn flatten(rule_set: &deslop_core::rule::RuleSet) -> Vec<RuleRow> {
     rule_set
         .groups
         .iter()
-        .map(|g| {
-            let (kind, tier) = match &g.kind {
-                deslop_core::rule::Kind::Vocab(_) => ("vocab", g.tier),
-                deslop_core::rule::Kind::Pattern(_) => ("pattern", g.tier),
-                deslop_core::rule::Kind::LiteralBan(_) => ("literal-ban", g.tier),
-                deslop_core::rule::Kind::Metric(_) => ("metric", g.tier),
-            };
-            (
-                kind.to_string(),
-                tier.number(),
-                g.id_base.clone(),
-                String::new(),
-            )
-        })
-        .map(|(kind, tier, id, _category)| RuleRow {
-            id,
-            tier,
-            kind,
-            category: String::from("-"),
-            enabled: true,
-            has_advice: false,
+        .flat_map(|g| {
+            g.entries.iter().map(move |e| RuleRow {
+                id: e.id.clone(),
+                tier: g.tier,
+                kind: g.kind.clone(),
+                category: g.category.clone(),
+                enabled: g.enabled,
+                has_advice: e.advice_override.is_some() || g.advice.is_some(),
+            })
         })
         .collect()
 }

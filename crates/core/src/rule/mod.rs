@@ -291,7 +291,7 @@ fn parse_group_file(
     seen_entry_ids: &mut std::collections::BTreeMap<String, ()>,
     loaded: &mut Loaded,
 ) {
-    let mut active_entry_counter = 0usize;
+    let active_entry_counter = 0usize;
 
     let parsed: Result<GroupToml, toml::de::Error> = toml::from_str(text);
 
@@ -391,8 +391,6 @@ fn parse_group_file(
         url: group.url.as_ref().map(|u| (u.text.clone(), u.href.clone())),
         entries: active_entries,
     });
-
-    active_entry_counter += 1;
 }
 
 /// Byte offset -> 1-based line number.
@@ -430,7 +428,8 @@ fn entry_slug(entry: &EntryToml, group: &GroupToml, counter: usize) -> String {
 }
 
 fn entry_enabled(entry: &EntryToml) -> bool {
-    entry.advice.is_some() || true // enabled always v1; advice gate separate
+    let _ = entry; // v1: entries are enabled unless the group is disabled
+    true
 }
 
 fn default_scope(kind: &str) -> String {
