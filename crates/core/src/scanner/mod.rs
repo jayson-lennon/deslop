@@ -2,6 +2,8 @@
 //!
 //! Orchestration order matters: normalize -> mask -> scan -> assemble -> sort.
 
+pub mod regions;
+
 use crate::config::Config;
 use crate::doc::Doc;
 use crate::finding::Finding;
