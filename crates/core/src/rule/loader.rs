@@ -347,7 +347,7 @@ fn parse_group_file(
         entries: active_entries,
     });
 
-    active_entry_counter += 1;
+    let _ = active_entry_counter; // future: stable auto-numbering across files
 }
 
 /// Byte offset -> 1-based line number.
@@ -381,7 +381,7 @@ fn entry_slug(entry: &EntryToml, group: &GroupToml, counter: usize) -> String {
         .slug
         .clone()
         .or_else(|| entry.id.clone())
-        .unwrap_or_else(|| format!("e{}-{counter}", group.id_base.to_lowercase()))
+        .unwrap_or_else(|| format!("{}-e{}", group.id_base.to_lowercase(), counter))
 }
 
 fn entry_enabled(entry: &EntryToml) -> bool {
