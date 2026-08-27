@@ -142,3 +142,111 @@ fn duplicate_group_ids_across_files_are_flagged() {
         loaded.errors
     );
 }
+
+const CONVERTED: &str = r#"
+id-base = "SRC-VOCAB"
+kind = "vocab"
+tier = 2
+category = "c"
+
+[origin]
+repo = "https://github.com/example/src"
+commit = "aaaa1111bbbb2222cccc3333dddd4444eeee5555"
+
+[fixtures]
+must_match = ["delve now"]
+
+[[entries]]
+slug = "delve"
+terms = ["delve"]
+"#;
+
+const NOTICE_OK: &str = r#"
+license = "MIT"
+[[origin]]
+repo = "https://github.com/example/src"
+commit = "aaaa1111bbbb2222cccc3333dddd4444eeee5555"
+"#;
+
+#[test]
+fn converted_rule_with_matching_notice_loads() {
+    // Given a converted rule and a NOTICE covering its origin.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "builtin/pack/rule.toml", CONVERTED);
+    write(tmp.path(), "builtin/pack/NOTICE.toml", NOTICE_OK);
+
+    let cfg = Config {
+        packs: deslop_core::config::Packs {
+            builtin: vec!["pack".into()],
+            extra_paths: vec![],
+        },
+        ..Config::default()
+    };
+
+    // When loading.
+    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+
+    // Then attribution checks pass silently.
+    assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+}
+
+#[test]
+fn origin_missing_from_notice_is_refused() {
+    // Given a rule whose commit is absent from the NOTICE.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "builtin/pack/rule.toml", CONVERTED);
+    write(
+        tmp.path(),
+        "builtin/pack/NOTICE.toml",
+        "license = \"MIT\"\n[[origin]]\nrepo = \"https://github.com/other\"\ncommit = \"ffff\"\n",
+    );
+
+    let cfg = Config {
+        packs: deslop_core::config::Packs {
+            builtin: vec!["pack".into()],
+            extra_paths: vec![],
+        },
+        ..Config::default()
+    };
+
+    // When loading.
+    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+
+    // Then an error says the origin is not listed.
+    assert!(
+        loaded
+            .errors
+            .iter()
+            .any(|e| e.message.contains("not listed in pack NOTICE")),
+        "{:?}",
+        loaded.errors
+    );
+}
+
+#[test]
+fn converted_rule_without_notice_file_is_refused() {
+    // Given a converted rule with NO NOTICE.toml beside it.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "builtin/pack/rule.toml", CONVERTED);
+
+    let cfg = Config {
+        packs: deslop_core::config::Packs {
+            builtin: vec!["pack".into()],
+            extra_paths: vec![],
+        },
+        ..Config::default()
+    };
+
+    // When loading.
+    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+
+    // Then the error names the missing NOTICE.
+    assert!(
+        loaded
+            .errors
+            .iter()
+            .any(|e| e.message.contains("no NOTICE.toml")),
+        "{:?}",
+        loaded.errors
+    );
+}

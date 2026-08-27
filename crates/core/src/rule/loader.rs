@@ -160,7 +160,11 @@ pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
     let mut seen_ids = std::collections::BTreeMap::new();
 
     for dir in pack_dirs {
+        let notice = load_notice(&dir);
         for file in crate::sorted_toml_files(&dir) {
+            if file.file_name() == Some("NOTICE.toml") {
+                continue;
+            }
             let text = match std::fs::read_to_string(&file) {
                 Ok(t) => t,
                 Err(e) => {
@@ -172,7 +176,7 @@ pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
                     continue;
                 }
             };
-            parse_group_file(&file, &text, &mut seen_ids, &mut loaded);
+            parse_group_file(&file, &text, notice.as_ref(), &mut seen_ids, &mut loaded);
         }
     }
     loaded
@@ -181,6 +185,7 @@ pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
 fn parse_group_file(
     path: &Utf8Path,
     text: &str,
+    notice: Option<&crate::rule::notice::Notice>,
     seen_ids: &mut std::collections::BTreeMap<String, String>,
     loaded: &mut Loaded,
 ) {
@@ -198,9 +203,34 @@ fn parse_group_file(
         }
     };
 
-    // Disabled groups still validate (they must stay loadable), but skip
-    // entry-uniqueness pressure only if entirely empty.
     validate_group(path.as_str(), &group, &mut loaded.errors);
+
+    // Attribution cross-check: an [origin] in a rule file must be covered by
+    // the pack's NOTICE.toml; a converted (origin-bearing) rule with no
+    // NOTICE at all is likewise refused.
+    if let Some(origin) = &group.origin {
+        match notice {
+            None => loaded.errors.push(LoadError {
+                path: path.to_string(),
+                line: None,
+                message: format!(
+                    "rule declares [origin] but {} has no NOTICE.toml",
+                    path.parent().unwrap_or(path)
+                ),
+            }),
+            Some(n) if !n.covers(&origin.repo, &origin.commit) => {
+                loaded.errors.push(LoadError {
+                    path: path.to_string(),
+                    line: None,
+                    message: format!(
+                        "origin {}/{} not listed in pack NOTICE.toml",
+                        origin.repo, origin.commit
+                    ),
+                });
+            }
+            _ => {}
+        }
+    }
 
     // Detect cross-file duplicate GROUP ids by recording id_base -> first path.
     if let Some(first) = seen_ids.get(&group.id_base) {
@@ -242,4 +272,11 @@ fn line_of(text: &str, byte: usize) -> usize {
         .filter(|&b| b == b'\n')
         .count()
         + 1
+}
+
+/// Read + parse `NOTICE.toml` from a pack dir; `None` when absent or broken.
+fn load_notice(dir: &Utf8Path) -> Option<crate::rule::notice::Notice> {
+    let path = dir.join("NOTICE.toml");
+    let text = std::fs::read_to_string(&path).ok()?;
+    crate::rule::notice::Notice::parse(&text).ok()
 }
