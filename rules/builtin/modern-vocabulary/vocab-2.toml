@@ -112,109 +112,109 @@ terms = [
 ]
 [[entries]]
 slug = "fosters-fix-1"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Inflated causative; "helps" or "encourages" says it plainly'
 terms = ["fosters"]
 replacement = "builds"
 
 [[entries]]
 slug = "frequently-fix-2"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Vague frequency; give a real figure or "often"'
 terms = ["frequently,"]
 replacement = ""
 
 [[entries]]
 slug = "fundamentally-fix-3"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Emphasis adverb with no content; cut it and let the claim stand"
 terms = ["fundamentally,"]
 replacement = ""
 
 [[entries]]
 slug = "furthermore-fix-4"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Transition padding; vary connectors or let sentence order carry the flow"
 terms = ["furthermore,"]
 replacement = ""
 
 [[entries]]
 slug = "gain-a-comprehensive-understanding-fix-5"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Significance padding; say what is understood and how"
 terms = ["gain a comprehensive understanding"]
 replacement = "fully understand"
 
 [[entries]]
 slug = "gain-a-deeper-understanding-fix-6"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Significance padding; say what depth adds"
 terms = ["gain a deeper understanding"]
 replacement = "understand better"
 
 [[entries]]
 slug = "gain-valuable-insights-fix-7"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Empty value claim; state the insight itself"
 terms = ["gain valuable insights"]
 replacement = "see what's going on"
 
 [[entries]]
 slug = "galvanize-fix-8"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Grandiose verb; "spurred" or "motivated" without the electricity metaphor'
 terms = ["galvanize"]
 replacement = "push"
 
 [[entries]]
 slug = "game-changer-fix-9"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Hype noun; name what actually changed and by how much"
 terms = ["game changer"]
 replacement = "shift"
 
 [[entries]]
 slug = "garnered-a-significant-fix-10"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Inflated reception claim; state the concrete reception"
 terms = ["garnered a significant"]
 replacement = "got a lot of"
 
 [[entries]]
 slug = "garners-fix-11"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Inflated verb; "earns" or "receives"'
 terms = ["garners"]
 replacement = "gets"
 
 [[entries]]
 slug = "generally-fix-12"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Hedge; be specific or drop it"
 terms = ["generally,"]
 replacement = ""
 
 [[entries]]
 slug = "given-that-fix-13"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Wordy; "since" or "because" is plainer'
 terms = ["given that"]
 replacement = "since"
 
 [[entries]]
 slug = "given-that-fix-14"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Wordy; "since" or "because" is plainer'
 terms = ["given that,"]
 replacement = "since"
 
 [[entries]]
 slug = "grasp-fix-15"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Metaphorical; "understand" is plainer'
 terms = ["grasp"]
 replacement = "get"
 
 [[entries]]
 slug = "harmonize-fix-16"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Vague corporate verb; describe the actual interaction"
 terms = ["harmonize"]
 replacement = "align"
 
 [[entries]]
 slug = "hence-fix-17"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Stilted connector; prefer "so" or restructure'
 terms = ["hence"]
 replacement = "so"
 
 [[entries]]
 slug = "hence-fix-18"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Stilted connector; prefer "so" or restructure'
 terms = ["hence,"]
 replacement = "so"
 
@@ -226,103 +226,103 @@ replacement = ""
 
 [[entries]]
 slug = "highlight-fix-20"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Overused emphasis verb; "shows" or "points to"'
 terms = ["highlight"]
 replacement = "show"
 
 [[entries]]
 slug = "highlights-fix-21"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Overused emphasis verb; "shows" or "points to"'
 terms = ["highlights"]
 replacement = "shows"
 
 [[entries]]
 slug = "highlights-the-importance-of-considering-fix-22"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Nested significance scaffolding; state the consideration directly"
 terms = ["highlights the importance of considering"]
 replacement = "shows you should consider"
 
 [[entries]]
 slug = "hinder-fix-23"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Fine word, overused in AI lists; consider "slow" or "block"'
 terms = ["hinder"]
 replacement = "slow"
 
 [[entries]]
 slug = "holds-a-significant-fix-24"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Significance inflation; quantify the significance instead"
 terms = ["holds a significant"]
 replacement = "has a"
 
 [[entries]]
 slug = "holistic-fix-25"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Buzzword; name the parts you actually considered"
 terms = ["holistic"]
 replacement = "whole"
 
 [[entries]]
 slug = "however-fix-26"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Overused pivot; vary or split the sentence"
 terms = ["however,"]
 replacement = "but"
 
 [[entries]]
 slug = "illuminate-fix-27"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Metaphor-heavy; "clarifies" or "explains"'
 terms = ["illuminate"]
 replacement = "explain"
 
 [[entries]]
 slug = "illuminates-fix-28"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Metaphor-heavy; "clarifies" or "explains"'
 terms = ["illuminates"]
 replacement = "explains"
 
 [[entries]]
 slug = "illuminating-fix-29"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Metaphor-heavy; say what it clarified"
 terms = ["illuminating"]
 replacement = "clear"
 
 [[entries]]
 slug = "implement-fix-30"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Corporate register; "do", "build", or "carry out"'
 terms = ["implement"]
 replacement = "build"
 
 [[entries]]
 slug = "implements-fix-31"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Corporate register; "does", "builds", or "carries out"'
 terms = ["implements"]
 replacement = "builds"
 
 [[entries]]
 slug = "importantly-fix-32"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Self-praising adverb; show importance through content"
 terms = ["importantly"]
 replacement = ""
 
 [[entries]]
 slug = "importantly-fix-33"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Self-praising adverb; show importance through content"
 terms = ["importantly,"]
 replacement = ""
 
 [[entries]]
 slug = "in-conclusion-fix-34"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Formulaic wrap-up; end on the substance, not a signpost"
 terms = ["in conclusion"]
 replacement = ""
 
 [[entries]]
 slug = "in-conclusion-fix-35"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Formulaic wrap-up; end on the substance, not a signpost"
 terms = ["in conclusion,"]
 replacement = ""
 
 [[entries]]
 slug = "in-contrast-fix-36"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Formulaic contrast marker; vary the connective tissue"
 terms = ["in contrast,"]
 replacement = ""
 
@@ -334,13 +334,13 @@ replacement = "given"
 
 [[entries]]
 slug = "in-many-cases-fix-38"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Hedge padding; state when, or drop the qualifier"
 terms = ["in many cases"]
 replacement = "often"
 
 [[entries]]
 slug = "in-order-to-fix-39"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Wordy; "to" does the same job'
 terms = ["in order to"]
 replacement = "to"
 

@@ -113,13 +113,13 @@ replacement = "useful"
 
 [[entries]]
 slug = "landscape-fix-13"
-advice = "Strong AI tell; one use is worth flagging"
+advice = 'Cartography metaphor; "field", "market", or the concrete noun'
 terms = ["landscape"]
 replacement = "space"
 
 [[entries]]
 slug = "leverage-fix-14"
-advice = "Replace \"{match}\" with its plain verb (\"use\") — nominalized business-speak is a top frequency signal in Kobak 2025"
+advice = 'Replace "{match}" with its plain verb ("use") — nominalized business-speak is a top frequency signal in Kobak 2025'
 terms = ["leverage"]
 replacement = "use"
 
@@ -155,19 +155,19 @@ replacement = "changing"
 
 [[entries]]
 slug = "seamless-fix-20"
-advice = "Strong AI tell; one use is worth flagging"
+advice = "Product-brochure adjective; name what actually works smoothly"
 terms = ["seamless"]
 replacement = "clean"
 
 [[entries]]
 slug = "seamlessly-fix-21"
-advice = "Strong AI tell; one use is worth flagging"
+advice = "Product-brochure adverb; describe the actual interaction"
 terms = ["seamlessly"]
 replacement = "cleanly"
 
 [[entries]]
 slug = "testament-fix-22"
-advice = "Strong AI tell; one use is worth flagging"
+advice = 'Admiration formula ("a testament to"); state what it demonstrates'
 terms = ["testament"]
 replacement = "proof"
 

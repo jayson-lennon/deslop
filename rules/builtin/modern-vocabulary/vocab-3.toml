@@ -107,7 +107,7 @@ terms = [
 ]
 [[entries]]
 slug = "paramount-fix-1"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Rank inflation; "most important" or just "important"'
 terms = ["paramount"]
 replacement = "key"
 
@@ -119,49 +119,49 @@ replacement = ""
 
 [[entries]]
 slug = "permeate-fix-3"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Metaphor; "runs through" or "appears throughout"'
 terms = ["permeate"]
 replacement = "spread through"
 
 [[entries]]
 slug = "pertinent-fix-4"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = 'Stiff; "relevant"'
 terms = ["pertinent"]
 replacement = "relevant"
 
 [[entries]]
 slug = "pioneer-fix-5"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Founding myth; name the actual first step"
 terms = ["pioneer"]
 replacement = "start"
 
 [[entries]]
 slug = "pivotal-role-in-shaping-fix-6"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Role-formula inflation; state the actual influence"
 terms = ["pivotal role in shaping"]
 replacement = "shapes"
 
 [[entries]]
 slug = "played-a-significant-role-in-shaping-fix-7"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Role-formula inflation; state the actual influence"
 terms = ["played a significant role in shaping"]
 replacement = "shaped"
 
 [[entries]]
 slug = "plays-a-crucial-role-in-shaping-fix-8"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Role-formula inflation; state the actual influence"
 terms = ["plays a crucial role in shaping"]
 replacement = "shapes"
 
 [[entries]]
 slug = "plays-a-crucial-role-in-understanding-fix-9"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Role-formula inflation; state what it explains"
 terms = ["plays a crucial role in understanding"]
 replacement = "helps us understand"
 
 [[entries]]
 slug = "plays-a-significant-role-fix-10"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
+advice = "Role-formula inflation; state the actual influence"
 terms = ["plays a significant role"]
 replacement = "matters"
 

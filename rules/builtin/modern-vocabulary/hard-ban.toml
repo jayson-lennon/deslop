@@ -23,7 +23,7 @@ terms = [
 ]
 [[entries]]
 slug = "delve-fix-1"
-advice = "Highest measured AI ratios; no legitimate use offsets the signal"
+advice = 'The canonical AI verb (Kobak 2025 r=28 in PubMed abstracts); "examine", "dig into", or name the action'
 terms = ["delve"]
 replacement = "look at"
 
@@ -35,7 +35,7 @@ replacement = "explain"
 
 [[entries]]
 slug = "ever-evolving-fix-3"
-advice = "Highest measured AI ratios; no legitimate use offsets the signal"
+advice = 'Breathless modifier; "changing" or the actual rate'
 terms = ["ever-evolving"]
 replacement = "shifting"
 
@@ -59,13 +59,13 @@ replacement = "carefully"
 
 [[entries]]
 slug = "realm-fix-7"
-advice = "Highest measured AI ratios; no legitimate use offsets the signal"
+advice = 'Fantasy-register ("in the realm of"); "in" or "field of"'
 terms = ["realm"]
 replacement = "space"
 
 [[entries]]
 slug = "showcase-fix-8"
-advice = "Highest measured AI ratios; no legitimate use offsets the signal"
+advice = 'Sales-floor verb; "show" or "demonstrate"'
 terms = ["showcase"]
 replacement = "show"
 
@@ -83,19 +83,19 @@ replacement = "showing"
 
 [[entries]]
 slug = "tapestry-fix-11"
-advice = "Highest measured AI ratios; no legitimate use offsets the signal"
+advice = 'The "rich tapestry" metaphor is a top-5 GPT-4 marker; describe the actual variety'
 terms = ["tapestry"]
 replacement = "mix"
 
 [[entries]]
 slug = "underscore-fix-12"
-advice = "Highest measured AI ratios; no legitimate use offsets the signal"
+advice = 'Best-evidenced emphasis verb (Reinhart PNAS 2025); "show", "stress", or restructure'
 terms = ["underscore"]
 replacement = "show"
 
 [[entries]]
 slug = "underscores-fix-13"
-advice = "Highest measured AI ratios; no legitimate use offsets the signal"
+advice = 'Best-evidenced emphasis verb (Reinhart PNAS 2025); "shows", "stresses", or restructure'
 terms = ["underscores"]
 replacement = "shows"
 
