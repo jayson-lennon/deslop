@@ -199,16 +199,18 @@ fn metric_findings(
         let Some(spec) = &group.metric else { continue };
         let local_stat = metrics::Stat::parse(spec.stat.name()).expect("same registry");
         // Cluster stat is per-rule (terms vary); compute directly on masked.
-        // (value, anchor offset in norm text). Cluster stat is per-rule
-        // (terms vary); other stats read the precomputed DocStats.
-        let measured: Option<(f64, usize)> = match local_stat {
+        // (value, anchor span in norm text). Cluster stat is per-rule
+        // (terms vary); other stats anchor at zero (whole-doc finding).
+        let measured: Option<(f64, metrics::ClusterHit)> = match local_stat {
             metrics::Stat::TermClusterMax => {
                 metrics::term_cluster_max(norm_text, &spec.terms, spec.window)
-                    .map(|(n, at)| (n as f64, at))
+                    .map(|(n, hit)| (n as f64, hit))
             }
-            _ => stats.get(local_stat).map(|v| (v, 0)),
+            _ => stats
+                .get(local_stat)
+                .map(|v| (v, metrics::ClusterHit { start: 0, end: 0 })),
         };
-        let Some((value, hit_at)) = measured else {
+        let Some((value, hit)) = measured else {
             continue;
         };
         if value <= spec.threshold_gt {
@@ -232,12 +234,7 @@ fn metric_findings(
             .advice
             .as_deref()
             .map(|t| crate::rule::template::render(t, &lookup));
-        let anchor = if local_stat == metrics::Stat::TermClusterMax {
-            hit_at
-        } else {
-            0
-        };
-        let (o_start, o_end) = norm.span_to_orig(anchor, anchor);
+        let (o_start, o_end) = norm.span_to_orig(hit.start, hit.end);
         findings.push(Finding {
             entry_id: group.id_base.clone(),
             kind: KindTag::Metric,

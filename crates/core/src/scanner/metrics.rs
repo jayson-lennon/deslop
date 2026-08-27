@@ -108,14 +108,23 @@ impl DocStats {
 /// Anchor for a metric finding (densest spot approximation).
 pub type Anchor = (usize, usize);
 
-/// Max DISTINCT `terms` in any `window`, plus the norm-offset of that
-/// window's first term hit (anchor). Windows are split on blank lines
+/// Where the densest window's first term hit sits in the text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClusterHit {
+    /// Byte offset of the first matching term.
+    pub start: usize,
+    /// Byte offset just past the matching term.
+    pub end: usize,
+}
+
+/// Max DISTINCT `terms` in any `window`, plus the span of that window's
+/// first term hit (rendering anchor). Windows are split on blank lines
 /// (paragraph) or sentence enders (sentence); document = whole text.
 pub fn term_cluster_max(
     masked: &str,
     terms: &[String],
     window: crate::rule::ClusterWindow,
-) -> Option<(usize, usize)> {
+) -> Option<(usize, ClusterHit)> {
     use crate::rule::ClusterWindow as W;
     if terms.is_empty() {
         return None;
@@ -124,7 +133,7 @@ pub fn term_cluster_max(
     // (sanitized at load), so byte scanning is char-boundary safe.
     let lower = masked.to_lowercase();
     let lb = lower.as_bytes();
-    let mut hits: Vec<(usize, usize)> = Vec::new(); // (start, term_idx)
+    let mut hits: Vec<(usize, usize, usize)> = Vec::new(); // (start, end, term_idx)
     for (ti, t) in terms.iter().enumerate() {
         if t.is_empty() {
             continue;
@@ -136,14 +145,14 @@ pub fn term_cluster_max(
             let before_ok = at == 0 || !lb[at - 1].is_ascii_alphanumeric();
             let after_ok = end >= lb.len() || !lb[end].is_ascii_alphanumeric();
             if before_ok && after_ok {
-                hits.push((at, ti));
+                hits.push((at, end, ti));
             }
             from = end.max(at + 1);
         }
     }
     // No hits is a valid measurement of zero (never exceeds a threshold).
     if hits.is_empty() {
-        return Some((0, 0));
+        return Some((0, ClusterHit { start: 0, end: 0 }));
     }
     hits.sort_unstable();
     // Window boundaries as byte ranges.
@@ -167,10 +176,13 @@ pub fn term_cluster_max(
     };
     // Distinct per window: walk hits, reset at each boundary.
     let mut best = 0usize;
-    let mut best_at = hits[0].0;
+    let mut best_hit = ClusterHit {
+        start: hits[0].0,
+        end: hits[0].1,
+    };
     let mut bi = 0usize;
     let mut seen = std::collections::BTreeSet::new();
-    for &(at, ti) in &hits {
+    for &(at, end, ti) in &hits {
         while bi + 1 < bounds.len() && bounds[bi + 1] <= at {
             bi += 1;
             seen.clear();
@@ -178,10 +190,10 @@ pub fn term_cluster_max(
         seen.insert(ti);
         if seen.len() > best {
             best = seen.len();
-            best_at = at;
+            best_hit = ClusterHit { start: at, end };
         }
     }
-    Some((best, best_at))
+    Some((best, best_hit))
 }
 
 /// Compute every stat over a prepared document.
@@ -646,9 +658,11 @@ mod cluster_tests {
         // Given one paragraph with three distinct watch terms.
         let text = "The crucial part is robust and notably quick.";
         // When measuring the cluster.
-        let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        let (n, hit) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
         // Then all three distinct terms count.
         assert_eq!(n, 3);
+        // And the anchor span covers the first hit word.
+        assert_eq!(&text[hit.start..hit.end], "crucial");
     }
 
     #[test]
@@ -656,9 +670,11 @@ mod cluster_tests {
         // Given a paragraph repeating a single term.
         let text = "crucial crucial crucial crucial";
         // When measuring the cluster.
-        let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        let (n, hit) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
         // Then only one distinct term counts.
         assert_eq!(n, 1);
+        // And the anchor covers the first "crucial".
+        assert_eq!(&text[hit.start..hit.end], "crucial");
     }
 
     #[test]
@@ -666,9 +682,11 @@ mod cluster_tests {
         // Given terms spread across two paragraphs.
         let text = "crucial here.\n\nrobust and notably there";
         // When measuring per-paragraph.
-        let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        let (n, hit) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
         // Then no paragraph exceeds two.
         assert_eq!(n, 2);
+        // And the anchor sits in the densest paragraph's first hit.
+        assert_eq!(&text[hit.start..hit.end], "robust");
     }
 
     #[test]
@@ -679,6 +697,7 @@ mod cluster_tests {
         let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Document).unwrap();
         // Then all three pool to three.
         assert_eq!(n, 3);
+        let _ = n;
     }
 
     #[test]
@@ -686,8 +705,9 @@ mod cluster_tests {
         // Given no terms configured.
         // When measuring.
         let got = term_cluster_max("crucial", &[], ClusterWindow::Paragraph);
-        // Then there is no measurement.
-        assert!(got.is_none());
+        // Then measurement exists but is zero (not an error).
+        assert!(got.is_some());
+        assert_eq!(got.expect("zero").0, 0);
     }
 
     #[test]
@@ -695,8 +715,11 @@ mod cluster_tests {
         // Given text where terms appear only as substrings of other words.
         let text = "crucially robustly";
         // When measuring.
-        let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
-        // Then nothing counts (space-padded whole-word match).
+        let (n, hit) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        // Then nothing counts (word-boundary match), and the zero-anchor
+        // span is empty.
         assert_eq!(n, 0);
+        assert_eq!(hit.start, 0);
+        assert_eq!(hit.end, 0);
     }
 }
