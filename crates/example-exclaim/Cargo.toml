@@ -1,0 +1,16 @@
+[package]
+name = "example-exclaim"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Example deslop plugin: exclamation-rate density metric"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+deslop-plugin-sdk = { path = "../plugin-sdk" }
+serde = { workspace = true }
+serde_json = { workspace = true }

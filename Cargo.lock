@@ -221,6 +221,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "deslop-plugin-sdk"
+version = "0.1.0"
+dependencies = [
+ "deslop-plugin-protocol",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "difflib"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -271,6 +280,15 @@ checksum = "b878b3fac9613c3c7f22eb70bc8a3c6ebdc03cc11479ee60fde1692d747fd45f"
 dependencies = [
  "anyhow",
  "rustc_version",
+]
+
+[[package]]
+name = "example-exclaim"
+version = "0.1.0"
+dependencies = [
+ "deslop-plugin-sdk",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
