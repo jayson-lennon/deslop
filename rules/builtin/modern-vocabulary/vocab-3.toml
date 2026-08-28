@@ -9,41 +9,14 @@ enabled = true
 slug = "chunk-3"
 advice = "AI-tell vocabulary; state the idea in your own plain words"
 terms = [
-  "proactive",
-  "provocative",
-  "push",
   "push the boundaries of",
-  "raise",
-  "redefine",
   "regenerate response",
-  "relentless",
-  "remarkable",
-  "remnant",
-  "renowned",
-  "reverberate",
-  "revitalize",
   "rich cultural heritage",
-  "risks",
-  "riveting",
-  "roam",
   "secret sauce",
-  "sector",
-  "seeking",
   "sheds light on",
-  "sights",
   "sights unseen",
-  "soak",
-  "sounds",
   "sounds unheard",
-  "spearheading",
-  "sphere",
-  "stark",
-  "stimulating",
-  "streamline",
   "supercharge your",
-  "surpass",
-  "symphony",
-  "synergy",
   "the consequences are real",
   "the elephant in the room",
   "the implications are significant",
@@ -61,56 +34,23 @@ terms = [
   "this is what leadership actually looks like",
   "this is what x actually looks like",
   "this matters because",
-  "thought-provoking",
-  "thoughtful",
   "to new heights",
-  "to some extent",
   "to the next level",
   "treasure trove",
-  "uncharted",
   "underscores the importance of",
-  "unless",
   "unlock the full potential",
   "unlock the potential",
   "unlock the power",
   "unlock the secrets",
-  "unparalleled",
   "unveil the secrets",
-  "unwavering",
-  "visionary",
   "voice dripping with sarcasm",
-  "vulnerability",
-  "vulnerable",
-  "wander",
-  "whereas",
   "while specific details are limited",
-  "whispering",
   "without further ado",
-  "wonders",
   "would you like me to",
   "x is a feature, not a bug",
   "you already know this, but",
   "you're absolutely right",
-  "zeitgeist",
 ]
-[[entries]]
-slug = "profound-fix-1"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["profound"]
-replacement = "deep"
-
-[[entries]]
-slug = "promptly-fix-2"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["promptly"]
-replacement = "fast"
-
-[[entries]]
-slug = "prompty-fix-3"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["prompty"]
-replacement = "fast"
-
 [[entries]]
 slug = "provide-valuable-insights-fix-4"
 advice = "AI-tell vocabulary; state the idea in your own plain words"
@@ -130,40 +70,10 @@ terms = ["provides valuable insights"]
 replacement = "shows what's going on"
 
 [[entries]]
-slug = "rapid-fix-7"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["rapid"]
-replacement = "fast"
-
-[[entries]]
-slug = "rapidly-fix-8"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["rapidly"]
-replacement = "fast"
-
-[[entries]]
 slug = "regularly-fix-9"
 advice = "AI-tell vocabulary; state the idea in your own plain words"
 terms = ["regularly,"]
 replacement = ""
-
-[[entries]]
-slug = "reimagine-fix-10"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["reimagine"]
-replacement = "rethink"
-
-[[entries]]
-slug = "remember-that-fix-11"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["remember that"]
-replacement = ""
-
-[[entries]]
-slug = "represent-fix-12"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["represent"]
-replacement = "is"
 
 [[entries]]
 slug = "research-indicates-fix-13"
@@ -176,12 +86,6 @@ slug = "research-needed-to-explore-fix-14"
 advice = "AI-tell vocabulary; state the idea in your own plain words"
 terms = ["research needed to explore"]
 replacement = "more research is needed on"
-
-[[entries]]
-slug = "resonate-fix-15"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["resonate"]
-replacement = "land"
 
 [[entries]]
 slug = "rich-tapestry-fix-16"
@@ -244,40 +148,10 @@ terms = ["study sheds light on"]
 replacement = "study shows"
 
 [[entries]]
-slug = "subsequently-fix-26"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["subsequently"]
-replacement = ""
-
-[[entries]]
 slug = "subsequently-fix-27"
 advice = "AI-tell vocabulary; state the idea in your own plain words"
 terms = ["subsequently,"]
 replacement = ""
-
-[[entries]]
-slug = "substantial-fix-28"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["substantial"]
-replacement = "big"
-
-[[entries]]
-slug = "substantiate-fix-29"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["substantiate"]
-replacement = "back up"
-
-[[entries]]
-slug = "synthesize-fix-30"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["synthesize"]
-replacement = "combine"
-
-[[entries]]
-slug = "tailored-fix-31"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["tailored"]
-replacement = "built for"
 
 [[entries]]
 slug = "take-a-dive-into-fix-32"
@@ -290,12 +164,6 @@ slug = "take-a-step-back-fix-33"
 advice = "AI-tell vocabulary; state the idea in your own plain words"
 terms = ["take a step back"]
 replacement = "Reconsider"
-
-[[entries]]
-slug = "that-is-to-say-fix-34"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["that is to say"]
-replacement = ""
 
 [[entries]]
 slug = "that-is-to-say-fix-35"
@@ -358,88 +226,10 @@ terms = ["to summarize,"]
 replacement = ""
 
 [[entries]]
-slug = "transcend-fix-45"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["transcend"]
-replacement = "go beyond"
-
-[[entries]]
-slug = "transform-fix-46"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["transform"]
-replacement = "change"
-
-[[entries]]
-slug = "transforms-fix-47"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["transforms"]
-replacement = "changes"
-
-[[entries]]
-slug = "turbocharge-fix-48"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["turbocharge"]
-replacement = "speed up"
-
-[[entries]]
-slug = "ultimately-fix-49"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["ultimately"]
-replacement = ""
-
-[[entries]]
 slug = "ultimately-fix-50"
 advice = "AI-tell vocabulary; state the idea in your own plain words"
 terms = ["ultimately,"]
 replacement = ""
-
-[[entries]]
-slug = "uncover-fix-51"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["uncover"]
-replacement = "find"
-
-[[entries]]
-slug = "uncovers-fix-52"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["uncovers"]
-replacement = "finds"
-
-[[entries]]
-slug = "underpinning-fix-53"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["underpinning"]
-replacement = "supporting"
-
-[[entries]]
-slug = "underpins-fix-54"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["underpins"]
-replacement = "supports"
-
-[[entries]]
-slug = "undoubtedly-fix-55"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["undoubtedly"]
-replacement = ""
-
-[[entries]]
-slug = "unleash-fix-56"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["unleash"]
-replacement = "use"
-
-[[entries]]
-slug = "unleashing-fix-57"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["unleashing"]
-replacement = "using"
-
-[[entries]]
-slug = "unlock-fix-58"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["unlock"]
-replacement = "get"
 
 [[entries]]
 slug = "unpack-analysis-fix-59"
@@ -448,58 +238,10 @@ terms = ["unpack (analysis)"]
 replacement = "Explain, examine"
 
 [[entries]]
-slug = "unveils-fix-60"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["unveils"]
-replacement = "shows"
-
-[[entries]]
-slug = "utilise-fix-61"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["utilise"]
-replacement = "use"
-
-[[entries]]
-slug = "utilize-fix-62"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["utilize"]
-replacement = "use"
-
-[[entries]]
-slug = "utilizing-fix-63"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["utilizing"]
-replacement = "using"
-
-[[entries]]
-slug = "valuable-fix-64"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["valuable"]
-replacement = "useful"
-
-[[entries]]
 slug = "valuable-insights-fix-65"
 advice = "AI-tell vocabulary; state the idea in your own plain words"
 terms = ["valuable insights"]
 replacement = "useful detail"
-
-[[entries]]
-slug = "vital-fix-66"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["vital"]
-replacement = "key"
-
-[[entries]]
-slug = "welcome-to-fix-67"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["welcome to"]
-replacement = ""
-
-[[entries]]
-slug = "when-it-comes-to-fix-68"
-advice = "AI-tell vocabulary; state the idea in your own plain words"
-terms = ["when it comes to"]
-replacement = "for"
 
 [[entries]]
 slug = "you-may-want-to-fix-69"
