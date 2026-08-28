@@ -40,6 +40,9 @@ pub fn diagnostic(f: &deslop_core::finding::Finding, file_id: usize) -> Diagnost
         if let Some(advice) = &f.advice {
             d = d.with_notes(vec![format!("help: {advice}")]);
         }
+        if let Some(context) = &f.context {
+            d = d.with_notes(vec![context.clone()]);
+        }
         if let Some((text, href)) = &f.url {
             d = d.with_notes(vec![format!("see: {text} - {href}")]);
         }
@@ -59,11 +62,13 @@ pub fn diagnostic(f: &deslop_core::finding::Finding, file_id: usize) -> Diagnost
             message: format!("help: {advice}"),
         });
     }
-    let notes = f
-        .url
-        .as_ref()
-        .map(|(text, href)| vec![format!("see: {text} - {href}")])
-        .unwrap_or_default();
+    let mut notes: Vec<String> = Vec::new();
+    if let Some(context) = &f.context {
+        notes.push(context.clone());
+    }
+    if let Some((text, href)) = &f.url {
+        notes.push(format!("see: {text} - {href}"));
+    }
 
     Diagnostic {
         severity: severity(f.tier),

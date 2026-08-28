@@ -93,6 +93,9 @@ pub struct Finding {
     pub excerpt: String,
     /// `(text, href)` reference note rendered after the diagnostic body.
     pub url: Option<(String, String)>,
+    /// Extra evidence line rendered between help and url - the cluster
+    /// metric's "which words, where" chain. `None` for every other kind.
+    pub context: Option<String>,
     /// Vocab-only mechanical rewrite; `None` = report-only.
     pub replacement: Option<String>,
 }

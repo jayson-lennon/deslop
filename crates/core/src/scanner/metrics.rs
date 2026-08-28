@@ -161,7 +161,7 @@ pub fn compute(inputs: &Inputs<'_>) -> DocStats {
     stats
 }
 
-pub use term_cluster_max::measure as term_cluster_max;
+pub use term_cluster_max::{ClusterWindowHit, first_words, windows as cluster_windows};
 
 /// Sentence splitting with abbreviation guard. Shared: several stats and
 /// the cluster windows all need the same segmentation.

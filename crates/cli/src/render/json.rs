@@ -99,6 +99,11 @@ pub fn render_json(filed: &[FiledFinding<'_>], out: &mut dyn Write) -> std::io::
                 quote(href)
             )?;
         }
+        // New field goes LAST (frozen-order contract covers only older
+        // fields); omitted entirely when there is no context line.
+        if let Some(context) = &f.finding.context {
+            write!(out, ",\"context\":{}", quote(context))?;
+        }
         writeln!(out, "}}{comma}")?;
     }
     writeln!(out, "]")

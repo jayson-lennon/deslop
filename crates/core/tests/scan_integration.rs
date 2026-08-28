@@ -334,3 +334,102 @@ terms = ["delve", "garner"]
     assert_eq!(findings2.len(), 1, "{findings2:?}");
     assert_eq!(findings2[0].entry_id, "METRIC-A");
 }
+
+const CLUSTER_RULE: &str = r#"
+[[group]]
+id-base = "TEST-CLUSTER"
+kind = "metric"
+tier = 3
+category = "vocabulary-density"
+message = '{value:.0} distinct in one {window}'
+advice = 'vary the vocabulary'
+stat = 'term_cluster_max'
+window = 'paragraph'
+threshold-gt = 2
+terms = ['crucial', 'robust', 'notably', 'adept']
+"#;
+
+#[test]
+fn cluster_emits_one_finding_per_offending_window() {
+    // Given a rule with threshold 2 and two paragraphs, each holding 3
+    // distinct watch terms, separated by a clean paragraph.
+    let rules = load_with(&[("cluster.toml", CLUSTER_RULE)]);
+    let src = "crucial robust notably here.\n\nclean paragraph.\n\nadept crucial robust there\n";
+
+    // When scanning.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    let cluster: Vec<_> = findings
+        .iter()
+        .filter(|f| f.entry_id == "TEST-CLUSTER")
+        .collect();
+
+    // Then BOTH dense paragraphs report independently.
+    assert_eq!(cluster.len(), 2);
+    // And each finding's value is its own window's distinct count.
+    assert_eq!(cluster[0].message, "3 distinct in one paragraph");
+    assert_eq!(cluster[1].message, "3 distinct in one paragraph");
+    // And anchors stay inside their own windows.
+    assert!(cluster[0].excerpt == "notably" || cluster[0].excerpt == "robust");
+    assert!(cluster[1].excerpt == "robust" || cluster[1].excerpt == "crucial");
+}
+
+#[test]
+fn cluster_context_lists_triggers_in_order_with_prefix() {
+    // Given a paragraph that opens with non-trigger words.
+    let rules = load_with(&[("cluster.toml", CLUSTER_RULE)]);
+    let src = "The plan felt crucial and robust, also notably adept.\n";
+
+    // When scanning.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    // Then the context line shows the window opening, then triggers.
+    let ctx = findings[0].context.as_deref().expect("context");
+    assert_eq!(
+        ctx,
+        "The...plan...felt...crucial...robust...notably...adept..."
+    );
+}
+
+#[test]
+fn cluster_context_omits_prefix_words_that_are_triggers() {
+    // Given a paragraph that OPENS with triggers.
+    let rules = load_with(&[("cluster.toml", CLUSTER_RULE)]);
+    let src = "crucial robust notably quick.\n";
+
+    // When scanning.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    // Then triggers appear once (in the chain), never duplicated in a
+    // prefix; the one non-trigger opening word still shows.
+    let ctx = findings[0].context.as_deref().expect("context");
+    assert_eq!(ctx, "quick...crucial...robust...notably...");
+}
+
+#[test]
+fn cluster_document_window_has_no_word_prefix() {
+    // Given a document-window rule.
+    let doc_rule = CLUSTER_RULE.replace("window = 'paragraph'", "window = 'document'");
+    let rules = load_with(&[("cluster.toml", &doc_rule)]);
+    let src = "crucial robust notably adept.\n";
+
+    // When scanning.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    // Then the context is the bare trigger chain (no doc "prefix").
+    let ctx = findings[0].context.as_deref().expect("context");
+    assert_eq!(ctx, "crucial...robust...notably...adept...");
+}
+
+#[test]
+fn cluster_below_threshold_window_is_silent() {
+    // Given two dense paragraphs and one with a single trigger.
+    let rules = load_with(&[("cluster.toml", CLUSTER_RULE)]);
+    let src = "crucial robust notably.\n\njust crucial alone\n";
+
+    // When scanning.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    // Then only the dense window reports.
+    assert_eq!(findings.len(), 1);
+}

@@ -249,64 +249,141 @@ fn metric_findings(
         }
         let Some(spec) = &group.metric else { continue };
         let local_stat = metrics::Stat::parse(spec.stat.name()).expect("same registry");
-        // Cluster stat is per-rule (terms vary); compute directly on masked.
-        // (value, anchor span in norm text): cluster anchors at its densest
-        // window's final hit; whole-doc stats anchor at the FIRST occurrence
-        // of their signal so the caret sits on evidence, not byte 0.
-        let measured: Option<(f64, metrics::ClusterHit)> = match local_stat {
-            metrics::Stat::TermClusterMax => {
-                metrics::term_cluster_max(norm_text, &spec.terms, &spec.term_lemmas, spec.window)
-                    .map(|(n, hit)| (n as f64, hit))
+
+        // Cluster: per-rule terms, one finding PER offending window.
+        if local_stat == metrics::Stat::TermClusterMax {
+            for w in
+                metrics::cluster_windows(norm_text, &spec.terms, &spec.term_lemmas, spec.window)
+            {
+                if (w.distinct as f64) <= spec.threshold_gt {
+                    continue;
+                }
+                let (o_start, o_end) = norm.span_to_orig(w.last_hit.0, w.last_hit.1);
+                let context = cluster_context(&w, norm_text, spec.window);
+                findings.push(metric_finding(
+                    group,
+                    spec,
+                    w.distinct as f64,
+                    (o_start, o_end),
+                    orig_src,
+                    settings,
+                    Some(context),
+                ));
             }
-            _ => stats.get(local_stat).map(|v| {
-                let (s, e) = metrics::first_signal_span(
-                    local_stat,
-                    norm_text,
-                    &bold_spans,
-                    &heading_ranges,
-                    &list_items,
-                );
-                (v, metrics::ClusterHit { start: s, end: e })
-            }),
-        };
-        let Some((value, hit)) = measured else {
+            continue;
+        }
+
+        // Whole-doc stats: single value, anchored at the FIRST occurrence of
+        // their signal so the caret sits on evidence, not byte 0.
+        let Some((value, (s, e))) = stats.get(local_stat).map(|v| {
+            let (s, e) = metrics::first_signal_span(
+                local_stat,
+                norm_text,
+                &bold_spans,
+                &heading_ranges,
+                &list_items,
+            );
+            (v, (s, e))
+        }) else {
             continue;
         };
         if value <= spec.threshold_gt {
             continue;
         }
-        // Denominator aware message: value is already "per per_words".
-        let per_words = spec.per_words.max(1);
-        let lookup = |name: &str| match name {
-            "value" => Some(format!("{value:.1}")),
-            "per_words" => Some(per_words.to_string()),
-            "stat" => Some(spec.stat.name().to_string()),
-            "window" => Some(spec.window.name().to_string()),
-            _ => None,
-        };
-        let message = group
-            .message
-            .as_deref()
-            .map(|t| crate::rule::template::render(t, &lookup))
-            .unwrap_or_else(|| default_message(KindTag::Metric));
-        let advice = group
-            .advice
-            .as_deref()
-            .map(|t| crate::rule::template::render(t, &lookup));
-        let (o_start, o_end) = norm.span_to_orig(hit.start, hit.end);
-        findings.push(Finding {
-            entry_id: group.id_base.clone(),
-            kind: KindTag::Metric,
-            tier: effective_tier(settings, group, &group.id_base),
-            category: group.category.clone(),
-            message,
-            advice,
-            span: Span::new(o_start, o_end),
-            excerpt: orig_src[o_start..o_end].to_string(),
-            url: group.url.clone(),
-            replacement: None,
-        });
+        let (o_start, o_end) = norm.span_to_orig(s, e);
+        findings.push(metric_finding(
+            group,
+            spec,
+            value,
+            (o_start, o_end),
+            orig_src,
+            settings,
+            None,
+        ));
     }
+}
+
+/// Build one metric Finding. `context` carries the cluster metric's
+/// evidence chain (which words fired, in order); `None` for whole-doc
+/// stats. The window's own count drives `{value}` so a per-window finding
+/// reports ITS number, not the document maximum.
+fn metric_finding(
+    group: &crate::rule::RuleGroup,
+    spec: &crate::rule::MetricSpec,
+    value: f64,
+    span: (usize, usize),
+    orig_src: &str,
+    settings: &LintSettings,
+    context: Option<String>,
+) -> Finding {
+    let (o_start, o_end) = span;
+    // Denominator aware message: value is already "per per_words".
+    let per_words = spec.per_words.max(1);
+    let lookup = |name: &str| match name {
+        "value" => Some(format!("{value:.1}")),
+        "per_words" => Some(per_words.to_string()),
+        "stat" => Some(spec.stat.name().to_string()),
+        "window" => Some(spec.window.name().to_string()),
+        _ => None,
+    };
+    let message = group
+        .message
+        .as_deref()
+        .map(|t| crate::rule::template::render(t, &lookup))
+        .unwrap_or_else(|| default_message(KindTag::Metric));
+    let advice = group
+        .advice
+        .as_deref()
+        .map(|t| crate::rule::template::render(t, &lookup));
+    Finding {
+        entry_id: group.id_base.clone(),
+        kind: KindTag::Metric,
+        tier: effective_tier(settings, group, &group.id_base),
+        category: group.category.clone(),
+        message,
+        advice,
+        span: Span::new(o_start, o_end),
+        excerpt: orig_src[o_start..o_end].to_string(),
+        url: group.url.clone(),
+        context,
+        replacement: None,
+    }
+}
+
+/// Hardcoded cluster context line: first 4 words of the window, then the
+/// distinct trigger words in first-occurrence order, `...` between and a
+/// trailing `...`. Doc-window windows get no word prefix (a document has
+/// no meaningful opening snippet). Example:
+/// `In conclusion, the team...also...aptly...adept...`
+fn cluster_context(
+    w: &metrics::ClusterWindowHit,
+    norm_text: &str,
+    window: crate::rule::ClusterWindow,
+) -> String {
+    let mut out = String::new();
+    if window != crate::rule::ClusterWindow::Document {
+        // Opening words verbatim - but NOT words that are themselves
+        // triggers: the chain below lists every trigger, and showing
+        // `also...also...` twice when the paragraph OPENS with a trigger
+        // reads as a bug.
+        for word in metrics::first_words(norm_text, w.bounds, 4) {
+            let lower = word.to_lowercase();
+            let is_trigger = w.terms_in_order.iter().any(|t| t.to_lowercase() == lower);
+            if is_trigger {
+                continue;
+            }
+            // A word ending its own sentence already carries a period;
+            // trim it so the ellipsis reads as one dot, not four.
+            let word = word.trim_end_matches('.');
+            out.push_str(word);
+            out.push_str("...");
+        }
+    }
+    for term in &w.terms_in_order {
+        out.push_str(term);
+        out.push_str("...");
+    }
+    out
 }
 
 fn scope_predicate(scope: &str) -> impl Fn(regions::Scope) -> bool + '_ {
@@ -358,6 +435,7 @@ fn make_finding(
         span: Span::new(o_start, o_end),
         excerpt,
         url: group.url.clone(),
+        context: None,
         replacement,
     }
 }
