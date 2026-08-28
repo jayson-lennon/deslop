@@ -39,11 +39,16 @@
   cite no papers, and never carry TODO markers (loader-tested).
 
 - deslop plugins are in-memory WASM modules run by the embedded wasmi
-  interpreter, declared under `[plugins]` in `.deslop.toml`; identity
+  interpreter, declared as `[plugin.<id>]` tables in `.deslop.toml`
+  (required `wasm` path: absolute as-given, `./`/`../` relative to the
+  config file, bare names relative to the install dir
+  `~/.local/share/deslop/plugins`; `.wasm` extension mandatory); identity
   (id_base, tier, category, ABI version) comes from the module's own
-  `plugin_meta()` export, `[plugins.<id>]` params pass to the plugin
-  verbatim (host never interprets them), and `[plugins.<id>.runtime]`
-  holds host-owned knobs (fuel, defaulting to a size-scaled high limit).
+  `plugin_meta()` export and must match the table key case-insensitively,
+  remaining keys in the table pass to the plugin verbatim (host never
+  interprets them), `[plugin.<id>.runtime]` holds host-owned knobs (fuel,
+  defaulting to a size-scaled high limit), and `enabled = false` removes
+  the plugin at load level (unlike `[lints]` allow, which is scan-level).
 
 - Plugin findings use the same pipeline as TOML rules (`GROUP#slug` ids,
   `[lints]` overrides, tier-driven exit codes) but are report-only; the
