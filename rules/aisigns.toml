@@ -1,0 +1,598 @@
+# deslop pack: aisigns — this project (WP:AISIGNS artifacts + document metrics)
+
+[[group]]
+id-base = 'AISIGNS'
+kind = 'literal-ban'
+tier = 1
+category = 'referral-urls'
+message = 'Chatbot markup artifact'
+scope = 'anywhere'
+
+[group.url]
+text = 'Wikipedia:Signs of AI writing'
+href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup'
+
+[[group.entries]]
+slug = 'chatgpt-referral'
+advice = 'Delete the ChatGPT/Copilot referral query — the URL was copied from an LLM share/citation flow, not typed by a human'
+terms = ['utm_source=chatgpt.com', 'utm_source=chat.openai.com', 'utm_source=copilot.microsoft.com', '?referrer=grok.com', '&referrer=grok.com', '?output=1&prof=1']
+category = 'referral-urls'
+
+[[group.entries]]
+slug = 'didactic-disclaimer'
+advice = "Drop the chatbot's didactic sign-off (consult a professional for…) or convert it to a genuine editorial note addressed to the reader"
+terms = ['always consult with a qualified', 'it is important to note that i am not']
+category = 'assistant-disclaimer'
+
+[[group.entries]]
+slug = 'gemini-cite'
+advice = "Replace Gemini's rendered `[cite: N]` / `[cite_start]` scaffold with a proper reference or remove it"
+terms = ['[cite: {N}, {N}, {N}, {N}]', '[cite: {N}, {N}, {N}]', '[cite: {N}, {N}]', '[cite: {N}]', '[cite_start]', '[cite_end]']
+category = 'gemini-artifacts'
+
+[[group.entries]]
+slug = 'grok-cards'
+advice = 'Remove the raw Grok render callout (`grok_render_citation_card_json`) — internal UI instructions leaked into output text'
+terms = ['grok_render_citation_card_json', "{{\"citation_cards\"", "\"render_citation_card\""]
+category = 'grok-artifacts'
+
+[[group.entries]]
+slug = 'knowledge-cutoff'
+advice = 'Delete the assistant preamble about my knowledge cutoff / not having real-time data — a chat-transcript opener that leaked into the document'
+terms = ['my knowledge cutoff', 'as of my last update', 'as an ai language model, i', 'i cannot browse the internet in real time']
+category = 'assistant-preamble'
+
+[[group.entries]]
+slug = 'lenticular-dagger'
+advice = 'DeepSeek-style †/‡ dagger chains left where citations should be — use real references or nothing'
+terms = ['†††††', '††††', '[citation: {N}]']
+category = 'deepseek-daggers'
+
+[[group.entries]]
+slug = 'oaicite'
+advice = 'Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) — paste-converted markup that never belonged in prose; re-cite properly or drop the claim'
+terms = ['contentReference[oaicite:{N}]{{index={N}}}', '[oaicite:{N}]', 'attributableIndex']
+category = 'chatgpt-artifacts'
+
+[[group.entries]]
+slug = 'perplexity'
+advice = 'Strip the Perplexity artifact ([attached_file:N]/[webpage:N]) — sandbox plumbing, not citation; reference the source by name instead'
+terms = ['[attached_file:{N}]', '[webpage:{N}]', '[webpage_content]']
+category = 'perplexity-artifacts'
+
+[[group.entries]]
+slug = 'leaked-search-pointer'
+advice = 'Delete the `turn0searchN` web-search pointer — leaked ChatGPT tool state, not content; replace with a real citation or nothing'
+terms = ['turn0search{N}', 'turn0view{N}', 'turn0news{N}', 'turn0image{N}', 'tool_uses_remaining:', '_processed_image_ids', '|^12^|']
+category = 'chatgpt-artifacts'
+
+[[group.entries]]
+slug = 'unfilled-placeholder'
+advice = "This template placeholder was never filled in ('[Your Name]', 'url=URL', 'PASTE_X_HERE', 'INSERT_X') — complete the value or delete the scaffolding line"
+terms = ['[your name]', '[client name]', '[company name]', '[insert {N} words]', 'url=url ', 'url=paste_spotify_track_url_here', 'title=title goes here', 'paste_{N}_word_description_here', 'insert_meta_description_here', '<insert here>', 'lorem ipsum dolor sit amet, consectetur adipiscing elit']
+category = 'placeholder-scaffolding'
+
+[[group]]
+id-base = 'AISIGNS-PHRASES'
+kind = 'vocab'
+tier = 2
+category = 'throat-clearing'
+enabled = true
+
+[[group.entries]]
+slug = 'actually-matters'
+terms = ['actually matters']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'as-we-ll-see'
+terms = ["as we'll see"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'but-that-s-another-post'
+terms = ["but that's another post"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'can-we-talk-about'
+terms = ['can we talk about']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'creeps-in'
+terms = ['creeps in']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'full-stop'
+terms = ['full stop.']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'circle-back'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['circle back']
+replacement = 'Return to, revisit'
+
+[[group.entries]]
+slug = 'double-down'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['double down']
+replacement = 'Commit, increase'
+
+[[group.entries]]
+slug = 'embark-on-a-journey'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['embark on a journey']
+
+[[group.entries]]
+slug = 'garnered-significant-attention'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['garnered significant attention', 'garnered significant interest']
+
+[[group.entries]]
+slug = 'unleash-the-power-of'
+advice = 'Marketing-register collocation; name what is actually done'
+terms = ['unleash the power of', 'unleash the full potential of', 'unleash your potential']
+
+[[group.entries]]
+slug = 'harnessing-the-power-of'
+advice = 'Marketing-register collocation; name what is actually done'
+terms = ['harnessing the power of', 'harness the power of']
+
+[[group.entries]]
+slug = 'ever-evolving-landscape'
+advice = 'Double AI-tell; name the specific field and what actually changed'
+terms = ['ever-evolving landscape', 'ever-changing landscape']
+
+[[group.entries]]
+slug = 'a-beacon-of-hope'
+advice = 'Metaphorical inflation; state the concrete effect'
+terms = ['a beacon of hope', 'beacon of hope']
+
+[[group.entries]]
+slug = 'aligns-with'
+advice = 'Corporate-register hedge; state the actual relationship'
+terms = ['aligns with', 'aligned with', 'aligning with']
+
+[[group.entries]]
+slug = 'enduring-legacy'
+advice = 'Admiration formula; state what specifically persists'
+terms = ['enduring legacy', 'lasting legacy']
+
+[[group.entries]]
+slug = 'the-tool-excels-at'
+advice = 'Promotional framing; describe the capability plainly'
+terms = ['the tool excels at', 'excels at']
+
+[[group.entries]]
+slug = 'a-symphony-of-flavors'
+advice = 'Review-cliché metaphor; name the actual flavors'
+terms = ['a symphony of flavors', 'symphony of flavors']
+
+[[group.entries]]
+slug = 'the-importance-of-cannot-be-overstated'
+advice = 'Canned significance formula; state the importance instead'
+terms = ['the importance of x cannot be overstated', 'cannot be overstated']
+
+[[group.entries]]
+slug = 'take-x-to-the-next-level'
+advice = 'Marketing formula; state the concrete improvement'
+terms = ['take it to the next level', 'take this to the next level', 'to the next level']
+
+[[group.entries]]
+slug = 'embrace-the-future'
+advice = 'Slogan; name the actual change'
+terms = ['embrace the future', 'embracing the future']
+
+[[group.entries]]
+slug = 'here-s-that-x'
+terms = ["here's that x"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'here-s-the-problem-though'
+terms = ["here's the problem though"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'here-s-the-thing'
+terms = ["here's the thing:"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'here-s-this-x'
+terms = ["here's this x"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'here-s-what-i-find-interesting'
+terms = ["here's what i find interesting"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'here-s-what-x'
+terms = ["here's what x"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'here-s-why-that-matters'
+terms = ["here's why that matters"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'here-s-why-x'
+terms = ["here's why x"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'hint'
+terms = ['hint:']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'i-want-to-explore'
+terms = ['i want to explore']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'i-ll-say-it-again'
+terms = ["i'll say it again:"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'i-m-going-to-be-honest'
+terms = ["i'm going to be honest"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'in-a-world-where'
+terms = ['in a world where']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'in-this-section-we-ll'
+terms = ["in this section, we'll"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'in-today-s-x'
+terms = ["in today's x"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'it-s-worth-noting'
+terms = ["it's worth noting"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'let-me-be-clear'
+terms = ['let me be clear']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'let-me-walk-you-through'
+terms = ['let me walk you through']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'let-that-sink-in'
+terms = ['let that sink in']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'make-no-mistake'
+terms = ['make no mistake']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'plot-twist'
+terms = ['plot twist:']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'spoiler'
+terms = ['spoiler:']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'landscape-context'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['landscape (context)']
+replacement = 'Situation, field'
+
+[[group.entries]]
+slug = 'lean-into'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['lean into']
+replacement = 'Accept, embrace'
+
+[[group.entries]]
+slug = 'navigate-challenges'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['navigate (challenges)']
+replacement = 'Handle, address'
+
+[[group.entries]]
+slug = 'on-the-same-page'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['on the same page']
+replacement = 'Aligned, agreed'
+
+[[group.entries]]
+slug = 'the-consequences-are-real'
+terms = ['the consequences are real']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'the-implications-are-significant'
+terms = ['the implications are significant']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'the-real-x-is'
+terms = ['the real x is']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'the-reality-is'
+terms = ['the reality is']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'the-reasons-are-structural'
+terms = ['the reasons are structural']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'the-rest-of-this-essay-explains'
+terms = ['the rest of this essay explains']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'the-stakes-are-high'
+terms = ['the stakes are high']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'the-truth-is'
+terms = ['the truth is,']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'the-uncomfortable-truth-is'
+terms = ['the uncomfortable truth is']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'they-exist-i-promise'
+terms = ['they exist, i promise']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'this-is-genuinely-hard'
+terms = ['this is genuinely hard']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'this-is-the-deepest-problem'
+terms = ['this is the deepest problem']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'this-is-what-leadership-actually-looks-like'
+terms = ['this is what leadership actually looks like']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'this-is-what-x-actually-looks-like'
+terms = ['this is what x actually looks like']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'this-matters-because'
+terms = ['this matters because']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'x-is-a-feature-not-a-bug'
+terms = ['x is a feature, not a bug']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'you-already-know-this-but'
+terms = ['you already know this, but']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'take-a-step-back'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['take a step back']
+replacement = 'Reconsider'
+
+[[group.entries]]
+slug = 'unpack-analysis'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['unpack (analysis)']
+replacement = 'Explain, examine'
+
+[[group]]
+id-base = 'AISIGNS-METRIC-ANAPHORA-OPENERS'
+kind = 'metric'
+tier = 3
+category = 'document-signals'
+message = 'Same two-word opening repeated {value}×'
+advice = "Sentences opening with the same bigram ('It can', 'This technology') form anaphora-like repetition; vary openers (# TODO tune)"
+scope = 'anywhere'
+stat = 'opening_ngram_repeat'
+per_words = 1
+threshold-gt = 2.0
+
+[group.url]
+text = 'Wikipedia:Signs of AI writing § Style'
+href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
+
+[group.fixtures]
+must_match = []
+must_not_match = []
+
+[[group]]
+id-base = 'AISIGNS-METRIC-BOLD-DENSITY'
+kind = 'metric'
+tier = 3
+category = 'document-signals'
+message = 'Bold spans at {value} per {per_words} words'
+advice = 'Bold used as decoration instead of meaning; bold only genuinely pivotal terms (# TODO tune)'
+scope = 'anywhere'
+stat = 'bold_density'
+per_words = 100
+threshold-gt = 3.0
+
+[group.url]
+text = 'Wikipedia:Signs of AI writing § Style'
+href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
+
+[group.fixtures]
+must_match = []
+must_not_match = []
+
+[[group]]
+id-base = 'AISIGNS-METRIC-BULLET-BOLDLEAD'
+kind = 'metric'
+tier = 3
+category = 'document-signals'
+message = "{value:.0%} of bullets open with '**Term:**' lead-ins"
+advice = 'Uniform **bold lead-in:** bullets are listicle scaffolding; vary or convert to flowing sentences (# TODO tune)'
+scope = 'anywhere'
+stat = 'bullet_boldlead_fraction'
+per_words = 1
+threshold-gt = 0.6
+
+[group.url]
+text = 'Wikipedia:Signs of AI writing § Style'
+href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
+
+[group.fixtures]
+must_match = []
+must_not_match = []
+
+[[group]]
+id-base = 'AISIGNS-METRIC-CURLY-DOUBLE-RATIO'
+kind = 'metric'
+tier = 3
+category = 'document-signals'
+message = '{value:.0%} of double quotes are curly'
+advice = 'Curly-quote share {value:.0%} — chat exports carry typographic quotes; normalize to straight ASCII (# TODO tune)'
+scope = 'anywhere'
+stat = 'curly_double_ratio'
+per_words = 1
+threshold-gt = 0.3
+
+[group.url]
+text = 'Wikipedia:Signs of AI writing § Style'
+href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
+
+[group.fixtures]
+must_match = []
+must_not_match = []
+
+[[group]]
+id-base = 'AISIGNS-METRIC-EM-DASH-RATE'
+kind = 'metric'
+tier = 3
+category = 'document-signals'
+message = 'Em-dash density {value} per {per_words} words'
+advice = 'Em-dash density {value}/1000 words exceeds conversational norms — swap most for commas, parentheses, or colons (# TODO tune)'
+scope = 'anywhere'
+stat = 'em_dash_rate'
+per_words = 1000
+threshold-gt = 6.0
+
+[group.url]
+text = 'Wikipedia:Signs of AI writing § Style'
+href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
+
+[group.fixtures]
+must_match = []
+must_not_match = []
+
+[[group]]
+id-base = 'AISIGNS-METRIC-EMOJI-DECORATION'
+kind = 'metric'
+tier = 3
+category = 'document-signals'
+message = '{value} emoji used as decoration'
+advice = 'Emoji-as-formatting (🚀✨💡 headers/bullets) mirrors slide-deck styling, not prose; cut all but deliberate emphases (# TODO tune)'
+scope = 'anywhere'
+stat = 'emoji_decoration_count'
+per_words = 1
+threshold-gt = 3.0
+
+[group.url]
+text = 'Wikipedia:Signs of AI writing § Style'
+href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
+
+[group.fixtures]
+must_match = []
+must_not_match = []
+
+[[group]]
+id-base = 'AISIGNS-METRIC-SENTENCE-LENGTH-MONOTONY'
+kind = 'metric'
+tier = 3
+category = 'document-signals'
+message = 'Sentence-length coefficient of variation {value}'
+advice = 'Uniform sentence lengths produce an even, synthetic cadence; combine some sentences and split others for rhythm (# TODO tune)'
+scope = 'anywhere'
+stat = 'sent_len_cv'
+per_words = 1
+threshold-gt = 0.75
+
+[group.url]
+text = 'Wikipedia:Signs of AI writing § Style'
+href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
+
+[group.fixtures]
+must_match = []
+must_not_match = []
+
+[[group]]
+id-base = 'AISIGNS-METRIC-TITLECASE-HEADINGS'
+kind = 'metric'
+tier = 3
+category = 'document-signals'
+message = '{value:.0%} of headings are Title Case'
+advice = 'Headings read like report chapters (Impact of Technology And Digitalization); prefer sentence case matching surrounding prose (# TODO tune)'
+scope = 'anywhere'
+stat = 'heading_titlecase_fraction'
+per_words = 1
+threshold-gt = 0.5
+
+[group.url]
+text = 'Wikipedia:Signs of AI writing § Style'
+href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
+
+[group.fixtures]
+must_match = []
+must_not_match = []
+
+[[group]]
+id-base = 'AISIGNS-METRIC-TRICOLON-STREAK'
+kind = 'metric'
+tier = 3
+category = 'document-signals'
+message = "{value} consecutive 'X, Y, and Z' tricolon streak"
+advice = 'The rhythmic three-part list repeated back-to-back is a signature cadence; break the pattern or vary list length (# TODO tune)'
+scope = 'anywhere'
+stat = 'tricolon_max_streak'
+per_words = 1
+threshold-gt = 2.0
+
+[group.url]
+text = 'Wikipedia:Signs of AI writing § Style'
+href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
+
+[group.fixtures]
+must_match = []
+must_not_match = []

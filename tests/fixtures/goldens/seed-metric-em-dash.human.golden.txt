@@ -1,4 +1,4 @@
-note[DOC-METRIC-EM-DASH-RATE]: 
+note[AISIGNS-METRIC-EM-DASH-RATE]: 
   ┌─ tests/fixtures/docs/seed-metric-em-dash.md:1:1
   │
 1 │ # Notes

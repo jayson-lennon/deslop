@@ -1,4 +1,4 @@
-warning[PROSE-PAT-AUDIENCE-HEDGE#main]: 
+warning[WSC-PAT-AUDIENCE-HEDGE#main]: 
   ┌─ tests/fixtures/docs/seed-pattern-single-capture.md:1:1
   │
 1 │ Whether you're new to Rust or a veteran of C++, this guide helps.

@@ -1,10 +1,18 @@
-//! Serde mirror of the rule-file format (one file = one group).
+//! Serde mirror of the rule-file format (one file = many `[[group]]` tables).
 //!
 //! `deny_unknown_fields` rejects typos outright: data is code here.
-//! Per-kind legality (a `metric` file carrying `[[entries]]`, say) is
+//! Per-kind legality (a `metric` group carrying `[[entries]]`, say) is
 //! enforced by the loader, which understands kinds; serde alone cannot.
 
-/// Raw mirror of one whole group file.
+/// Raw mirror of one rule file: a sequence of group tables.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RulesFileToml {
+    #[serde(default, rename = "group")]
+    pub groups: Vec<GroupToml>,
+}
+
+/// Raw mirror of one `[[group]]` table.
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GroupToml {
@@ -28,8 +36,6 @@ pub struct GroupToml {
     pub scope: Option<String>,
     #[serde(default)]
     pub url: Option<UrlToml>,
-    #[serde(default)]
-    pub origin: Option<OriginToml>,
     #[serde(default)]
     pub fixtures: FixturesToml,
     #[serde(default)]
@@ -64,15 +70,6 @@ impl Default for UrlToml {
             href: String::new(),
         }
     }
-}
-
-/// Provenance for converted rules; cross-checked against NOTICE.toml.
-#[derive(Debug, Clone, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct OriginToml {
-    pub repo: String,
-    /// Full 40-hex commit SHA of the source snapshot.
-    pub commit: String,
 }
 
 /// Mandatory self-tests embedded in every rule group.
@@ -113,6 +110,9 @@ pub struct EntryToml {
     pub word_boundary: Option<bool>,
     #[serde(default)]
     pub replacement: Option<String>,
+    /// Overrides the group's `category` on this entry's findings.
+    #[serde(default)]
+    pub category: Option<String>,
 
     // --- kind = pattern ---
     #[serde(default)]
@@ -129,10 +129,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_a_complete_vocab_group() {
-        // Given a full vocab group document.
+    fn parses_a_multi_group_file() {
+        // Given a rule file with two groups and distinct fixtures.
         let text = r#"
-id-base = "MODERN-VOCAB"
+[[group]]
+id-base = "AATELL"
 kind = "vocab"
 tier = 2
 category = "delve-era"
@@ -140,40 +141,63 @@ message = "AI-register vocabulary: {match}"
 advice = "prefer plain wording"
 enabled = true
 
-[url]
+[group.url]
 text = "Signs of AI writing"
 href = "https://example.org/aisigns"
 
-[origin]
-repo = "https://github.com/walidboulanouar/anti-ai-slop"
-commit = "37d1175523f1880aff8f3c4230905177e75dd183"
-
-[fixtures]
+[group.fixtures]
 must_match = ["we must delve deeper"]
 must_not_match = ["the word delve in quotes"]
 
-[[entries]]
+[[group.entries]]
 terms = ["delve"]
 stems = true
 replacement = "examine"
+
+[[group]]
+id-base = "CLUSTER"
+kind = "metric"
+tier = 3
+category = "watch-list-density"
+message = "{value} distinct watch-list words cluster in one {window}"
+stat = "term_cluster_max"
+threshold_gt = 4.0
+window = "paragraph"
+terms = ["delve", "tapestry"]
+
+[group.fixtures]
+must_match = []
 "#;
 
         // When parsing.
-        let group: GroupToml = toml::from_str(text).expect("parses");
+        let file: RulesFileToml = toml::from_str(text).expect("parses");
 
-        // Then envelope and entry bodies land in typed slots.
-        assert_eq!(group.id_base, "MODERN-VOCAB");
-        assert_eq!(group.tier, 2);
-        assert!(group.enabled.unwrap_or(false));
-        assert_eq!(group.entries.len(), 1);
-        assert_eq!(group.entries[0].terms, vec!["delve"]);
-        assert_eq!(group.entries[0].replacement.as_deref(), Some("examine"));
+        // Then both groups land with their own fixtures and entries.
+        assert_eq!(file.groups.len(), 2);
+        let vocab = &file.groups[0];
+        let metric = &file.groups[1];
+        assert_eq!(vocab.id_base, "AATELL");
+        assert_eq!(vocab.entries.len(), 1);
+        assert_eq!(vocab.entries[0].terms, vec!["delve"]);
+        assert!(vocab.entries[0].stems);
+        assert_eq!(vocab.fixtures.must_match, vec!["we must delve deeper"]);
+        assert_eq!(metric.id_base, "CLUSTER");
+        assert_eq!(metric.stat.as_deref(), Some("term_cluster_max"));
+        assert_eq!(metric.threshold_gt, Some(4.0));
+        assert!(metric.entries.is_empty());
+        // And the metric's group-level terms land on the metric, not vocab.
+        assert_eq!(
+            metric.terms.as_deref(),
+            Some(vec!["delve".to_owned(), "tapestry".to_owned()].as_slice())
+        );
+        assert!(metric.fixtures.must_match.is_empty());
     }
 
     #[test]
     fn unknown_fields_are_rejected() {
-        // Given a document with a misspelled key.
+        // Given a group table with a misspelled key.
         let text = r#"
+[[group]]
 id-base = "X"
 kind = "vocab"
 tier = 2
@@ -182,17 +206,38 @@ stems = true
 "#;
 
         // When parsing.
-        let result: Result<GroupToml, _> = toml::from_str(text);
+        let result: Result<RulesFileToml, _> = toml::from_str(text);
 
-        // Then it fails (stems belongs to entries, not the envelope).
+        // Then it fails (stems belongs to entries, not the group envelope).
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn legacy_single_group_files_are_rejected() {
+        // Given a pre-unfuck file whose envelope sits at top level.
+        let text = r#"
+id-base = "OLD"
+kind = "vocab"
+tier = 2
+category = "c"
+
+[[entries]]
+terms = ["delve"]
+"#;
+
+        // When parsing.
+        let result: Result<RulesFileToml, _> = toml::from_str(text);
+
+        // Then it fails (no dual syntax).
         assert!(result.is_err());
     }
 
     #[test]
     fn metric_group_round_trips() {
-        // Given a metric rule with top-level stat keys.
+        // Given a metric group with its stat keys.
         let text = r#"
-id-base = "DOC-METRIC-EMDASH"
+[[group]]
+id-base = "AISIGNS-METRIC-EMDASH"
 kind = "metric"
 tier = 3
 category = "punctuation-density"
@@ -201,15 +246,16 @@ stat = "em_dash_rate"
 per_words = 1000
 threshold_gt = 6.0
 
-[fixtures]
+[group.fixtures]
 must_match = []
 must_not_match = []
 "#;
 
         // When parsing.
-        let group: GroupToml = toml::from_str(text).expect("parses");
+        let file: RulesFileToml = toml::from_str(text).expect("parses");
 
         // Then the three metric fields land.
+        let group = &file.groups[0];
         assert_eq!(group.stat.as_deref(), Some("em_dash_rate"));
         assert_eq!(group.per_words, Some(1000));
         assert_eq!(group.threshold_gt, Some(6.0));

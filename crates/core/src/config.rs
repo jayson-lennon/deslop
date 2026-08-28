@@ -100,10 +100,11 @@ impl Default for Config {
         Config {
             packs: Packs {
                 builtin: [
-                    "artifacts",
-                    "modern-vocabulary",
-                    "prose-constructions",
-                    "document-signals",
+                    "aatell",
+                    "slop",
+                    "wsc",
+                    "aisigns",
+                    "cluster-terms",
                 ]
                 .iter()
                 .map(|s| (*s).to_owned())
@@ -417,7 +418,7 @@ color = "never"
         let cfg =
             discover(camino::Utf8Path::from_path(dir.path()).expect("utf8")).expect("discover");
 
-        // Then defaults apply (all four builtin packs).
-        assert_eq!(cfg.packs.builtin.len(), 4);
+        // Then defaults apply (all five builtin packs).
+        assert_eq!(cfg.packs.builtin.len(), 5);
     }
 }

@@ -1,4 +1,7 @@
-//! Loader integration: temp pack trees -> Loaded { rule_set, errors }.
+//! Loader integration: temp pack files -> Loaded { rule_set, errors }.
+//!
+//! Flat-pack world: a builtin stem `p` resolves to `<root>/rules/p.toml`,
+//! one file per pack, any number of `[[group]]` tables inside.
 
 use deslop_core::config::Config;
 use deslop_core::rule::loader::load;
@@ -10,6 +13,7 @@ fn write(dir: &std::path::Path, rel: &str, text: &str) {
 }
 
 const GOOD_VOCAB: &str = r#"
+[[group]]
 id-base = "MODERN-VOCAB"
 kind = "vocab"
 tier = 2
@@ -17,48 +21,52 @@ category = "delve-era"
 message = "AI-register vocabulary"
 enabled = true
 
-[fixtures]
+[group.fixtures]
 must_match = ["we must delve deeper"]
 
-[[entries]]
+[[group.entries]]
 slug = "SLUG-X"
 terms = ["delve"]
 "#;
 
 const BAD_TOML: &str = r#"
+[[group]]
 id-base = "BROKEN
 kind = "vocab"
 "#;
 
 const NO_SLUG: &str = r#"
+[[group]]
 id-base = "NO-SLUG"
 kind = "vocab"
 tier = 2
 category = "c"
 
-[fixtures]
+[group.fixtures]
 must_match = ["x delve y"]
 
-[[entries]]
+[[group.entries]]
 terms = ["delve"]
 "#;
 
-#[test]
-fn loads_good_pack_with_zero_errors() {
-    // Given a pack with one well-formed rule file.
-    let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/a.toml", GOOD_VOCAB);
-
-    let cfg = Config {
+fn cfg_for(packs: &[&str]) -> Config {
+    Config {
         packs: deslop_core::config::Packs {
-            builtin: vec!["pack".into()],
+            builtin: packs.iter().map(|s| (*s).to_owned()).collect(),
             extra_paths: vec![],
         },
         ..Config::default()
-    };
+    }
+}
+
+#[test]
+fn loads_good_pack_with_zero_errors() {
+    // Given a pack file with one well-formed group.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "rules/pack.toml", GOOD_VOCAB);
 
     // When loading.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
 
     // Then no errors and one group lands.
     assert!(loaded.errors.is_empty(), "errors: {:?}", loaded.errors);
@@ -66,183 +74,165 @@ fn loads_good_pack_with_zero_errors() {
 }
 
 #[test]
-fn bad_toml_yields_error_with_line_number() {
-    // Given a file with broken TOML.
+fn missing_pack_file_is_recorded_naming_the_stem() {
+    // Given a configured pack whose file does not exist.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/bad.toml", BAD_TOML);
-
-    let cfg = Config {
-        packs: deslop_core::config::Packs {
-            builtin: vec!["pack".into()],
-            extra_paths: vec![],
-        },
-        ..Config::default()
-    };
 
     // When loading.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(&cfg_for(&["missing"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+
+    // Then an error names the expected flat path.
+    assert!(
+        loaded
+            .errors
+            .iter()
+            .any(|e| e.path.ends_with("rules/missing.toml")),
+        "{:?}",
+        loaded.errors
+    );
+}
+
+#[test]
+fn bad_toml_yields_error_with_line_number() {
+    // Given a pack file with broken TOML.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "rules/pack.toml", BAD_TOML);
+
+    // When loading.
+    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
 
     // Then exactly one error naming the file and a line.
     assert_eq!(loaded.errors.len(), 1);
     let err = &loaded.errors[0];
-    assert!(err.path.ends_with("bad.toml"), "{}", err.path);
+    assert!(err.path.ends_with("pack.toml"), "{}", err.path);
     assert!(err.line.is_some());
     assert!(err.message.contains("invalid rule TOML"));
 }
 
 #[test]
-fn missing_slug_and_missing_stat_accumulate_together() {
-    // Given two separate bad files.
+fn errors_accumulate_across_packs() {
+    // Given two separate bad pack files.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/noslug.toml", NO_SLUG);
-    write(tmp.path(), "rules/builtin/pack/bad.toml", BAD_TOML);
-
-    let cfg = Config {
-        packs: deslop_core::config::Packs {
-            builtin: vec!["pack".into()],
-            extra_paths: vec![],
-        },
-        ..Config::default()
-    };
+    write(tmp.path(), "rules/pack-a.toml", NO_SLUG);
+    write(tmp.path(), "rules/pack-b.toml", BAD_TOML);
 
     // When loading.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(
+        &cfg_for(&["pack-a", "pack-b"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
 
     // Then errors from BOTH files accumulate (never first-fail).
     let files: Vec<String> = loaded.errors.iter().map(|e| e.path.clone()).collect();
-    assert!(files.iter().any(|f| f.contains("noslug.toml")), "{files:?}");
-    assert!(files.iter().any(|f| f.contains("bad.toml")), "{files:?}");
+    assert!(files.iter().any(|f| f.contains("pack-a.toml")), "{files:?}");
+    assert!(files.iter().any(|f| f.contains("pack-b.toml")), "{files:?}");
 }
 
 #[test]
-fn duplicate_group_ids_across_files_share_one_pack_legally() {
-    // Given two files in the SAME pack sharing an id-base, load succeeds;
-    // cross-pack collisions are the error (chunked vocab packs rely on this).
+fn multi_group_file_loads_every_group() {
+    // Given one pack file with two groups of DISTINCT terms (no dedup).
+    let second = GOOD_VOCAB
+        .replace("MODERN-VOCAB", "CLUSTER-X")
+        .replace("delve", "garner");
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(
-        tmp.path(),
-        "rules/builtin/pack/one.toml",
-        &GOOD_VOCAB.replace("SLUG-X", "a"),
-    );
-    write(
-        tmp.path(),
-        "rules/builtin/pack/two.toml",
-        &GOOD_VOCAB.replace("SLUG-X", "b"),
-    );
-
-    let cfg = Config {
-        packs: deslop_core::config::Packs {
-            builtin: vec!["pack".into()],
-            extra_paths: vec![],
-        },
-        ..Config::default()
-    };
+    write(tmp.path(), "rules/pack.toml", &format!("{GOOD_VOCAB}\n{second}"));
 
     // When loading.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
 
-    // Then no group-collision error appears; both groups are active.
-    assert!(
-        loaded
-            .errors
-            .iter()
-            .all(|e| !e.message.contains("another pack")),
-        "errors: {:?}",
-        loaded.errors
-    );
+    // Then both groups are active.
+    assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
     assert_eq!(loaded.rule_set.groups.len(), 2);
 }
 
 #[test]
-fn duplicate_group_ids_across_packs_are_flagged() {
-    // Given the same id-base in two different packs.
+fn duplicate_term_across_groups_dedups_to_highest_tier_owner() {
+    // Given the same term in a tier-2 group and a tier-3 group.
+    let shadow = GOOD_VOCAB
+        .replace("MODERN-VOCAB", "CLUSTER-X")
+        .replace("tier = 2", "tier = 3");
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack-a/one.toml", GOOD_VOCAB);
-    write(tmp.path(), "rules/builtin/pack-b/two.toml", GOOD_VOCAB);
+    write(
+        tmp.path(),
+        "rules/pack.toml",
+        &format!("{GOOD_VOCAB}\n{shadow}"),
+    );
 
-    let cfg = Config {
-        packs: deslop_core::config::Packs {
-            builtin: vec!["pack-a".into(), "pack-b".into()],
-            extra_paths: vec![],
-        },
-        ..Config::default()
-    };
+    // When loading.
+    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
 
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    // Then the higher tier keeps the term and the emptied group is gone,
+    // with a dedup line naming winner and loser.
+    assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+    assert_eq!(loaded.rule_set.groups.len(), 1);
+    assert_eq!(loaded.rule_set.groups[0].id_base, "MODERN-VOCAB");
+    assert!(
+        loaded
+            .dedup_warnings
+            .iter()
+            .any(|w| w.contains("MODERN-VOCAB") && w.contains("CLUSTER-X")),
+        "{:?}",
+        loaded.dedup_warnings
+    );
+}
 
-    // Then a cross-pack collision error appears.
+#[test]
+fn duplicate_id_bases_are_flagged_across_files_and_within_one_file() {
+    // Given the same id-base in two pack files.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "rules/pack-a.toml", GOOD_VOCAB);
+    write(tmp.path(), "rules/pack-b.toml", GOOD_VOCAB);
+
+    // When loading.
+    let loaded = load(
+        &cfg_for(&["pack-a", "pack-b"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
+
+    // Then a collision error appears.
     assert!(
         loaded
             .errors
             .iter()
-            .any(|e| e.message.contains("already defined in another pack")),
-        "errors: {:?}",
+            .any(|e| e.message.contains("already defined in")),
+        "{:?}",
         loaded.errors
     );
 }
 
-const CONVERTED: &str = r#"
-id-base = "SRC-VOCAB"
-kind = "vocab"
-tier = 2
-category = "c"
-
-[origin]
-repo = "https://github.com/example/src"
-commit = "aaaa1111bbbb2222cccc3333dddd4444eeee5555"
-
-[fixtures]
-must_match = ["delve now"]
-
-[[entries]]
-slug = "SLUG-X"
-terms = ["delve"]
-"#;
-
-const NOTICE_OK: &str = r#"
-license = "MIT"
-[[origin]]
-repo = "https://github.com/example/src"
-commit = "aaaa1111bbbb2222cccc3333dddd4444eeee5555"
-"#;
-
 #[test]
-fn converted_rule_with_matching_notice_loads() {
-    // Given a converted rule and a NOTICE covering its origin.
+fn duplicate_entry_slugs_across_groups_are_legal_within_a_file() {
+    // Given two groups in one file whose entries share a slug.
+    let other = GOOD_VOCAB.replace("MODERN-VOCAB", "OTHER-GROUP");
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/rule.toml", CONVERTED);
-    write(tmp.path(), "rules/builtin/pack/NOTICE.toml", NOTICE_OK);
-
-    let cfg = Config {
-        packs: deslop_core::config::Packs {
-            builtin: vec!["pack".into()],
-            extra_paths: vec![],
-        },
-        ..Config::default()
-    };
+    write(tmp.path(), "rules/pack.toml", &format!("{GOOD_VOCAB}\n{other}"));
 
     // When loading.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
 
-    // Then attribution checks pass silently.
+    // Then no duplicate-id error appears (ids differ by group prefix).
     assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
 }
 
 #[test]
-fn origin_missing_from_notice_is_refused() {
-    // Given a rule whose commit is absent from the NOTICE.
+fn extra_path_pack_file_loads() {
+    // Given an extra pack referenced by path (distinct terms, no dedup).
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/rule.toml", CONVERTED);
     write(
         tmp.path(),
-        "rules/builtin/pack/NOTICE.toml",
-        "license = \"MIT\"\n[[origin]]\nrepo = \"https://github.com/other\"\ncommit = \"ffff\"\n",
+        "rules/aatell.toml",
+        &GOOD_VOCAB.replace("delve", "garner"),
+    );
+    write(
+        tmp.path(),
+        "team/custom.toml",
+        &GOOD_VOCAB.replace("MODERN-VOCAB", "TEAM").replace("delve", "reckon"),
     );
 
     let cfg = Config {
         packs: deslop_core::config::Packs {
-            builtin: vec!["pack".into()],
-            extra_paths: vec![],
+            builtin: vec!["aatell".into()],
+            extra_paths: vec![camino::Utf8PathBuf::from("team/custom.toml")],
         },
         ..Config::default()
     };
@@ -250,74 +240,33 @@ fn origin_missing_from_notice_is_refused() {
     // When loading.
     let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
 
-    // Then an error says the origin is not listed.
-    assert!(
-        loaded
-            .errors
-            .iter()
-            .any(|e| e.message.contains("not listed in pack NOTICE")),
-        "{:?}",
-        loaded.errors
-    );
-}
-
-#[test]
-fn converted_rule_without_notice_file_is_refused() {
-    // Given a converted rule with NO NOTICE.toml beside it.
-    let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/rule.toml", CONVERTED);
-
-    let cfg = Config {
-        packs: deslop_core::config::Packs {
-            builtin: vec!["pack".into()],
-            extra_paths: vec![],
-        },
-        ..Config::default()
-    };
-
-    // When loading.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
-
-    // Then the error names the missing NOTICE.
-    assert!(
-        loaded
-            .errors
-            .iter()
-            .any(|e| e.message.contains("no NOTICE.toml")),
-        "{:?}",
-        loaded.errors
-    );
+    // Then both builtin and extra packs contribute groups.
+    assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+    assert_eq!(loaded.rule_set.groups.len(), 2);
 }
 
 #[test]
 fn rule_failing_own_fixture_is_refused() {
     // Given a rule whose must_match sample cannot hit.
     let broken = r#"
+[[group]]
 id-base = "BROKEN-FIXTURE"
 kind = "pattern"
 tier = 2
 category = "c"
 
-[fixtures]
+[group.fixtures]
 must_match = ["no keyword present here at all"]
 
-[[entries]]
+[[group.entries]]
 slug = "delve"
 regex = 'delve'
 "#;
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/broken.toml", broken);
-
-    let cfg = Config {
-        packs: deslop_core::config::Packs {
-            builtin: vec!["pack".into()],
-            extra_paths: vec![],
-        },
-        ..Config::default()
-    };
+    write(tmp.path(), "rules/pack.toml", broken);
 
     // When loading.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
 
     // Then a fixture failure is recorded naming the entry.
     assert!(
@@ -334,32 +283,25 @@ regex = 'delve'
 fn rule_passing_fixtures_reports_no_error() {
     // Given the same pattern rule with a hitting positive and clean negative.
     let good = r#"
+[[group]]
 id-base = "GOOD-PATTERN"
 kind = "pattern"
 tier = 2
 category = "c"
 
-[fixtures]
+[group.fixtures]
 must_match = ["we must delve deeper"]
 must_not_match = ["studying the study of studies"]
 
-[[entries]]
+[[group.entries]]
 slug = "delve"
 regex = 'delve'
 "#;
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/good.toml", good);
-
-    let cfg = Config {
-        packs: deslop_core::config::Packs {
-            builtin: vec!["pack".into()],
-            extra_paths: vec![],
-        },
-        ..Config::default()
-    };
+    write(tmp.path(), "rules/pack.toml", good);
 
     // When loading.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
 
     // Then no fixture failures exist.
     assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
@@ -369,32 +311,25 @@ regex = 'delve'
 fn advice_with_unknown_placeholder_is_refused() {
     // Given a vocab entry whose advice references a bogus placeholder.
     let bad = r#"
+[[group]]
 id-base = "BAD-TEMPLATE"
 kind = "vocab"
 tier = 2
 category = "c"
 
-[fixtures]
+[group.fixtures]
 must_match = ["delve into it"]
 
-[[entries]]
+[[group.entries]]
 slug = "delve"
 terms = ["delve"]
 advice = 'replace {bogus} please'
 "#;
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/bad.toml", bad);
-
-    let cfg = Config {
-        packs: deslop_core::config::Packs {
-            builtin: vec!["pack".into()],
-            extra_paths: vec![],
-        },
-        ..Config::default()
-    };
+    write(tmp.path(), "rules/pack.toml", bad);
 
     // When loading.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
 
     // Then the template error is recorded naming the field.
     assert!(

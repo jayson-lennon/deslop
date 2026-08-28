@@ -1,0 +1,867 @@
+# deslop pack: slop — github.com/walidboulanouar/anti-ai-slop
+
+[[group]]
+id-base = 'SLOP'
+kind = 'vocab'
+tier = 2
+category = 'ai-vocabulary'
+enabled = true
+
+[[group.entries]]
+slug = 'barking-up-the-wrong-tree'
+terms = ['barking up the wrong tree']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'casting-long-shadows'
+terms = ['casting long shadows']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'continue-to-inspire'
+terms = ['continue to inspire']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'continues-to-inspire'
+terms = ['continues to inspire']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'cut-to-the-chase'
+terms = ['cut to the chase']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'experts-agree'
+terms = ['experts agree']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'a-deeper-understanding'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['a deeper understanding']
+replacement = 'better understanding'
+
+[[group.entries]]
+slug = 'a-rich-tapestry'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['a rich tapestry']
+replacement = 'a mix'
+
+[[group.entries]]
+slug = 'a-stark-reminder'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['a stark reminder']
+replacement = 'a reminder'
+
+[[group.entries]]
+slug = 'additionally'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['additionally,']
+replacement = 'also,'
+
+[[group.entries]]
+slug = 'adds-a-layer-of-complexity'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['adds a layer of complexity']
+replacement = 'makes it more complex'
+
+[[group.entries]]
+slug = 'advancing-the-understanding'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['advancing the understanding']
+replacement = 'helping us understand'
+
+[[group.entries]]
+slug = 'alright'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['alright,']
+replacement = ''
+
+[[group.entries]]
+slug = 'alternatively'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['alternatively,']
+replacement = 'or'
+
+[[group.entries]]
+slug = 'an-indelible-mark'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['an indelible mark']
+replacement = 'a lasting mark'
+
+[[group.entries]]
+slug = 'an-unwavering-commitment'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['an unwavering commitment']
+replacement = 'commitment'
+
+[[group.entries]]
+slug = 'and-robust'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['and robust']
+replacement = ''
+
+[[group.entries]]
+slug = 'arguably'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['arguably,']
+replacement = ''
+
+[[group.entries]]
+slug = 'as-a-professional'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['as a professional,']
+replacement = ''
+
+[[group.entries]]
+slug = 'as-previously-mentioned'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['as previously mentioned']
+replacement = ''
+
+[[group.entries]]
+slug = 'as-previously-mentioned-2'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['as previously mentioned,']
+replacement = ''
+
+[[group.entries]]
+slug = 'as-we-can-see'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['as we can see']
+replacement = ''
+
+[[group.entries]]
+slug = 'as-we-can-see-2'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['as we can see,']
+replacement = ''
+
+[[group.entries]]
+slug = 'break-barriers'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['break barriers']
+replacement = 'remove blockers'
+
+[[group.entries]]
+slug = 'cannot-be-overstated'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['cannot be overstated']
+replacement = 'matters'
+
+[[group.entries]]
+slug = 'commonly'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['commonly,']
+replacement = ''
+
+[[group.entries]]
+slug = 'conclusion-of-the-study-provides'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['conclusion of the study provides']
+replacement = 'study concludes with'
+
+[[group.entries]]
+slug = 'consequently'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['consequently,']
+replacement = 'so'
+
+[[group.entries]]
+slug = 'conversely'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['conversely,']
+replacement = 'but'
+
+[[group.entries]]
+slug = 'correspondingly'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['correspondingly,']
+replacement = ''
+
+[[group.entries]]
+slug = 'crucial-role-in-understanding'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['crucial role in understanding']
+replacement = 'key part of understanding'
+
+[[group.entries]]
+slug = 'crucially'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['crucially,']
+replacement = ''
+
+[[group.entries]]
+slug = 'cumulatively'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['cumulatively,']
+replacement = ''
+
+[[group.entries]]
+slug = 'customarily'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['customarily,']
+replacement = ''
+
+[[group.entries]]
+slug = 'delve-into'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['delve into']
+replacement = 'look at'
+
+[[group.entries]]
+slug = 'designed-to-enhance'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['designed to enhance']
+replacement = 'built to improve'
+
+[[group.entries]]
+slug = 'dive-into'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['dive into']
+replacement = 'look at'
+
+[[group.entries]]
+slug = 'embark-on'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['embark on']
+replacement = 'start'
+
+[[group.entries]]
+slug = 'essentially'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['essentially,']
+replacement = ''
+
+[[group.entries]]
+slug = 'evolving-landscape'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['evolving landscape']
+replacement = 'shift'
+
+[[group.entries]]
+slug = 'excitingly'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['excitingly,']
+replacement = ''
+
+[[group.entries]]
+slug = 'findings-contribute-to'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['findings contribute to']
+replacement = 'findings add to'
+
+[[group.entries]]
+slug = 'firstly'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['firstly,']
+replacement = 'first,'
+
+[[group.entries]]
+slug = 'folks'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['folks,']
+replacement = ''
+
+[[group.entries]]
+slug = 'for-instance'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['for instance,']
+replacement = ''
+
+[[group.entries]]
+slug = 'fostering-a-sense'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['fostering a sense']
+replacement = 'building'
+
+[[group.entries]]
+slug = 'frequently'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['frequently,']
+replacement = ''
+
+[[group.entries]]
+slug = 'fundamentally'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['fundamentally,']
+replacement = ''
+
+[[group.entries]]
+slug = 'furthermore'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['furthermore,']
+replacement = ''
+
+[[group.entries]]
+slug = 'gain-a-comprehensive-understanding'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['gain a comprehensive understanding']
+replacement = 'fully understand'
+
+[[group.entries]]
+slug = 'gain-a-deeper-understanding'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['gain a deeper understanding']
+replacement = 'understand better'
+
+[[group.entries]]
+slug = 'gain-valuable-insights'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['gain valuable insights']
+replacement = "see what's going on"
+
+[[group.entries]]
+slug = 'game-changer'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['game changer']
+replacement = 'shift'
+
+[[group.entries]]
+slug = 'help-to-feel-a-sense'
+terms = ['help to feel a sense']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'hit-the-nail-on-the-head'
+terms = ['hit the nail on the head']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'hung-heavy'
+terms = ['hung heavy']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'implications-of-various'
+terms = ['implications of various']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'it-can-be-argued'
+terms = ['it can be argued']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'garnered-a-significant'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['garnered a significant']
+replacement = 'got a lot of'
+
+[[group.entries]]
+slug = 'generally'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['generally,']
+replacement = ''
+
+[[group.entries]]
+slug = 'given-that'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['given that,']
+replacement = 'since'
+
+[[group.entries]]
+slug = 'hence'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['hence,']
+replacement = 'so'
+
+[[group.entries]]
+slug = 'hey'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['hey,']
+replacement = ''
+
+[[group.entries]]
+slug = 'highlights-the-importance-of-considering'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['highlights the importance of considering']
+replacement = 'shows you should consider'
+
+[[group.entries]]
+slug = 'holds-a-significant'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['holds a significant']
+replacement = 'has a'
+
+[[group.entries]]
+slug = 'however'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['however,']
+replacement = 'but'
+
+[[group.entries]]
+slug = 'importantly'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['importantly,']
+replacement = ''
+
+[[group.entries]]
+slug = 'in-conclusion'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['in conclusion,']
+replacement = ''
+
+[[group.entries]]
+slug = 'in-contrast'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['in contrast,']
+replacement = ''
+
+[[group.entries]]
+slug = 'in-light-of'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['in light of']
+replacement = 'given'
+
+[[group.entries]]
+slug = 'in-other-words'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['in other words,']
+replacement = ''
+
+[[group.entries]]
+slug = 'in-summary'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['in summary']
+replacement = ''
+
+[[group.entries]]
+slug = 'in-summary-2'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['in summary,']
+replacement = ''
+
+[[group.entries]]
+slug = 'in-the-event-that'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['in the event that']
+replacement = 'if'
+
+[[group.entries]]
+slug = 'in-the-realm-of'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['in the realm of']
+replacement = 'in'
+
+[[group.entries]]
+slug = 'in-today-s-digital-age'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ["in today's digital age"]
+replacement = 'today'
+
+[[group.entries]]
+slug = 'in-today-s-digital-era'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ["in today's digital era"]
+replacement = 'today'
+
+[[group.entries]]
+slug = 'it-is-advisable'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['it is advisable']
+replacement = 'you should'
+
+[[group.entries]]
+slug = 'it-is-important-to-note'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['it is important to note']
+replacement = ''
+
+[[group.entries]]
+slug = 'it-is-important-to-note-that'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['it is important to note that']
+replacement = ''
+
+[[group.entries]]
+slug = 'it-is-widely-accepted'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['it is widely accepted']
+replacement = 'most agree'
+
+[[group.entries]]
+slug = 'it-is-worth-noting'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['it is worth noting']
+replacement = ''
+
+[[group.entries]]
+slug = 'it-is-worth-noting-that'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['it is worth noting that']
+replacement = ''
+
+[[group.entries]]
+slug = 'it-stands-to-reason'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['it stands to reason']
+replacement = ''
+
+[[group.entries]]
+slug = 'left-an-indelible'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['left an indelible']
+replacement = 'left a'
+
+[[group.entries]]
+slug = 'left-an-indelible-mark'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['left an indelible mark']
+replacement = 'left a mark'
+
+[[group.entries]]
+slug = 'let-us-delve'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['let us delve']
+replacement = "let's look"
+
+[[group.entries]]
+slug = 'let-s-dive-in'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ["let's dive in"]
+replacement = ''
+
+[[group.entries]]
+slug = 'let-s-explore'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ["let's explore"]
+replacement = "here's"
+
+[[group.entries]]
+slug = 'likewise'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['likewise,']
+replacement = ''
+
+[[group.entries]]
+slug = 'moreover'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['moreover,']
+replacement = ''
+
+[[group.entries]]
+slug = 'my-friend'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['my friend,']
+replacement = ''
+
+[[group.entries]]
+slug = 'navigate-the-complexities'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['navigate the complexities']
+replacement = 'work through'
+
+[[group.entries]]
+slug = 'navigating-the-complexities'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['navigating the complexities']
+replacement = 'working through'
+
+[[group.entries]]
+slug = 'needed-to-fully-understand'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['needed to fully understand']
+replacement = 'needed to understand'
+
+[[group.entries]]
+slug = 'nonetheless'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['nonetheless,']
+replacement = 'still,'
+
+[[group.entries]]
+slug = 'notably'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['notably,']
+replacement = ''
+
+[[group.entries]]
+slug = 'offers-valuable-insights'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['offers valuable insights']
+replacement = "shows what's going on"
+
+[[group.entries]]
+slug = 'on-the-other-hand'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['on the other hand,']
+replacement = ''
+
+[[group.entries]]
+slug = 'one-might-consider'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['one might consider']
+replacement = 'consider'
+
+[[group.entries]]
+slug = 'opens-new-avenues'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['opens new avenues']
+replacement = 'opens new options'
+
+[[group.entries]]
+slug = 'paradigm-shift'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['paradigm shift']
+replacement = 'shift'
+
+[[group.entries]]
+slug = 'particularly'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['particularly,']
+replacement = ''
+
+[[group.entries]]
+slug = 'pivotal-role-in-shaping'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['pivotal role in shaping']
+replacement = 'shapes'
+
+[[group.entries]]
+slug = 'played-a-significant-role-in-shaping'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['played a significant role in shaping']
+replacement = 'shaped'
+
+[[group.entries]]
+slug = 'plays-a-crucial-role-in-shaping'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['plays a crucial role in shaping']
+replacement = 'shapes'
+
+[[group.entries]]
+slug = 'plays-a-crucial-role-in-understanding'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['plays a crucial role in understanding']
+replacement = 'helps us understand'
+
+[[group.entries]]
+slug = 'plays-a-significant-role'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['plays a significant role']
+replacement = 'matters'
+
+[[group.entries]]
+slug = 'predominantly'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['predominantly,']
+replacement = ''
+
+[[group.entries]]
+slug = 'sights-unseen'
+terms = ['sights unseen']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'sounds-unheard'
+terms = ['sounds unheard']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'the-elephant-in-the-room'
+terms = ['the elephant in the room']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'unlock-the-secrets'
+terms = ['unlock the secrets']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'unveil-the-secrets'
+terms = ['unveil the secrets']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'voice-dripping-with-sarcasm'
+terms = ['voice dripping with sarcasm']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'provide-valuable-insights'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['provide valuable insights']
+replacement = "show what's going on"
+
+[[group.entries]]
+slug = 'provided-valuable-insights'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['provided valuable insights']
+replacement = "showed what's going on"
+
+[[group.entries]]
+slug = 'provides-valuable-insights'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['provides valuable insights']
+replacement = "shows what's going on"
+
+[[group.entries]]
+slug = 'regularly'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['regularly,']
+replacement = ''
+
+[[group.entries]]
+slug = 'research-indicates'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['research indicates']
+replacement = 'research shows'
+
+[[group.entries]]
+slug = 'research-needed-to-explore'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['research needed to explore']
+replacement = 'more research is needed on'
+
+[[group.entries]]
+slug = 'rich-tapestry'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['rich tapestry']
+replacement = 'mix'
+
+[[group.entries]]
+slug = 'robust-solution'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['robust solution']
+replacement = 'tool that works'
+
+[[group.entries]]
+slug = 'significant-attention-in-recent-years'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['significant attention in recent years']
+replacement = 'attention recently'
+
+[[group.entries]]
+slug = 'significant-contributions-to-the-field'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['significant contributions to the field']
+replacement = 'work in the field'
+
+[[group.entries]]
+slug = 'significantly'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['significantly,']
+replacement = ''
+
+[[group.entries]]
+slug = 'similarly'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['similarly,']
+replacement = ''
+
+[[group.entries]]
+slug = 'specifically'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['specifically,']
+replacement = ''
+
+[[group.entries]]
+slug = 'studies-have-shown'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['studies have shown']
+replacement = 'research shows'
+
+[[group.entries]]
+slug = 'study-provides-a-valuable'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['study provides a valuable']
+replacement = 'study shows a useful'
+
+[[group.entries]]
+slug = 'study-sheds-light-on'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['study sheds light on']
+replacement = 'study shows'
+
+[[group.entries]]
+slug = 'subsequently'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['subsequently,']
+replacement = ''
+
+[[group.entries]]
+slug = 'take-a-dive-into'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['take a dive into']
+replacement = 'look at'
+
+[[group.entries]]
+slug = 'that-is-to-say'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['that is to say,']
+replacement = ''
+
+[[group.entries]]
+slug = 'the-intricate-relationship'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['the intricate relationship']
+replacement = 'the relationship'
+
+[[group.entries]]
+slug = 'there-are-a-few-considerations'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['there are a few considerations']
+replacement = ''
+
+[[group.entries]]
+slug = 'therefore'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['therefore,']
+replacement = 'so'
+
+[[group.entries]]
+slug = 'this-means-that'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['this means that']
+replacement = 'this means'
+
+[[group.entries]]
+slug = 'thus'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['thus,']
+replacement = 'so'
+
+[[group.entries]]
+slug = 'to-put-it-simply'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['to put it simply']
+replacement = ''
+
+[[group.entries]]
+slug = 'to-put-it-simply-2'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['to put it simply,']
+replacement = ''
+
+[[group.entries]]
+slug = 'to-summarize'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['to summarize']
+replacement = ''
+
+[[group.entries]]
+slug = 'to-summarize-2'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['to summarize,']
+replacement = ''
+
+[[group.entries]]
+slug = 'ultimately'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['ultimately,']
+replacement = ''
+
+[[group.entries]]
+slug = 'valuable-insights'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['valuable insights']
+replacement = 'useful detail'
+
+[[group.entries]]
+slug = 'you-may-want-to'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['you may want to']
+replacement = 'you can'

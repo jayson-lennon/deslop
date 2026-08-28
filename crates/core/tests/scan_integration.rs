@@ -6,17 +6,18 @@ use deslop_core::scanner::{LintSettings, scan};
 
 fn load_with(toml_files: &[(&str, &str)]) -> deslop_core::rule::RuleSet {
     let tmp = tempfile::tempdir().expect("tmp");
-    let pack = tmp.path().join("rules/builtin/t");
-    std::fs::create_dir_all(&pack).expect("pack dir");
     for (name, content) in toml_files {
-        let p = pack.join(name);
+        let p = tmp.path().join("rules").join(name);
         let parent = p.parent().expect("parent");
         std::fs::create_dir_all(parent).expect("nested");
         std::fs::write(p, content).expect("write rule");
     }
     let cfg = Config {
         packs: deslop_core::config::Packs {
-            builtin: vec!["t".into()],
+            builtin: toml_files
+                .iter()
+                .map(|(n, _)| n.trim_end_matches(".toml").to_owned())
+                .collect(),
             extra_paths: vec![],
         },
         ..Config::default()
@@ -31,44 +32,47 @@ fn load_with(toml_files: &[(&str, &str)]) -> deslop_core::rule::RuleSet {
 }
 
 const LITERAL_RULE: &str = r#"
+[[group]]
 id-base = "TEST-LIT"
 kind = "literal-ban"
 tier = 1
 category = "artifact"
 
-[fixtures]
+[group.fixtures]
 must_match = ["see contentReference[oaicite:4]{index=4} here"]
 
-[[entries]]
+[[group.entries]]
 slug = "oaicite"
 terms = ['contentReference[oaicite:{N}]{{index={N}}}']
 "#;
 
 const VOCAB_RULE: &str = r#"
+[[group]]
 id-base = "TEST-VOCAB"
 kind = "vocab"
 tier = 2
 category = "cliche"
 
-[fixtures]
+[group.fixtures]
 must_match = ["a testament to her vision"]
 
-[[entries]]
+[[group.entries]]
 slug = "testament"
 terms = ["testament to"]
 advice = 'state the claim directly instead'
 "#;
 
 const STEM_RULE: &str = r#"
+[[group]]
 id-base = "TEST-STEM"
 kind = "vocab"
 tier = 2
 category = "cliche"
 
-[fixtures]
+[group.fixtures]
 must_match = ["we delve deeper", "he delved deeper"]
 
-[[entries]]
+[[group.entries]]
 slug = "delve"
 terms = ["delve"]
 stems = true
@@ -98,15 +102,16 @@ fn t3_wikipedia_placeholder_in_ref_html_flagged() {
     let rules2 = load_with(&[(
         "ph.toml",
         r#"
+[[group]]
 id-base = "TEST-PH"
 kind = "literal-ban"
 tier = 1
 category = "placeholder"
 
-[fixtures]
+[group.fixtures]
 must_match = ["|url=URL "]
 
-[[entries]]
+[[group.entries]]
 slug = "url-placeholder"
 terms = ["|url=URL ", "|url=PASTE_"]
 "#,
@@ -215,4 +220,114 @@ fn deterministic_sort_order_across_runs() {
     let mut sorted = offsets.clone();
     sorted.sort();
     assert_eq!(offsets, sorted);
+}
+
+const PATTERN_RULE: &str = r#"
+[[group]]
+id-base = "TEST-PAT"
+kind = "pattern"
+tier = 2
+category = "construction"
+
+[group.fixtures]
+must_match = ["stands as a testament to the effort"]
+
+[[group.entries]]
+slug = "main"
+regex = 'stands as an?'
+"#;
+
+#[test]
+fn same_term_in_two_groups_reports_one_finding_from_highest_tier() {
+    // Given the same term in a tier-2 group and a tier-3 group (one file,
+    // two groups — dedup keeps the stricter tier 2).
+    let shadow = VOCAB_RULE
+        .replace("TEST-VOCAB", "TEST-VOCAB-2")
+        .replace("tier = 2", "tier = 3");
+    let rules = load_with(&[("v.toml", &format!("{VOCAB_RULE}\n{shadow}"))]);
+    let src = "a testament to her vision";
+
+    // When scanning.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    // Then exactly one finding, owned by the tier-2 group.
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert_eq!(findings[0].entry_id, "TEST-VOCAB#testament");
+    assert_eq!(findings[0].tier, deslop_core::finding::Tier::Tell);
+}
+
+#[test]
+fn identical_regex_string_in_two_groups_fans_out_to_both_owners() {
+    // Given two groups sharing the exact same regex string.
+    let shadow = PATTERN_RULE.replace("TEST-PAT", "TEST-PAT-2");
+    let rules = load_with(&[("p.toml", &format!("{PATTERN_RULE}\n{shadow}"))]);
+    let src = "it stands as a testament to the effort";
+
+    // When scanning.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    // Then ONE compiled regex produced a finding for EACH owner
+    // (`#` sorts before `-`, so TEST-PAT#main comes first).
+    let mut ids: Vec<&str> = findings.iter().map(|f| f.entry_id.as_str()).collect();
+    ids.sort();
+    assert_eq!(ids, ["TEST-PAT#main", "TEST-PAT-2#main"]);
+}
+
+#[test]
+fn distinct_regex_strings_are_not_merged() {
+    // Given two groups with DIFFERENT regex strings.
+    let other = PATTERN_RULE
+        .replace("stands as an?", "serves as a")
+        .replace("TEST-PAT", "TEST-PAT-2")
+        .replace("stands as a testament to the effort", "serves as a beacon of hope");
+    let rules = load_with(&[("p.toml", &format!("{PATTERN_RULE}\n{other}"))]);
+    let src = "it stands as a testament; it serves as a beacon";
+
+    // When scanning.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    // Then each string matched on its own: two findings, one per group.
+    assert_eq!(findings.len(), 2, "{findings:?}");
+    let mut ids: Vec<&str> = findings.iter().map(|f| f.entry_id.as_str()).collect();
+    ids.sort();
+    assert_eq!(ids, ["TEST-PAT#main", "TEST-PAT-2#main"]);
+}
+
+#[test]
+fn metric_conflict_keeps_stricter_threshold_and_warns() {
+    // Given two metric groups with the same (stat, window, terms) but
+    // different thresholds.
+    let metric = |gid: &str, th: &str| {
+        format!(
+            r#"
+[[group]]
+id-base = "{gid}"
+kind = "metric"
+tier = 3
+category = "signals"
+stat = "term_cluster_max"
+threshold-gt = {th}
+window = "paragraph"
+terms = ["delve", "garner"]
+"#
+        )
+    };
+    let rules = load_with(&[("m.toml", &metric("METRIC-A", "1"))]);
+    let rules_both = load_with(&[(
+        "m.toml",
+        &format!("{}\n{}", metric("METRIC-A", "1"), metric("METRIC-B", "5")),
+    )]);
+    let src = "we delve and garner; we delve and garner; we delve and garner";
+
+    // When scanning the single-metric ruleset.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    // Then threshold 1 fires on 2 distinct terms per paragraph.
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert_eq!(findings[0].entry_id, "METRIC-A");
+
+    // And when both exist, the STRICTER threshold survives.
+    let findings2 = scan(src, &rules_both, &LintSettings::default());
+    assert_eq!(findings2.len(), 1, "{findings2:?}");
+    assert_eq!(findings2[0].entry_id, "METRIC-A");
 }

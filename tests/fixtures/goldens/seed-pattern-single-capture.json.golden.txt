@@ -1,3 +1,3 @@
 [
-  {"rule_id":"PROSE-PAT-AUDIENCE-HEDGE#main","kind":"pattern","tier":2,"category":"audience-hedge","path":"tests/fixtures/docs/seed-pattern-single-capture.md","span":{"start":0,"end":29,"line":1,"col":1},"excerpt":"Whether you're new to Rust or","message":"AI writing construction","replacement":null,"advice":"\"Whether you're new to Rust or\" flattens the audience into a marketing segment; address THIS reader's actual situation"}
+  {"rule_id":"WSC-PAT-AUDIENCE-HEDGE#main","kind":"pattern","tier":2,"category":"audience-hedge","path":"tests/fixtures/docs/seed-pattern-single-capture.md","span":{"start":0,"end":29,"line":1,"col":1},"excerpt":"Whether you're new to Rust or","message":"AI writing construction","replacement":null,"advice":"\"Whether you're new to Rust or\" flattens the audience into a marketing segment; address THIS reader's actual situation"}
 ]

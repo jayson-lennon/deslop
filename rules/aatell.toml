@@ -1,0 +1,29 @@
+# deslop pack: aatell — github.com/MikkoParkkola/anti-ai-tell (measured frequency data)
+
+[[group]]
+id-base = 'AATELL'
+kind = 'vocab'
+tier = 2
+category = 'ai-vocabulary'
+enabled = true
+
+[[group.entries]]
+slug = 'leverage'
+advice = "Replace \"{match}\" with its plain verb (\"use\") — nominalized business-speak is a top frequency signal in Kobak 2025"
+terms = ['leverage']
+replacement = 'use'
+stems = true
+
+[[group.entries]]
+slug = 'testament'
+advice = "Admiration formula (\"a testament to\"); state what it demonstrates"
+terms = ['testament']
+replacement = 'proof'
+stems = true
+
+[[group.entries]]
+slug = 'transformative'
+advice = 'Strong AI tell; one use is worth flagging'
+terms = ['transformative']
+replacement = 'big'
+stems = true

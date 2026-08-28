@@ -1,4 +1,4 @@
-warning[MODERN-VOCAB-STRONG-FLAG#leverage-fix-14]: 
+warning[AATELL#leverage]: 
   ┌─ tests/fixtures/docs/seed-vocab-replacement.md:1:18
   │
 1 │ The rollout will leverage existing infrastructure.

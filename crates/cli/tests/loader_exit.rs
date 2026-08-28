@@ -34,15 +34,16 @@ fn cfg_for_two(tmp: &std::path::Path, pack_a: &str, pack_b: &str) -> String {
 }
 
 const OK_RULE: &str = r#"
+[[group]]
 id-base = "OK-VOCAB"
 kind = "vocab"
 tier = 2
 category = "c"
 
-[fixtures]
+[group.fixtures]
 must_match = ["delve deep"]
 
-[[entries]]
+[[group.entries]]
 slug = "delve"
 terms = ["delve"]
 "#;
@@ -52,19 +53,20 @@ fn uncomplilable_regex_exits_two_naming_file() {
     // Given a pack with a pattern entry whose regex cannot compile.
     let tmp = tempfile::tempdir().expect("tempdir");
     let broken = r#"
+[[group]]
 id-base = "BAD-REGEX"
 kind = "pattern"
 tier = 2
 category = "c"
 
-[fixtures]
+[group.fixtures]
 must_match = ["x"]
 
-[[entries]]
+[[group.entries]]
 slug = "open"
 regex = '([unclosed'
 "#;
-    write(tmp.path(), "rules/builtin/pack/broken.toml", broken);
+    write(tmp.path(), "rules/pack.toml", broken);
     let cfg = cfg_for(tmp.path(), "pack");
 
     // When linting any existing path.
@@ -79,32 +81,33 @@ regex = '([unclosed'
     // Then exit is 2 and the diagnostic names the offending file.
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("broken.toml"), "{stderr}");
+    assert!(stderr.contains("pack.toml"), "{stderr}");
 }
 
 #[test]
 fn fixture_failure_blocks_lint_run_with_file_named() {
     // Given a rule whose own must_match can never hit, plus a healthy rule.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/ok.toml", OK_RULE);
+    write(tmp.path(), "rules/ok.toml", OK_RULE);
     write(
         tmp.path(),
-        "rules/builtin/pack/lying.toml",
+        "rules/lying.toml",
         r#"
+[[group]]
 id-base = "LYING-RULE"
 kind = "vocab"
 tier = 2
 category = "c"
 
-[fixtures]
+[group.fixtures]
 must_match = ["nothing relevant here"]
 
-[[entries]]
+[[group.entries]]
 slug = "delve"
 terms = ["delve"]
 "#,
     );
-    let cfg = cfg_for(tmp.path(), "pack");
+    let cfg = cfg_for_two(tmp.path(), "ok", "lying");
 
     // When linting.
     let output = deslop()
@@ -125,8 +128,8 @@ terms = ["delve"]
 fn duplicate_group_ids_across_packs_exit_two() {
     // Given the same id-base in two DIFFERENT packs.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack-a/a.toml", OK_RULE);
-    write(tmp.path(), "rules/builtin/pack-b/b.toml", OK_RULE);
+    write(tmp.path(), "rules/pack-a.toml", OK_RULE);
+    write(tmp.path(), "rules/pack-b.toml", OK_RULE);
     let cfg = cfg_for_two(tmp.path(), "pack-a", "pack-b");
 
     // When linting.
@@ -141,18 +144,35 @@ fn duplicate_group_ids_across_packs_exit_two() {
     // Then exit 2 flags the collision.
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("already defined in another pack"),
-        "{stderr}"
-    );
+    assert!(stderr.contains("already defined in"), "{stderr}");
 }
 
 #[test]
 fn duplicate_entry_ids_within_pack_exit_two() {
-    // Given two same-pack files sharing BOTH id-base and entry slug.
+    // Given one group with two entries claiming the same slug.
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/builtin/pack/a.toml", OK_RULE);
-    write(tmp.path(), "rules/builtin/pack/b.toml", OK_RULE);
+    write(
+        tmp.path(),
+        "rules/pack.toml",
+        r#"
+[[group]]
+id-base = "OK-VOCAB"
+kind = "vocab"
+tier = 2
+category = "c"
+
+[group.fixtures]
+must_match = ["delve deep"]
+
+[[group.entries]]
+slug = "delve"
+terms = ["delve"]
+
+[[group.entries]]
+slug = "delve"
+terms = ["delved"]
+"#,
+    );
     let cfg = cfg_for(tmp.path(), "pack");
 
     // When linting.
@@ -171,81 +191,44 @@ fn duplicate_entry_ids_within_pack_exit_two() {
 }
 
 #[test]
-fn origin_without_notice_exits_two() {
-    // Given an origin-bearing rule whose pack lacks NOTICE.toml.
-    let tmp = tempfile::tempdir().expect("tempdir");
-    write(
-        tmp.path(),
-        "rules/builtin/pack/converted.toml",
-        r#"
-id-base = "SRC-RULE"
-kind = "vocab"
-tier = 2
-category = "c"
-
-[origin]
-repo = "https://github.com/example/src"
-commit = "aaaa1111bbbb2222cccc3333dddd4444eeee5555"
-
-[fixtures]
-must_match = ["delve now"]
-
-[[entries]]
-slug = "delve"
-terms = ["delve"]
-"#,
-    );
-    let cfg = cfg_for(tmp.path(), "pack");
-
-    // When linting.
-    let output = deslop()
-        .arg("--config")
-        .arg(&cfg)
-        .arg(".")
-        .current_dir(tmp.path())
-        .output()
-        .expect("runs");
-
-    // Then exit 2 with the NOTICE complaint.
-    assert_eq!(output.status.code(), Some(2));
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("NOTICE.toml"), "{stderr}");
-}
-
-#[test]
 fn unknown_stat_and_missing_threshold_together() {
     // Given two metric rules: one unknown stat, one missing threshold_gt.
     let tmp = tempfile::tempdir().expect("tempdir");
     write(
         tmp.path(),
-        "rules/builtin/pack/badstat.toml",
+        "rules/badstat.toml",
         r#"
+[[group]]
 id-base = "M-BAD-STAT"
 kind = "metric"
 tier = 3
 category = "density"
 stat = "vibes_per_paragraph"
-threshold_gt = 1.0
+threshold-gt = 1.0
+window = "paragraph"
+terms = ["delve"]
 
-[fixtures]
+[group.fixtures]
 must_match = []
 "#,
     );
     write(
         tmp.path(),
-        "rules/builtin/pack/nothresh.toml",
+        "rules/nothresh.toml",
         r#"
+[[group]]
 id-base = "M-NO-THRESH"
 kind = "metric"
 tier = 3
 category = "density"
 stat = "em_dash_rate"
+window = "document"
 
-[fixtures]
+[group.fixtures]
 must_match = []
 "#,
     );
-    let cfg = cfg_for(tmp.path(), "pack");
+    let cfg = cfg_for_two(tmp.path(), "badstat", "nothresh");
 
     // When linting.
     let output = deslop()

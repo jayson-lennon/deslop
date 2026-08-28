@@ -32,7 +32,7 @@ fn lint_with_config(tag: &str, cfg: &str) -> (i32, String) {
 #[test]
 fn group_allow_suppresses_all_its_entries() {
     // Given a group-level allow for the only group firing in the doc.
-    let cfg = "[lints]\nMODERN-VOCAB-STRONG-FLAG = \"allow\"\n";
+    let cfg = "[lints]\nAATELL = \"allow\"\n";
 
     // When linting a doc that triggers `leverage`.
     let (code, out) = lint_with_config("ga", cfg);
@@ -45,7 +45,7 @@ fn group_allow_suppresses_all_its_entries() {
 #[test]
 fn slug_allow_beats_group_warn() {
     // Given a group escalated to error with one entry allowed.
-    let cfg = "[lints]\nMODERN-VOCAB-STRONG-FLAG = \"error\"\n\"MODERN-VOCAB-STRONG-FLAG#leverage-fix-14\" = \"allow\"\n";
+    let cfg = "[lints]\nAATELL = \"error\"\n\"AATELL#leverage\" = \"allow\"\n";
 
     // When linting the doc.
     let (code, out) = lint_with_config("sg", cfg);
@@ -58,27 +58,27 @@ fn slug_allow_beats_group_warn() {
 #[test]
 fn group_error_demotes_to_failing_severity() {
     // Given the group escalated to error with no slug override.
-    let cfg = "[lints]\nMODERN-VOCAB-STRONG-FLAG = \"error\"\n";
+    let cfg = "[lints]\nAATELL = \"error\"\n";
 
     // When linting the doc.
     let (code, out) = lint_with_config("ge", cfg);
 
     // Then the finding renders as error and fails the run.
     assert_eq!(code, 1);
-    assert!(out.contains("error[MODERN-VOCAB-STRONG-FLAG#leverage-fix-14]"));
+    assert!(out.contains("error[AATELL#leverage]"));
 }
 
 #[test]
 fn demotion_to_note_keeps_exit_clean() {
     // Given the group demoted to note.
-    let cfg = "[lints]\nMODERN-VOCAB-STRONG-FLAG = \"note\"\n";
+    let cfg = "[lints]\nAATELL = \"note\"\n";
 
     // When linting the doc.
     let (code, out) = lint_with_config("dn", cfg);
 
     // Then the finding is a note and hints never fail the run.
     assert_eq!(code, 0, "notes never affect exit");
-    assert!(out.contains("note[MODERN-VOCAB-STRONG-FLAG#leverage-fix-14]"));
+    assert!(out.contains("note[AATELL#leverage]"));
 }
 
 #[test]
@@ -103,13 +103,13 @@ fn unknown_lint_id_is_tolerated() {
 
     // Then the run proceeds with default levels.
     assert_eq!(code, 1, "finding still fires");
-    assert!(out.contains("warning[MODERN-VOCAB-STRONG-FLAG#leverage-fix-14]"));
+    assert!(out.contains("warning[AATELL#leverage]"));
 }
 
 #[test]
 fn rules_listing_shows_effective_levels() {
     // Given a group allow.
-    let cfg = "[lints]\nMODERN-VOCAB-STRONG-FLAG = \"allow\"\n";
+    let cfg = "[lints]\nAATELL = \"allow\"\n";
     let dir = std::env::temp_dir().join("deslop-lints-test-rules");
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("tmpdir");

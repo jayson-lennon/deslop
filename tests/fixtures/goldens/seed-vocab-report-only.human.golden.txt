@@ -1,4 +1,4 @@
-warning[MODERN-VOCAB#a-testament-to]: 
+warning[WSC#a-testament-to]: 
   ┌─ tests/fixtures/docs/seed-vocab-report-only.md:1:19
   │
 1 │ Her leadership is a testament to years of quiet work.
@@ -7,7 +7,7 @@ warning[MODERN-VOCAB#a-testament-to]:
   │                   AI-tell vocabulary
   │                   help: "a testament to" performs admiration instead of analysis; state what it actually demonstrates
 
-warning[MODERN-VOCAB-STRONG-FLAG#testament-fix-22]: 
+warning[AATELL#testament]: 
   ┌─ tests/fixtures/docs/seed-vocab-report-only.md:1:21
   │
 1 │ Her leadership is a testament to years of quiet work.

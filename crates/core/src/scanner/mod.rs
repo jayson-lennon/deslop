@@ -47,6 +47,11 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
 
     let mut findings = Vec::new();
 
+    // Pattern fan-out table: ONE scan per unique regex source string, one
+    // finding per surviving owner per hit. Built per-document because the
+    // `[lints]`/tier gates decide which owners participate.
+    let pattern_groups = pattern_owners(rules, settings);
+
     // ONE shared vocab index for the whole ruleset: tokenization happens
     // once per document, not once per entry.
     let shared_vocab = {
@@ -91,27 +96,9 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
             }
             match &entry.matcher {
                 Matcher::Vocab { .. } => {}
-                Matcher::Pattern(re) => {
-                    for hit in pattern_scan::scan(re, text, &map) {
-                        findings.push(make_finding(
-                            group,
-                            entry.id.as_str(),
-                            KindTag::Pattern,
-                            effective_tier(settings, group, &entry.id),
-                            hit.start,
-                            hit.end,
-                            text[hit.start..hit.end].to_string(),
-                            &hit.captures,
-                            entry
-                                .message_override
-                                .as_deref()
-                                .or(group.message.as_deref()),
-                            entry.advice_override.as_deref().or(group.advice.as_deref()),
-                            None,
-                            &norm,
-                            src,
-                        ));
-                    }
+                Matcher::Pattern(_) => {
+                    // Handled by the fan-out pass below; entries are visited
+                    // there once per unique regex string.
                 }
                 Matcher::Literal { needles } => {
                     let compiled: Vec<(String, Vec<crate::rule::literals::Segment>)> = needles
@@ -137,12 +124,48 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
                                 .as_deref()
                                 .or(group.message.as_deref()),
                             entry.advice_override.as_deref().or(group.advice.as_deref()),
+                            entry
+                                .category_override
+                                .as_deref()
+                                .or(Some(group.category.as_str())),
                             None,
                             &norm,
                             src,
                         ));
                     }
                 }
+            }
+        }
+    }
+
+    // Pattern fan-out: one scan per unique regex string, one finding per
+    // owner per hit. Tier/`[lints]` gates were applied when building the
+    // owner table, so a suppressed owner simply doesn't appear here.
+    for (re, owners) in &pattern_groups {
+        for hit in pattern_scan::scan(re, text, &map) {
+            for (group, entry) in owners {
+                findings.push(make_finding(
+                    group,
+                    entry.id.as_str(),
+                    KindTag::Pattern,
+                    effective_tier(settings, group, &entry.id),
+                    hit.start,
+                    hit.end,
+                    text[hit.start..hit.end].to_string(),
+                    &hit.captures,
+                    entry
+                        .message_override
+                        .as_deref()
+                        .or(group.message.as_deref()),
+                    entry.advice_override.as_deref().or(group.advice.as_deref()),
+                    entry
+                        .category_override
+                        .as_deref()
+                        .or(Some(group.category.as_str())),
+                    None,
+                    &norm,
+                    src,
+                ));
             }
         }
     }
@@ -168,6 +191,10 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
                     .as_deref()
                     .or(group.message.as_deref()),
                 entry.advice_override.as_deref().or(group.advice.as_deref()),
+                entry
+                    .category_override
+                    .as_deref()
+                    .or(Some(group.category.as_str())),
                 entry.replacement.clone(),
                 &norm,
                 src,
@@ -227,7 +254,7 @@ fn metric_findings(
         // (terms vary); other stats anchor at zero (whole-doc finding).
         let measured: Option<(f64, metrics::ClusterHit)> = match local_stat {
             metrics::Stat::TermClusterMax => {
-                metrics::term_cluster_max(norm_text, &spec.terms, spec.window)
+                metrics::term_cluster_max(norm_text, &spec.terms, &spec.term_lemmas, spec.window)
                     .map(|(n, hit)| (n as f64, hit))
             }
             _ => stats
@@ -296,10 +323,12 @@ fn make_finding(
     captures: &[(String, String)],
     message_t: Option<&str>,
     advice_t: Option<&str>,
+    category_t: Option<&str>,
     replacement: Option<String>,
     norm: &crate::eol::Normalized,
     orig_src: &str,
 ) -> Finding {
+    let category = category_t.unwrap_or(&group.category);
     let (o_start, o_end) = norm.span_to_orig(start, end);
     let mut vars: Vec<(String, String)> = vec![("match".into(), matched)];
     for (n, v) in captures {
@@ -315,7 +344,7 @@ fn make_finding(
         entry_id: entry_id.to_string(),
         kind,
         tier,
-        category: group.category.clone(),
+        category: category.to_string(),
         message,
         advice,
         span: Span::new(o_start, o_end),
@@ -360,6 +389,56 @@ fn resolve_entry<'a>(
         }
     }
     None
+}
+
+/// Group pattern entries by their compiled regex's source string: each unique
+/// string is scanned ONCE, and every surviving owner emits its own finding
+/// per hit. Same gates as the per-entry loop (enabled, allow, max tier).
+fn pattern_owners<'a>(
+    rules: &'a RuleSet,
+    settings: &LintSettings,
+) -> Vec<(&'a regex::Regex, Vec<(&'a crate::rule::RuleGroup, &'a crate::rule::ActiveEntry)>)> {
+    let mut order: Vec<&'a regex::Regex> = Vec::new();
+    let mut owners: std::collections::HashMap<
+        &'a str,
+        Vec<(&'a crate::rule::RuleGroup, &'a crate::rule::ActiveEntry)>,
+    > = std::collections::HashMap::new();
+    for group in &rules.groups {
+        if !group.enabled {
+            continue;
+        }
+        if settings.level_for(&group.id_base, "") == Some(crate::config::LintLevel::Allow) {
+            continue;
+        }
+        if let Some(max) = settings.max_tier {
+            if group.tier > max {
+                continue;
+            }
+        }
+        for entry in &group.entries {
+            if settings.level_for(&group.id_base, &entry.id)
+                == Some(crate::config::LintLevel::Allow)
+            {
+                continue;
+            }
+            if let Matcher::Pattern(re) = &entry.matcher {
+                match owners.get_mut(re.as_str()) {
+                    Some(v) => v.push((group, entry)),
+                    None => {
+                        order.push(re);
+                        owners.insert(re.as_str(), vec![(group, entry)]);
+                    }
+                }
+            }
+        }
+    }
+    order
+        .into_iter()
+        .filter_map(|re| {
+            let group = owners.remove(re.as_str())?;
+            Some((re, group))
+        })
+        .collect()
 }
 
 /// Sort: (offset, tier number, entry id).

@@ -1,0 +1,504 @@
+# deslop pack: wsc — github.com/theserverlessdev/wsc (words + prose patterns)
+
+[[group]]
+id-base = 'WSC'
+kind = 'vocab'
+tier = 2
+category = 'ai-vocabulary'
+enabled = true
+
+[[group.entries]]
+slug = 'a-testament-to'
+advice = "\"{match}\" performs admiration instead of analysis; state what it actually demonstrates"
+terms = ['a testament to']
+
+[[group.entries]]
+slug = 'actionable-insights'
+terms = ['actionable insights']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'aims-to-explore'
+terms = ['aims to explore']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'as-a-large-language-model'
+terms = ['as a large language model']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'as-an-ai-language-model'
+terms = ['as an ai language model']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'as-of-my-last-knowledge-update'
+terms = ['as of my last knowledge update']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'at-its-core'
+terms = ['at its core']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'at-the-end-of-the-day'
+terms = ['at the end of the day']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'excellent-question'
+terms = ['excellent question']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'faced-numerous-challenges'
+terms = ['faced numerous challenges']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'faces-several-challenges'
+terms = ['faces several challenges']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'feel-free-to-customize'
+terms = ['feel free to customize']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'feel-free-to-personalize'
+terms = ['feel free to personalize']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'first-and-foremost'
+terms = ['first and foremost']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'deep-dive'
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+terms = ['deep dive']
+replacement = 'Analysis, examination'
+
+[[group.entries]]
+slug = 'glad-you-asked'
+terms = ['glad you asked']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'great-question'
+terms = ['great question']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'harness-the-power'
+terms = ['harness the power']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'here-s-the-kicker'
+terms = ["here's the kicker"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'hidden-gem'
+terms = ['hidden gem']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'highlights-the-importance-of'
+terms = ['highlights the importance of']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'i-don-t-have-access-to-real-time'
+terms = ["i don't have access to real-time"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'i-hope-this-helps'
+terms = ['i hope this helps']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'i-hope-this-message-finds-you-well'
+terms = ['i hope this message finds you well']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'in-an-era-of'
+terms = ['in an era of']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'in-essence'
+terms = ['in essence,']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'in-the-provided-search-results'
+terms = ['in the provided search results']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'in-today-s-fast-paced-world'
+terms = ["in today's fast-paced world"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'in-today-s-rapidly-evolving'
+terms = ["in today's rapidly evolving"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'in-today-s-world'
+terms = ["in today's world"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'is-there-anything-else-i-can'
+terms = ['is there anything else i can']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'it-s-essential-to'
+terms = ["it's essential to"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'it-s-important-to-note-that'
+terms = ["it's important to note that"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'it-s-not-just-about'
+terms = ["it's not just about"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'it-s-worth-mentioning-that'
+terms = ["it's worth mentioning that"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'it-s-worth-noting-that'
+terms = ["it's worth noting that"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'key-takeaway'
+terms = ['key takeaway']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'let-me-know-if-you-d-like'
+terms = ["let me know if you'd like"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'let-s-break-this-down'
+terms = ["let's break this down"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'let-s-delve'
+terms = ["let's delve"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'look-no-further'
+terms = ['look no further']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'my-knowledge-cutoff'
+terms = ['my knowledge cutoff']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'my-training-data'
+terms = ['my training data']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'no-discussion-would-be-complete-without'
+terms = ['no discussion would be complete without']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'pave-the-way-for'
+terms = ['pave the way for']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'push-the-boundaries-of'
+terms = ['push the boundaries of']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'regenerate-response'
+terms = ['regenerate response']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'rich-cultural-heritage'
+terms = ['rich cultural heritage']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'secret-sauce'
+terms = ['secret sauce']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'sheds-light-on'
+terms = ['sheds light on']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'supercharge-your'
+terms = ['supercharge your']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'the-possibilities-are-endless'
+terms = ['the possibilities are endless']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'to-new-heights'
+terms = ['to new heights']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'to-the-next-level'
+terms = ['to the next level']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'treasure-trove'
+terms = ['treasure trove']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'underscores-the-importance-of'
+terms = ['underscores the importance of']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'unlock-the-full-potential'
+terms = ['unlock the full potential']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'unlock-the-potential'
+terms = ['unlock the potential']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'unlock-the-power'
+terms = ['unlock the power']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'while-specific-details-are-limited'
+terms = ['while specific details are limited']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'without-further-ado'
+terms = ['without further ado']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'would-you-like-me-to'
+terms = ['would you like me to']
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group.entries]]
+slug = 'you-re-absolutely-right'
+terms = ["you're absolutely right"]
+advice = 'AI-tell vocabulary; state the idea in your own plain words'
+
+[[group]]
+id-base = 'WSC-PAT-AUDIENCE-HEDGE'
+kind = 'pattern'
+tier = 2
+category = 'audience-hedge'
+
+[[group.entries]]
+slug = 'main'
+regex = "(?P<hedge>\\bwhether you[''’]re (?:a|an|new|just|looking|building|running)[^.!?\\n]{1,80}?\\bor\\b)\n"
+advice = "\"{hedge}\" flattens the audience into a marketing segment; address THIS reader's actual situation"
+
+[group.fixtures]
+must_match = ["Whether you're a beginner or an expert, this guide helps."]
+must_not_match = ['She could not decide whether the coat or the jacket suited the weather.']
+
+[[group]]
+id-base = 'WSC-PAT-COPULA-PUFFERY'
+kind = 'pattern'
+tier = 2
+category = 'copula-puffery'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\bstands as an?\\b|\\bholds the distinction of\\b|\\bserves as a (?:testament|beacon|reminder|symbol|cornerstone)\\b\n"
+advice = "Rewrite the construction plainly (wsc: Inflated copulas (\"stands as a\", \"serves as a testament\") replace plain \"is\" in AI prose (WP:AISIGNS; Geng & Trotta 2025))"
+
+[group.fixtures]
+must_match = ['The cathedral stands as a testament to medieval craft.']
+must_not_match = ['The report stands on the desk and serves as a reference.']
+
+[[group]]
+id-base = 'WSC-PAT-DANCE-METAPHOR'
+kind = 'pattern'
+tier = 2
+category = 'dance-metaphor'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\b(?:intricate|delicate|complex|careful) dance\\b\n"
+advice = "Rewrite the construction plainly (wsc: The \"delicate dance between X and Y\" metaphor is a documented LLM favorite)"
+
+[group.fixtures]
+must_match = ['Negotiating the treaty required a delicate dance between allies.']
+must_not_match = ["The critics praised the film's delicate balance of humor and dread."]
+
+[[group]]
+id-base = 'WSC-PAT-DESPITE-CHALLENGES'
+kind = 'pattern'
+tier = 2
+category = 'despite-challenges'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\bdespite (?:its|these|their|the)\\b[^.!?\\n]{1,60}?\\b(?:faces?|faced|continues? to face|remains?)\\b[^.!?\\n]{0,40}?\\bchallenges\\b\n"
+advice = "Rewrite the construction plainly (wsc: The \"Despite its X, [subject] faces challenges\" formula is a documented AI outline habit (WP:AISIGNS; Russell 2025))"
+
+[group.fixtures]
+must_match = ['Despite its modest budget, the film faces challenges few blockbusters attempt.']
+must_not_match = ['Despite the rain, the picnic continued in good spirits.']
+
+[[group]]
+id-base = 'WSC-PAT-FALSE-RANGE'
+kind = 'pattern'
+tier = 2
+category = 'false-range'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\bfrom [^,.;!?\\n]{2,40} to [^,.;!?\\n]{2,40}, (?:and )?from [^,.;!?\\n]{2,40} to\\b\n"
+advice = "Rewrite the construction plainly (wsc: Chained \"from X to Y, from Z to W\" false ranges are a documented AI comprehensiveness gesture (WP:AISIGNS))"
+
+[group.fixtures]
+must_match = ['The course spans from baking basics to pastry arts, from grilling to sous-vide.']
+must_not_match = ['The trail runs from the parking lot to the lake and back again.']
+
+[[group]]
+id-base = 'WSC-PAT-META-ANNOUNCEMENT'
+kind = 'pattern'
+tier = 2
+category = 'meta-announcement'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\bthis (?:article|blog post|post|essay|guide) (?:aims|seeks) to\\b\n"
+advice = "Rewrite the construction plainly (wsc: \"This article aims to explore...\" meta-announcements are ~50x more frequent in AI text (GPTZero))"
+
+[group.fixtures]
+must_match = ['This article aims to explore the history of the canal system.']
+must_not_match = ['The professor asked the article aims to be cited properly, awkwardly.']
+
+[[group]]
+id-base = 'WSC-PAT-NEGATIVE-PARALLELISM'
+kind = 'pattern'
+tier = 2
+category = 'negative-parallelism'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\bn(?:ot|[''’]t) (?:just|only|merely|simply|about) [^.!?\\n]{1,80}?[,;.:—–-] ?(?P<payload>(?:(?:it|this|that)[''’]s|it is|this is|that[''’]s|they[''’]re|but rather)\\b[^.!?\\n]{0,160})\n"
+advice = "Drop the negation scaffold and state it positively: roughly \"{payload}\""
+
+[group.fixtures]
+must_match = ["It's not merely faster; it's transformative for the whole pipeline.", "This is not just a feature update, it's a complete rethinking of the workflow."]
+must_not_match = ['We did not enjoy the film, but finished it anyway.', 'The engine is not only powerful; the brakes are excellent.']
+
+[[group]]
+id-base = 'WSC-PAT-NOT-ONLY-BUT-ALSO'
+kind = 'pattern'
+tier = 2
+category = 'not-only-but-also'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\bnot only\\b[^.!?\\n]{2,80}?\\bbut also\\b\n"
+advice = "Rewrite the construction plainly (wsc: \"not only... but also\" is heavily overused by LLMs of every generation (Russell 2025; WP:AISIGNS))"
+
+[group.fixtures]
+must_match = ['The update is not only faster but also more stable.']
+must_not_match = ['She is the only child in the class who can also drive.']
+
+[[group]]
+id-base = 'WSC-PAT-PIVOTAL-ROLE-CLAIM'
+kind = 'pattern'
+tier = 2
+category = 'pivotal-role-claim'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\bplay(?:s|ed|ing)? an? (?:crucial|pivotal|vital|key|critical|essential|significant|central|integral|major|prominent|important) (?:role|part)\\b\n"
+advice = "Rewrite the construction plainly (wsc: \"plays a crucial/vital/key role\" is an AI significance cliche (WP:AISIGNS grandiose-phrase list))"
+
+[group.fixtures]
+must_match = ['Fiber plays a crucial role in digestive health.']
+must_not_match = ['The crane operator played an important cassette during the demolition.']
+
+[[group]]
+id-base = 'WSC-PAT-TRAILING-PARTICIPIAL-ANALYSIS'
+kind = 'pattern'
+tier = 2
+category = 'trailing-participial-analysis'
+
+[[group.entries]]
+slug = 'main'
+regex = ",\\s+(?:further |thereby |ultimately )?(?:highlighting|underscoring|showcasing|reflecting|emphasi[sz]ing|demonstrating|signall?ing|illustrating|cementing|solidifying|reinforcing|exemplifying|epitomizing|symbolizing|embodying|heralding)\\b\n"
+advice = "Rewrite the construction plainly (wsc: Trailing \", highlighting/underscoring/showcasing...\" significance clauses are the best-evidenced syntactic AI tell (Reinhart PNAS 2025; WP:AISIGNS))"
+
+[group.fixtures]
+must_match = ['The results improved by 40%, highlighting the new cache design.']
+must_not_match = ['The clause returned to the committee, and the highlighting of each error was manual.']
+
+[[group]]
+id-base = 'WSC-PAT-UNFILLED-PLACEHOLDER'
+kind = 'pattern'
+tier = 2
+category = 'unfilled-placeholder'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\[(?:your (?:name|username|email|company(?: name)?)|company name|insert [^\\]\\n]{2,40}|[a-z ]{0,20}goes here)\\]\n"
+advice = "Rewrite the construction plainly (wsc: Unfilled template placeholders (\"[Your Name]\", \"[insert X]\") are AI draft output left incomplete (WP:AISIGNS))"
+
+[group.fixtures]
+must_match = ['Send it to [Your Name] before Friday.']
+must_not_match = ['The bracketed taxon [see appendix] was already defined.']
+
+[[group]]
+id-base = 'WSC-PAT-VAGUE-ATTRIBUTION'
+kind = 'pattern'
+tier = 2
+category = 'vague-attribution'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\b(?:(?:experts|critics|observers|scholars|analysts|commentators) (?:have )?(?:widely )?(?:agree(?:d|ment)?|argue[ds]?|suggest(?:s|ed)?|believe[ds]?|note[ds]?|cite[ds]?|claim(?:s|ed)?|warn(?:s|ed)?|say|said|pointed out))\\b|\\bindustry (?:reports?|experts?|leaders?|insiders?) (?:have )?(?:widely )?(?:agree[sd]?|argue[ds]?|suggest(?:s|ed)?|warn(?:s|ed)?)\\b|\\bstudies (?:show|suggest|indicate|have shown)\\b|\\bresearch (?:shows|suggests|indicates|has shown)\\b\n"
+advice = "Rewrite the construction plainly (wsc: Vague authority attribution (\"experts agree\", \"studies show\") without a named source is a documented AI weasel pattern (WP:AISIGNS))"
+
+[group.fixtures]
+must_match = ['Experts agree that the method works better than the control.']
+must_not_match = ["Dr. Maria Lane, the study's lead author, agrees the sample was small."]

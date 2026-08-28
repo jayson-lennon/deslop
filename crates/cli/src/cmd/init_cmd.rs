@@ -7,13 +7,18 @@ pub const TEMPLATE: &str = r#"# deslop configuration. Place at project root; the
 # Delete this file to fall back to full defaults.
 
 [packs]
-# Which builtin packs load, in load order.
-#   artifacts            - Tier 1: chatbot markup artifacts and placeholders
-#   modern-vocabulary    - Tier 2: AI-tell vocabulary with optional rewrites
-#   prose-constructions  - Tier 2: structural constructions (regex)
-#   document-signals     - Tier 3: density/statistical hints
-builtin = ["artifacts", "modern-vocabulary", "prose-constructions", "document-signals"]
-# Extra rule-pack directories (each mirrors rules/builtin/<name> layout).
+# Which builtin packs load, in load order. A pack is ONE TOML file in
+# rules/<stem>.toml containing any number of [[group]] tables. On load,
+# every vocab/literal term gets ONE owner — the stricter (lower) tier wins,
+# config order breaks ties — and identical pattern regexes compile once and
+# fan their findings out to every owning rule.
+#   aatell         - Tier 2: frequency-measured AI-tell words (seed rewrites)
+#   slop           - Tier 2: AI-slop words and phrases
+#   wsc            - Tier 2: vocabulary + structural prose patterns
+#   aisigns        - Tier 1/3: chatbot markup artifacts + document metrics
+#   cluster-terms  - Tier 3: single-word watch list (lints via cluster only)
+builtin = ["aatell", "slop", "wsc", "aisigns", "cluster-terms"]
+# Extra rule packs by file or directory path.
 extra_paths = []
 
 [scan]
@@ -28,14 +33,16 @@ color = "auto"           # auto | always | never
 # Per-lint levels, clippy-style. Key is GROUP or GROUP#slug; value is
 # allow | note | warn | error (default = the rule's tier).
 #[lints]
-#MODERN-VOCAB-WATCH = "allow"                 # whole group off
-#"MODERN-VOCAB-HARD-BAN#delve" = "allow"      # one entry off
-#"PROSE-PAT-NEGATIVE-PARALLELISM" = "error"   # escalate to error
+#AATELL = "allow"                       # whole group off
+#"AATELL#leverage" = "allow"            # one entry off
+#"WSC-PAT-NOT-ONLY-BUT-ALSO" = "error"  # escalate to error
 
 # Rule authoring quickstart (full guide in README):
-#   - every rule file is ONE group sharing envelope + category,
-#   - entries prove themselves via must_match / must_not_match fixtures
+#   - a rule FILE holds many [[group]] tables; each table is one group
+#     with its own kind/tier/category and [[group.entries]],
+#   - entries prove themselves via group.fixtures must_match/must_not_match
 #     (a rule whose fixtures fail refuses to load),
+#   - single words usually want `stems = true` (one entry, all inflections),
 #   - enabled entries need `advice`; CI enforces DESLOP_REQUIRE_ADVICE=1.
 "#;
 

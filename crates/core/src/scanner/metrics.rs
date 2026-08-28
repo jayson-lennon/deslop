@@ -123,6 +123,7 @@ pub struct ClusterHit {
 pub fn term_cluster_max(
     masked: &str,
     terms: &[String],
+    term_lemmas: &[u32],
     window: crate::rule::ClusterWindow,
 ) -> Option<(usize, ClusterHit)> {
     use crate::rule::ClusterWindow as W;
@@ -133,11 +134,13 @@ pub fn term_cluster_max(
     // (sanitized at load), so byte scanning is char-boundary safe.
     let lower = masked.to_lowercase();
     let lb = lower.as_bytes();
-    let mut hits: Vec<(usize, usize, usize)> = Vec::new(); // (start, end, term_idx)
+    let mut hits: Vec<(usize, usize, u32)> = Vec::new(); // (start, end, lemma)
     for (ti, t) in terms.iter().enumerate() {
         if t.is_empty() {
             continue;
         }
+        // Identity = lemma index; forms of one word count once.
+        let lemma = term_lemmas.get(ti).copied().unwrap_or(ti as u32);
         let mut from = 0usize;
         while let Some(rel) = lower[from..].find(t.as_str()) {
             let at = from + rel;
@@ -145,7 +148,7 @@ pub fn term_cluster_max(
             let before_ok = at == 0 || !lb[at - 1].is_ascii_alphanumeric();
             let after_ok = end >= lb.len() || !lb[end].is_ascii_alphanumeric();
             if before_ok && after_ok {
-                hits.push((at, end, ti));
+                hits.push((at, end, lemma));
             }
             from = end.max(at + 1);
         }
@@ -658,7 +661,7 @@ mod cluster_tests {
         // Given one paragraph with three distinct watch terms.
         let text = "The crucial part is robust and notably quick.";
         // When measuring the cluster.
-        let (n, hit) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        let (n, hit) = term_cluster_max(text, &terms(), &(0..terms().len() as u32).collect::<Vec<u32>>(), ClusterWindow::Paragraph).unwrap();
         // Then all three distinct terms count.
         assert_eq!(n, 3);
         // And the anchor covers the window's final hit word.
@@ -670,7 +673,7 @@ mod cluster_tests {
         // Given a paragraph repeating a single term.
         let text = "crucial crucial crucial crucial";
         // When measuring the cluster.
-        let (n, hit) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        let (n, hit) = term_cluster_max(text, &terms(), &(0..terms().len() as u32).collect::<Vec<u32>>(), ClusterWindow::Paragraph).unwrap();
         // Then only one distinct term counts.
         assert_eq!(n, 1);
         // And the anchor covers the first "crucial".
@@ -682,7 +685,7 @@ mod cluster_tests {
         // Given terms spread across two paragraphs.
         let text = "crucial here.\n\nrobust and notably there";
         // When measuring per-paragraph.
-        let (n, hit) = term_cluster_max(text, &terms(), ClusterWindow::Paragraph).unwrap();
+        let (n, hit) = term_cluster_max(text, &terms(), &(0..terms().len() as u32).collect::<Vec<u32>>(), ClusterWindow::Paragraph).unwrap();
         // Then no paragraph exceeds two.
         assert_eq!(n, 2);
         // And the anchor sits in the densest paragraph (earliest hit there).
@@ -694,7 +697,7 @@ mod cluster_tests {
         // Given the same two-paragraph spread.
         let text = "crucial here.\n\nrobust and notably there";
         // When measuring over the whole document.
-        let (n, _) = term_cluster_max(text, &terms(), ClusterWindow::Document).unwrap();
+        let (n, _) = term_cluster_max(text, &terms(), &(0..terms().len() as u32).collect::<Vec<u32>>(), ClusterWindow::Document).unwrap();
         // Then all three pool to three.
         assert_eq!(n, 3);
         let _ = n;
@@ -704,7 +707,7 @@ mod cluster_tests {
     fn no_hits_yields_no_measurement() {
         // Given a text without any watch terms.
         // When measuring.
-        let got = term_cluster_max("plain words only", &terms(), ClusterWindow::Paragraph);
+        let got = term_cluster_max("plain words only", &terms(), &(0..terms().len() as u32).collect::<Vec<u32>>(), ClusterWindow::Paragraph);
         // Then there is no measurement (and no anchor).
         assert!(got.is_none());
     }
@@ -714,7 +717,7 @@ mod cluster_tests {
         // Given text where terms appear only as substrings of other words.
         let text = "crucially robustly";
         // When measuring.
-        let got = term_cluster_max(text, &terms(), ClusterWindow::Paragraph);
+        let got = term_cluster_max(text, &terms(), &(0..terms().len() as u32).collect::<Vec<u32>>(), ClusterWindow::Paragraph);
         // Then nothing counts: no hits means no measurement at all.
         assert!(got.is_none());
     }

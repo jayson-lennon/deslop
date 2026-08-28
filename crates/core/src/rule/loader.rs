@@ -6,7 +6,7 @@
 use crate::config::Config;
 use crate::finding::Tier;
 use crate::rule::RuleSet;
-use crate::rule::schema::{EntryToml, GroupToml};
+use crate::rule::schema::{EntryToml, GroupToml, RulesFileToml};
 use camino::Utf8Path;
 
 /// One validation failure, tied to the file (and where possible, line).
@@ -31,6 +31,8 @@ impl std::fmt::Display for LoadError {
 pub struct Loaded {
     pub rule_set: RuleSet,
     pub errors: Vec<LoadError>,
+    /// `dedup:` diagnostics from the compile stage (single-owner collisions).
+    pub dedup_warnings: Vec<String>,
 }
 
 /// Validate one parsed group; appends to `errors` rather than early-returning.
@@ -207,53 +209,55 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
 
 /// Load packs declared in `cfg`.
 ///
-/// Builtin names resolve under `<rules_root>/rules/builtin/<name>`;
-/// `extra_paths` are used as-is.
+/// Builtin pack stems resolve to `<rules_root>/rules/<stem>.toml` — one
+/// flat file per pack, any number of `[[group]]` tables inside. `extra_paths`
+/// name files or directories, used as-is.
 ///
 /// Never panics on bad data: problems land in [`Loaded::errors`].
 pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
     let mut loaded = Loaded::default();
 
-    let mut pack_dirs = Vec::new();
+    let mut pack_files = Vec::new();
     for name in &cfg.packs.builtin {
-        pack_dirs.push(rules_root.join("rules").join("builtin").join(name));
+        pack_files.push(rules_root.join("rules").join(format!("{name}.toml")));
     }
     for extra in &cfg.packs.extra_paths {
-        pack_dirs.push(extra.clone());
+        let path = rules_root.join(extra);
+        if path.is_dir() {
+            pack_files.extend(crate::sorted_toml_files(&path));
+        } else {
+            pack_files.push(path);
+        }
     }
 
-    // Group and ENTRY id uniqueness span the whole effective ruleset,
-    // not one file.
+    // GROUP id-base uniqueness spans the whole effective ruleset; entry ids
+    // too. Entry SLUGS stay group-scoped (two groups may both have `main`).
     let mut seen_ids = std::collections::BTreeMap::new();
     let mut entry_ids = std::collections::BTreeMap::new();
 
-    for dir in pack_dirs {
-        let notice = load_notice(&dir);
-        for file in crate::sorted_toml_files(&dir) {
-            if file.file_name() == Some("NOTICE.toml") {
+    for file in pack_files {
+        let text = match std::fs::read_to_string(&file) {
+            Ok(t) => t,
+            Err(e) => {
+                loaded.errors.push(LoadError {
+                    path: file.to_string(),
+                    line: None,
+                    message: format!("unreadable rule pack: {e}"),
+                });
                 continue;
             }
-            let text = match std::fs::read_to_string(&file) {
-                Ok(t) => t,
-                Err(e) => {
-                    loaded.errors.push(LoadError {
-                        path: file.to_string(),
-                        line: None,
-                        message: format!("unreadable rule file: {e}"),
-                    });
-                    continue;
-                }
-            };
-            parse_group_file(
-                &file,
-                &text,
-                notice.as_ref(),
-                &mut seen_ids,
-                &mut entry_ids,
-                &mut loaded,
-            );
-        }
+        };
+        parse_pack_file(
+            &file,
+            &text,
+            &mut seen_ids,
+            &mut entry_ids,
+            &mut loaded,
+        );
     }
+    // Compile stage: one owner per term (highest tier, then config order),
+    // metric conflicts resolved to the strictest threshold.
+    loaded.dedup_warnings = crate::rule::dedup::dedup(&mut loaded.rule_set);
     // Deterministic listing order: by id-base then file-derived insertion.
     loaded
         .rule_set
@@ -262,20 +266,45 @@ pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
     loaded
 }
 
-fn parse_group_file(
+/// Expansion result: surface forms plus the lemma each belongs to.
+pub struct MetricTerms {
+    pub terms: Vec<String>,
+    pub term_lemmas: Vec<u32>,
+}
+
+/// Expand metric terms to surface forms tagged with their lemma index:
+/// each listed term is one lemma, so `delve` + `delves` count as ONE
+/// distinct term in cluster scoring regardless of inflection.
+fn expand_metric_terms(terms: &Option<Vec<String>>) -> (Vec<String>, Vec<u32>) {
+    let mut forms: Vec<(String, u32)> = terms
+        .clone()
+        .unwrap_or_default()
+        .iter()
+        .enumerate()
+        .flat_map(|(i, t)| {
+            crate::rule::stems::expand(t.trim())
+                .into_iter()
+                .map(move |form| (form, i as u32))
+        })
+        .collect();
+    forms.sort();
+    forms.dedup();
+    let lemmas = forms.iter().map(|(_, l)| *l).collect();
+    let surface = forms.into_iter().map(|(t, _)| t).collect();
+    (surface, lemmas)
+}
+
+fn parse_pack_file(
     path: &Utf8Path,
     text: &str,
-    notice: Option<&crate::rule::notice::Notice>,
     seen_ids: &mut std::collections::BTreeMap<String, String>,
     seen_entry_ids: &mut std::collections::BTreeMap<String, ()>,
     loaded: &mut Loaded,
 ) {
-    let active_entry_counter = 0usize;
+    let parsed: Result<RulesFileToml, toml::de::Error> = toml::from_str(text);
 
-    let parsed: Result<GroupToml, toml::de::Error> = toml::from_str(text);
-
-    let group = match parsed {
-        Ok(g) => g,
+    let file = match parsed {
+        Ok(f) => f,
         Err(e) => {
             loaded.errors.push(LoadError {
                 path: path.to_string(),
@@ -286,57 +315,39 @@ fn parse_group_file(
         }
     };
 
-    validate_group(path.as_str(), &group, &mut loaded.errors);
-
-    // Attribution cross-check: an [origin] in a rule file must be covered by
-    // the pack's NOTICE.toml; a converted (origin-bearing) rule with no
-    // NOTICE at all is likewise refused.
-    if let Some(origin) = &group.origin {
-        match notice {
-            None => loaded.errors.push(LoadError {
-                path: path.to_string(),
-                line: None,
-                message: format!(
-                    "rule declares [origin] but {} has no NOTICE.toml",
-                    path.parent().unwrap_or(path)
-                ),
-            }),
-            Some(n) if !n.covers(&origin.repo, &origin.commit) => {
-                loaded.errors.push(LoadError {
-                    path: path.to_string(),
-                    line: None,
-                    message: format!(
-                        "origin {}/{} not listed in pack NOTICE.toml",
-                        origin.repo, origin.commit
-                    ),
-                });
-            }
-            _ => {}
-        }
+    for group in &file.groups {
+        parse_group(path, group, seen_ids, seen_entry_ids, loaded);
     }
+}
 
-    // Detect cross-PACK duplicate GROUP ids. Chunked files within one pack
-    // may share an id_base (their entries differ); different packs may not.
-    let pack_of = |p: &str| {
-        p.rsplit_once('/')
-            .map(|(dir, _)| dir.to_string())
-            .unwrap_or_default()
-    };
+fn parse_group(
+    path: &Utf8Path,
+    group: &GroupToml,
+    seen_ids: &mut std::collections::BTreeMap<String, String>,
+    seen_entry_ids: &mut std::collections::BTreeMap<String, ()>,
+    loaded: &mut Loaded,
+) {
+    let active_entry_counter = 0usize;
+
+    let err_before = loaded.errors.len();
+    validate_group(path.as_str(), group, &mut loaded.errors);
+    let group_valid = loaded.errors.len() == err_before;
+
+    // Group id-base is GLOBAL: two files both defining the same id_base is a
+    // conflict regardless of pack.
     match seen_ids.get(&group.id_base) {
-        Some(first) if pack_of(first) != pack_of(path.as_str()) => {
+        Some(first) => {
             loaded.errors.push(LoadError {
                 path: path.to_string(),
                 line: None,
                 message: format!(
-                    "group id-base `{}` already defined in another pack ({first})",
+                    "group id-base `{}` already defined in {first}",
                     group.id_base
                 ),
             });
         }
-        _ => {
-            seen_ids
-                .entry(group.id_base.clone())
-                .or_insert_with(|| path.to_string());
+        None => {
+            seen_ids.insert(group.id_base.clone(), path.to_string());
         }
     }
 
@@ -346,7 +357,7 @@ fn parse_group_file(
     // recorded above, so failure here just skips that entry silently.
     let mut active_entries = Vec::new();
     for entry in &group.entries {
-        let slug = entry_slug(entry, &group, active_entry_counter);
+        let slug = entry_slug(entry, group, active_entry_counter);
         let id = format!("{}#{slug}", group.id_base);
         if seen_entry_ids.insert(id.clone(), ()).is_some() {
             push_error(loaded, path, None, format!("duplicate entry id `{id}`"));
@@ -360,6 +371,7 @@ fn parse_group_file(
                 id,
                 message_override: entry.message.clone(),
                 advice_override: entry.advice.clone(),
+                category_override: entry.category.clone(),
                 matcher,
                 replacement: entry.replacement.clone(),
             });
@@ -370,6 +382,9 @@ fn parse_group_file(
     if active_entries.is_empty() && !has_group_level_rule {
         return;
     }
+    // Group-scoped error accounting: was THIS group valid? (loaded.errors is
+    // global across the run, so this is the snapshot taken at validation.)
+    let group_was_valid = group_valid;
     loaded.rule_set.groups.push(crate::rule::RuleGroup {
         id_base: group.id_base.clone(),
         tier: group.tier,
@@ -384,26 +399,24 @@ fn parse_group_file(
             .unwrap_or_else(|| default_scope(&group.kind)),
         url: group.url.as_ref().map(|u| (u.text.clone(), u.href.clone())),
         entries: active_entries,
-        // Only materialize when validation actually passed; broken groups
-        // already recorded errors and abort the run before scanning.
-        metric: if group.kind == "metric" && loaded.errors.is_empty() {
+        // Only materialize when THIS group validated; broken groups already
+        // recorded errors and abort the run before scanning.
+        metric: if group.kind == "metric" && group_was_valid {
             crate::metric_stats::Stat::from_name(group.stat.as_deref().unwrap_or_default()).map(
-                |stat| crate::rule::MetricSpec {
-                    stat,
-                    per_words: group.per_words.unwrap_or(1000),
-                    threshold_gt: group.threshold_gt.unwrap_or(0.0),
-                    window: group
-                        .window
-                        .as_deref()
-                        .and_then(crate::rule::ClusterWindow::parse)
-                        .unwrap_or(crate::rule::ClusterWindow::Paragraph),
-                    terms: group
-                        .terms
-                        .clone()
-                        .unwrap_or_default()
-                        .iter()
-                        .map(|t| t.trim().to_lowercase())
-                        .collect(),
+                |stat| {
+                    let (terms, term_lemmas) = expand_metric_terms(&group.terms);
+                    crate::rule::MetricSpec {
+                        stat,
+                        per_words: group.per_words.unwrap_or(1000),
+                        threshold_gt: group.threshold_gt.unwrap_or(0.0),
+                        window: group
+                            .window
+                            .as_deref()
+                            .and_then(crate::rule::ClusterWindow::parse)
+                            .unwrap_or(crate::rule::ClusterWindow::Paragraph),
+                        terms,
+                        term_lemmas,
+                    }
                 },
             )
         } else {
@@ -419,13 +432,6 @@ fn line_of(text: &str, byte: usize) -> usize {
         .filter(|&b| b == b'\n')
         .count()
         + 1
-}
-
-/// Read + parse `NOTICE.toml` from a pack dir; `None` when absent or broken.
-fn load_notice(dir: &Utf8Path) -> Option<crate::rule::notice::Notice> {
-    let path = dir.join("NOTICE.toml");
-    let text = std::fs::read_to_string(&path).ok()?;
-    crate::rule::notice::Notice::parse(&text).ok()
 }
 
 /// Allowed template placeholders for a non-pattern kind.
