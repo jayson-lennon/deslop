@@ -152,11 +152,12 @@ fn rewrite(src: &str, findings: &[Finding]) -> String {
         };
         // Deletion rewrites: also eat one following space so
         // "crucial and it is important to note that we" doesn't collapse
-        // into "and  we" with a double blank.
+        // into "and  we" with a double blank. Space is ASCII, so advancing
+        // by its UTF-8 length stays on a char boundary.
         if replacement.is_empty() {
             let mut end = finding.span.end;
             if out[end..].starts_with(' ') {
-                end += 1;
+                end += ' '.len_utf8();
             }
             out.replace_range(finding.span.start..end, "");
         } else {

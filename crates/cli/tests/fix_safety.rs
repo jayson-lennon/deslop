@@ -144,3 +144,18 @@ fn deletion_replacement_eats_one_following_space() {
     // Then the phrase vanishes WITHOUT leaving a double blank.
     assert_eq!(run.body(), "crucial and we ship.\n");
 }
+
+#[test]
+fn deletion_before_multibyte_char_does_not_panic() {
+    // Given a deletion hit followed by a multibyte char (no ASCII space).
+    let run = FixRun::new(
+        "deletion-cjk",
+        "crucial and it is important to note that “we” ship.\n",
+    );
+
+    // When applying --write.
+    run.run_fix(&["--write"]);
+
+    // Then the deletion lands cleanly with single blanks around “we”.
+    assert_eq!(run.body(), "crucial and “we” ship.\n");
+}

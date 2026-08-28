@@ -6,6 +6,8 @@
 
 use std::collections::HashMap;
 
+use unicode_segmentation::UnicodeSegmentation;
+
 use super::regions::{RegionMap, Scope};
 
 /// A hit awaiting finding assembly.
@@ -34,10 +36,10 @@ impl VocabIndex {
         let mut idx = VocabIndex::default();
         for (term, slug) in pairs {
             let lowered = term.to_lowercase();
-            let mut words = lowered.split(' ');
+            let mut words = lowered.split_whitespace();
             let head = words.next().unwrap_or_default().to_string();
             if words.next().is_some() {
-                idx.max_words = idx.max_words.max(lowered.split(' ').count());
+                idx.max_words = idx.max_words.max(lowered.split_whitespace().count());
                 idx.phrase_heads.insert(head);
             }
             idx.terms.entry(lowered).or_default().push(slug);
@@ -125,22 +127,22 @@ struct Word {
 }
 
 /// Count how many word tokens the hit's byte span actually covers.
-/// Split on non-alphanumeric boundaries, keeping spans; skip masked words.
+/// Split prose into UAX#29 word segments (byte offsets recovered by
+/// accumulation — every segment length is a boundary delta); keep only
+/// segments containing alphanumeric characters, skipping masked words.
+///
+/// Note: UAX#29 keeps apostrophe words (`don't`, `don’t`) whole, so a term
+/// matching a fragment (`don`) no longer fires inside them.
 fn tokenize_visible(src: &str, map: &RegionMap) -> Vec<Word> {
     let mut words = Vec::new();
-    let mut start: Option<usize> = None;
-    for (idx, ch) in src.char_indices() {
-        let alnum = ch.is_alphanumeric();
-        if alnum && start.is_none() {
-            start = Some(idx);
-        } else if !alnum {
-            if let Some(s) = start.take() {
-                push_word(src, map, s, idx, &mut words);
-            }
+    let mut offset = 0;
+    for segment in src.split_word_bounds() {
+        let start = offset;
+        offset += segment.len();
+        if !segment.chars().any(char::is_alphanumeric) {
+            continue; // punctuation runs, whitespace, CRLF, emoji
         }
-    }
-    if let Some(s) = start {
-        push_word(src, map, s, src.len(), &mut words);
+        push_word(src, map, start, offset, &mut words);
     }
     words
 }
@@ -270,5 +272,34 @@ mod tests {
         // Then only the plain use fires.
         assert_eq!(hits.len(), 1);
         assert!(hits[0].start > src.find("but").expect("pos"));
+    }
+
+    #[test]
+    fn apostrophe_words_are_single_tokens_so_fragment_terms_do_not_fire() {
+        // Given a term that is a fragment of an apostrophe word.
+        let index = idx(&[("don", "don")]);
+
+        // When scanning prose where the fragment only appears inside
+        // don't / don’t (UAX#29 keeps both as one token).
+        let src = "don't panic, don’t worry";
+        let map = build_regions(src);
+
+        // Then no hit fires (the old tokenizer split out [don, t]).
+        assert!(index.scan(src, &map, &always).is_empty());
+    }
+
+    #[test]
+    fn multibyte_prose_scans_without_panicking() {
+        // Given CJK prose, curly quotes, an emoji, and a plain ASCII term.
+        let index = idx(&[("delve", "delve")]);
+        let src = "汉字 “delve” 😀 — don’t";
+        let map = build_regions(src);
+
+        // When scanning.
+        let hits = index.scan(src, &map, &always);
+
+        // Then the ASCII term still fires inside the multibyte soup.
+        assert_eq!(hits.len(), 1);
+        assert_eq!(&src[hits[0].start..hits[0].end], "delve");
     }
 }

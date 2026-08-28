@@ -84,10 +84,9 @@ pub(crate) fn first_signal_span(
 
 /// First U+2014 in text, as a byte span.
 fn em_dash_first(text: &str) -> Option<(usize, usize)> {
-    let bytes = text.as_bytes();
-    (0..bytes.len().saturating_sub(2))
-        .find(|&i| bytes[i] == 0xE2 && bytes[i + 1] == 0x80 && bytes[i + 2] == 0x94)
-        .map(|i| (i, i + 3))
+    text.char_indices()
+        .find(|&(_, c)| c == '\u{2014}')
+        .map(|(i, c)| (i, i + c.len_utf8()))
 }
 
 /// First "x, y, and z" match in text.

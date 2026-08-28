@@ -143,22 +143,25 @@ fn star_allowed(pattern: &str, star: usize) -> bool {
 
 /// Static-check a pattern source. Ok(()) means safe to compile.
 ///
+/// Walks by char (not byte) so escape handling can never land mid-char;
+/// reported offsets are still byte offsets, identical to a byte walk for
+/// every ASCII position violations can occur at.
+///
 /// # Errors
 ///
 /// Returns the first violation with a byte offset for pointing diagnostics.
 pub fn check(pattern: &str) -> Result<(), PolicyViolation> {
-    let bytes = pattern.as_bytes();
-    let mut i = 0;
-    while i < bytes.len() {
-        match bytes[i] {
-            b'\\' => {
-                // Backreference forms \1..\9
-                if let Some(d @ b'1'..=b'9') = bytes.get(i + 1) {
-                    return Err(PolicyViolation::Backreference((d - b'0') as usize));
+    let mut chars = pattern.char_indices().peekable();
+    while let Some((i, c)) = chars.next() {
+        match c {
+            '\\' => {
+                // Backreference forms \1..\9 (ASCII digits only - a
+                // multibyte escaped char just gets consumed whole).
+                if let Some((_, d @ '1'..='9')) = chars.peek().copied() {
+                    return Err(PolicyViolation::Backreference(d as usize - '0' as usize));
                 }
-                i += 2;
             }
-            b'(' => {
+            '(' => {
                 if pattern[i..].starts_with("(?R)") || pattern[i..].starts_with("(?&") {
                     return Err(PolicyViolation::Recursion);
                 }
@@ -171,21 +174,19 @@ pub fn check(pattern: &str) -> Result<(), PolicyViolation> {
                 if pattern[i..].starts_with("(?<=") || pattern[i..].starts_with("(?<!") {
                     return Err(PolicyViolation::Lookbehind { byte: i });
                 }
-                i += 1;
             }
-            b'*' | b'+' => {
-                let prev_escaped = i > 0 && bytes[i - 1] == b'\\';
+            '*' | '+' => {
+                let prev_escaped = i > 0 && pattern.as_bytes()[i - 1] == b'\\';
                 if !prev_escaped && !star_allowed(pattern, i) {
-                    let v = if bytes[i] == b'*' {
+                    let v = if c == '*' {
                         PolicyViolation::UnboundedStar { byte: i }
                     } else {
                         PolicyViolation::UnboundedPlus { byte: i }
                     };
                     return Err(v);
                 }
-                i += 1;
             }
-            _ => i += 1,
+            _ => {}
         }
     }
     Ok(())
@@ -238,5 +239,14 @@ mod tests {
 
         // Then it passes (escaped, not a quantifier).
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn multibyte_pattern_escapes_do_not_panic() {
+        // Given a pattern mixing multibyte literals and an escaped multibyte char.
+        let result = check("“漢字” \\\\一*");
+
+        // Then the walk stays on char boundaries and the escaped form passes.
+        assert!(result.is_ok(), "{result:?}");
     }
 }

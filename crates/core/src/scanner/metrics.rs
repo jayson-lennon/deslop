@@ -180,6 +180,8 @@ pub(crate) fn sentences(prose: &str) -> Vec<(usize, usize)> {
             }
             // Guard: abbreviation like "e.g." - inspect only the final
             // word fragment before the dot (bounded, no allocation).
+            // The floor may land mid-char; step back to the enclosing
+            // char boundary so the slice below cannot panic.
             let mut win_start = i.saturating_sub(12).max(start);
             while win_start < i && !prose.is_char_boundary(win_start) {
                 win_start -= 1;

@@ -15,6 +15,10 @@ pub struct Normalized {
     pub text: String,
     /// norm byte offset -> original byte offset.
     pub norm_to_orig: Vec<usize>,
+    /// Normalized positions of `\n`s that came from a `\r\n` pair (sorted).
+    /// An exclusive span end landing on one of these must retract to the
+    /// original `\r`, or the translated span swallows a stray CR.
+    crlf_newlines: Vec<usize>,
     /// Original byte length (for exclusive-end translation at EOF).
     pub orig_len: usize,
 }
@@ -23,11 +27,14 @@ pub struct Normalized {
 pub fn normalize(src: &str) -> Normalized {
     let mut text = String::with_capacity(src.len());
     let mut norm_to_orig = Vec::with_capacity(src.len());
+    let mut crlf_newlines = Vec::new();
     let mut orig = 0usize;
     let bytes = src.as_bytes();
     while orig < src.len() {
+        debug_assert!(src.is_char_boundary(orig));
         match bytes[orig] {
             b'\r' if bytes.get(orig + 1) == Some(&b'\n') => {
+                crlf_newlines.push(text.len());
                 text.push('\n');
                 // The normalized \n corresponds to the ORIGINAL \n position.
                 norm_to_orig.push(orig + 1);
@@ -53,6 +60,7 @@ pub fn normalize(src: &str) -> Normalized {
     Normalized {
         text,
         norm_to_orig,
+        crlf_newlines,
         orig_len: src.len(),
     }
 }
@@ -70,6 +78,10 @@ impl Normalized {
         let orig_start = self.norm_to_orig[start.min(self.norm_to_orig.len())];
         let orig_end = if end >= self.norm_to_orig.len() {
             self.orig_len
+        } else if self.crlf_newlines.binary_search(&end).is_ok() {
+            // Exclusive end lands exactly ON a \n that came from \r\n: map to
+            // the \r instead of the \n so the CR stays outside the span.
+            self.norm_to_orig[end] - 1
         } else {
             self.norm_to_orig[end]
         };
@@ -139,6 +151,22 @@ mod tests {
         assert_eq!(n.text, src);
         for (norm_i, orig_i) in n.norm_to_orig.iter().enumerate() {
             assert_eq!(norm_i, *orig_i);
+        }
+    }
+
+    #[test]
+    fn multibyte_hits_translate_exactly_across_crlf_lines() {
+        // Given a CRLF doc whose second and third lines hold multibyte words.
+        let src = "héllo\r\nwörld\r\n漢字";
+        let n = normalize(src);
+
+        // When locating each multibyte word in normalized text.
+        for word in ["wörld", "漢字"] {
+            let start = n.text.find(word).expect("present");
+            let (o0, o1) = n.span_to_orig(start, start + word.len());
+
+            // Then the original bytes at the translated span are the word.
+            assert_eq!(&src[o0..o1], word);
         }
     }
 }
