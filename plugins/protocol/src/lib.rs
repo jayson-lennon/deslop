@@ -79,7 +79,7 @@ impl Default for PluginInput {
     }
 }
 
-/// One finished finding produced by a plugin.
+/// One finding produced by a plugin.
 ///
 /// The plugin owns its entire pipeline (metrics, thresholds, wording): the
 /// host performs no template rendering. `message` is final; metric numbers
@@ -97,6 +97,23 @@ pub struct PluginFinding {
     pub message: String,
     /// Optional advice line, rendered like native pack advice.
     pub advice: Option<String>,
+}
+
+/// Documentation for one configurable param of a plugin.
+///
+/// Produced by the guest's *optional* `plugin_params_schema` export; the
+/// host reads it for `deslop plugin install` hints and `plugin inspect`.
+/// `default` holds the param's serde default — the SDK computes it from the
+/// `Params` type itself, so it cannot drift from what `scan` actually sees.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ParamOption {
+    /// Param name as it appears in `[plugin.<id>]`.
+    pub name: String,
+    /// The value used when the config omits the param.
+    pub default: serde_json::Value,
+    /// One-line human description (optional).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 #[cfg(test)]

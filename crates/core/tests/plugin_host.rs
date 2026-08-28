@@ -62,6 +62,9 @@ fn happy_fixture_returns_its_single_finding() {
     assert_eq!(manifest.tier, 3);
     assert_eq!(manifest.category, "test");
     assert_eq!(findings.len(), 1);
+    // And a module without the optional params schema reports no params
+    // (old plugins keep loading against the newer host).
+    assert!(plugin.params_schema().is_empty());
     assert_eq!(findings[0].slug, "demo");
     assert_eq!(findings[0].span, (0, 4));
     assert_eq!(findings[0].message, "demo hit");

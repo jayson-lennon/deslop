@@ -20,10 +20,10 @@
 //! threshold_gt = 1.0   # findings per 1000 words; omit for the default
 //! ```
 
-use deslop_plugin_sdk::{Doc, Finding, Plugin, export};
+use deslop_plugin_sdk::{Doc, Finding, ParamDoc, Plugin, export};
 
 /// `[plugin.<id>]` table. All fields default, so the section is optional.
-#[derive(serde::Deserialize, Default)]
+#[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct Params {
     /// Report when the rate exceeds this many exclamations per 1000 words.
     #[serde(default = "default_threshold")]
@@ -45,6 +45,14 @@ impl Plugin for Exclaim {
     const TIER: u8 = 3;
     const CATEGORY: &'static str = "emphasis";
     type Params = Params;
+
+    /// Shown as commented defaults by `deslop plugin install`; each default
+    /// is verified against `Params` when the module is built.
+    const PARAM_DOCS: &[ParamDoc] = &[ParamDoc {
+        name: "threshold_gt",
+        default: "1.0",
+        description: "exclamations per 1000 words before findings start",
+    }];
 
     fn scan(doc: &Doc, params: &Params) -> Vec<Finding> {
         let bangs = doc.text.bytes().filter(|&b| b == b'!').count();

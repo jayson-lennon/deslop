@@ -23,7 +23,9 @@
 
 use std::sync::Mutex;
 
-use deslop_plugin_protocol::{PROTOCOL_ABI, PluginFinding, PluginInput, PluginManifest};
+use deslop_plugin_protocol::{
+    PROTOCOL_ABI, ParamOption, PluginFinding, PluginInput, PluginManifest,
+};
 
 use super::{
     MAX_FINDINGS, MAX_MEMORY_BYTES, PluginError, PluginRuntime, fuel_for, validate_finding_slug,
@@ -39,6 +41,9 @@ pub struct WasmiPlugin {
     fuel_override: PluginRuntime,
     /// Identity read from the module's own `plugin_meta` export.
     manifest: PluginManifest,
+    /// Param docs read from the module's *optional* `plugin_params_schema`
+    /// export; empty when the plugin documents none.
+    params_schema: Vec<ParamOption>,
     /// Everything wasmi needs `&mut` access to, guarded for `&self` scans.
     ctx: Mutex<GuestCtx>,
 }
@@ -69,6 +74,12 @@ impl WasmiPlugin {
     /// Fuel override applied on top of the size-scaled default.
     pub fn set_fuel_override(&mut self, fuel: Option<u64>) {
         self.fuel_override.fuel = fuel;
+    }
+
+    /// Documented params and their defaults, from the module's own
+    /// `plugin_params_schema` export. Empty when the plugin documents none.
+    pub fn params_schema(&self) -> &[ParamOption] {
+        &self.params_schema
     }
 
     /// Instantiate a plugin from compiled wasm bytes.
@@ -127,10 +138,28 @@ impl WasmiPlugin {
             .map_err(|e| load(format!("plugin_meta is not a valid manifest: {e}")))?;
         validate_manifest(&manifest).map_err(load)?;
 
+        // Optional params schema: absent on plugins built before v1 docs
+        // (no export) or with an oversized payload (export returns 0). Both
+        // mean "no documented params", never an error.
+        let params_schema = match instance.get_typed_func::<(), i32>(&store, "plugin_params_schema")
+        {
+            Ok(schema_fn) => match schema_fn.call(&mut store, ()) {
+                Ok(0) => Vec::new(),
+                Ok(ptr) => {
+                    let bytes = read_length_prefixed(&store, &memory, ptr)?;
+                    serde_json::from_slice(bytes)
+                        .map_err(|e| load(format!("plugin_params_schema is invalid: {e}")))?
+                }
+                Err(error) => return Err(map_call_error(id_hint, "plugin_params_schema")(error)),
+            },
+            Err(_) => Vec::new(),
+        };
+
         Ok(WasmiPlugin {
             _engine: engine,
             fuel_override: PluginRuntime::default(),
             manifest,
+            params_schema,
             ctx: Mutex::new(GuestCtx {
                 store,
                 memory,

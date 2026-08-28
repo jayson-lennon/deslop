@@ -371,6 +371,20 @@ mask bytes appear as `\0`; `doc.heading_ranges`, `doc.bold_spans` and
 findings whose spans live in those same coordinates. The host remaps them
 to the original document and validates everything.
 
+To document your params, add a `PARAM_DOCS` const to the impl. `deslop
+plugin install` renders it as commented defaults in the printed config
+block, and the SDK verifies each `default` literal against your `Params`
+type's serde defaults at build time — a mismatch aborts the module, so the
+docs can never drift from the code:
+
+```rust,ignore
+const PARAM_DOCS: &[ParamDoc] = &[ParamDoc {
+    name: "threshold_gt",
+    default: "1.0",
+    description: "exclamations per 1000 words before findings start",
+}];
+```
+
 ### Build and install
 
 ```console

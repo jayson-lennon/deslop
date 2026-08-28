@@ -7,9 +7,9 @@
 //!
 //! ```
 //! use deslop_plugin_sdk::{export, Doc, Finding, Plugin};
-//! use serde::Deserialize;
+//! use serde::{Deserialize, Serialize};
 //!
-//! #[derive(Deserialize, Default)]
+//! #[derive(Deserialize, Serialize, Default)]
 //! struct Params {}
 //!
 //! struct MyPlugin;
@@ -54,7 +54,23 @@
 //! are dropped with a warning. Panics are plugin bugs, not a control-flow
 //! mechanism.
 
-use deslop_plugin_protocol::{PROTOCOL_ABI, PluginFinding, PluginInput};
+use deslop_plugin_protocol::{PROTOCOL_ABI, ParamOption, PluginFinding, PluginInput};
+
+/// Author-facing doc for one configurable param (const-constructible).
+///
+/// `default` is the param's default value written as a JSON literal —
+/// `1.0`, `true`, `"verbose"` — so `PARAM_DOCS` can live in a `const`. The
+/// `export!` macro verifies each literal against the `Params` type's real
+/// serde default and converts to the wire [`ParamOption`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParamDoc {
+    /// Param name as it appears in `[plugin.<id>]`.
+    pub name: &'static str,
+    /// Default value as a JSON literal.
+    pub default: &'static str,
+    /// One-line human description (empty string = none).
+    pub description: &'static str,
+}
 
 /// The document envelope a plugin analyzes. Coordinates are byte offsets
 /// into `text`; masked (use-mention suppressed) bytes appear as `'\0'`.
@@ -121,10 +137,80 @@ pub trait Plugin {
 
     /// The plugin's configuration, deserialized from `[plugin.<id>]`.
     /// Use `#[serde(default)]` fields so a missing table still works.
-    type Params: serde::de::DeserializeOwned + Default;
+    /// Must also implement `Serialize` (used to surface param defaults).
+    type Params: serde::de::DeserializeOwned + serde::Serialize + Default;
+
+    /// Documentation for the params, shown by `deslop plugin install` as
+    /// commented defaults. Optional — the default is empty, and plugins
+    /// without configurable params need not mention this.
+    ///
+    /// ```ignore
+    /// const PARAM_DOCS: &[ParamDoc] = &[ParamDoc {
+    ///     name: "threshold_gt",
+    ///     default: "1.0",
+    ///     description: "exclamations per 1000 words before findings start",
+    /// }];
+    /// ```
+    ///
+    /// Each `default` literal is verified against the `Params` type's real
+    /// serde default when the module is built (`export!` calls
+    /// [`param_options`]); a mismatch aborts the module, which fails CI for
+    /// builtins and load for third-party plugins.
+    const PARAM_DOCS: &[ParamDoc] = &[];
 
     /// Analyze one document. Called once per scanned document.
     fn scan(doc: &Doc, params: &Self::Params) -> Vec<Finding>;
+}
+
+/// Build the wire param schema from [`Plugin::PARAM_DOCS`], guaranteeing
+/// zero drift from the `Params` type.
+///
+/// Deserializes `Params` from an empty JSON object — serde then applies
+/// every field's `#[serde(default)]`, i.e. exactly what a config omitting
+/// the params would produce — and serializes it back out. Each doc's
+/// `default` literal is parsed and compared against that result: an unknown
+/// name, or a literal that differs from the type's real default, aborts the
+/// module (the host surfaces the failure at load; a shipped builtin fails
+/// in CI the moment it is embedded).
+///
+/// Called by the `export!` macro; plugin authors never call this directly.
+pub fn param_options<T: Plugin>(docs: &[ParamDoc]) -> Vec<ParamOption> {
+    // The Params-as-{} round trip is the source of truth for defaults.
+    let realized: serde_json::Value = match serde_json::from_str::<T::Params>("{}") {
+        Ok(params) => serde_json::to_value(&params).unwrap_or(serde_json::Value::Null),
+        Err(_) => serde_json::Value::Null,
+    };
+    docs.iter()
+        .map(|doc| {
+            let actual = realized.get(doc.name).unwrap_or_else(|| {
+                panic!(
+                    "PARAM_DOCS names param {:?}, which is not a field of {} (or has no serde \
+                     default); PARAM_DOCS must mirror the Params type",
+                    doc.name,
+                    core::any::type_name::<T::Params>()
+                )
+            });
+            let claimed: serde_json::Value =
+                serde_json::from_str(doc.default).unwrap_or_else(|e| {
+                    panic!(
+                        "PARAM_DOCS default for {:?} is not valid JSON ({:?}): {e}",
+                        doc.name, doc.default
+                    )
+                });
+            if actual != &claimed {
+                panic!(
+                    "PARAM_DOCS says {} defaults to {claimed}, but the Params type defaults to \
+                     {actual}; fix PARAM_DOCS or the serde default so they agree",
+                    doc.name
+                );
+            }
+            ParamOption {
+                name: doc.name.to_owned(),
+                default: claimed,
+                description: (!doc.description.is_empty()).then(|| doc.description.to_owned()),
+            }
+        })
+        .collect()
 }
 
 /// First whole-word occurrence of `term_lower` (already lower-case) in
@@ -181,15 +267,18 @@ pub unsafe fn memory_slice_mut<'a>(base: u32, size: u32) -> &'a mut [u8] {
     unsafe { core::slice::from_raw_parts_mut(base as *mut u8, size as usize) }
 }
 
-/// Expose a [`Plugin`] as the three wasm exports the deslop host speaks.
+/// Expose a [`Plugin`] as the wasm exports the deslop host speaks.
 ///
 /// Generates a bump allocator (`alloc`, never freed — the host caps total
-/// memory), `plugin_meta` (length-prefixed JSON manifest), and `scan`
-/// (deserialize input + params, call [`Plugin::scan`], serialize findings).
+/// memory), `plugin_meta` (length-prefixed JSON manifest), `scan`
+/// (deserialize input + params, call [`Plugin::scan`], serialize findings),
+/// and — when the plugin documents params via [`Plugin::PARAM_DOCS`] —
+/// `plugin_params_schema` (length-prefixed JSON `ParamOption` list, from
+/// which the host renders config hints with real defaults).
 ///
-/// Layout constants: the manifest lives at byte 64 (well past the length
-/// prefix region and below any allocated buffer); the bump allocator starts
-/// at byte 1024.
+/// Layout constants: the manifest lives at byte 64 and the params schema at
+/// byte 640 (well past the length-prefix regions and below any allocated
+/// buffer); the bump allocator starts at byte 1024.
 #[macro_export]
 macro_rules! export {
     ($ty:ty) => {
@@ -202,6 +291,10 @@ macro_rules! export {
             const META_PTR: u32 = 64;
             const META_MAX: u32 = 512;
 
+            /// Where the length-prefixed params schema lives (fixed slot).
+            const SCHEMA_PTR: u32 = 640;
+            const SCHEMA_MAX: u32 = 384;
+
             /// Serialize the manifest JSON (host ABI: length-prefixed).
             fn manifest_bytes() -> std::string::String {
                 format!(
@@ -213,6 +306,12 @@ macro_rules! export {
                 )
             }
 
+            /// The documented params, defaults verified against `Params`.
+            fn schema_bytes() -> std::vec::Vec<u8> {
+                let options = $crate::param_options::<$ty>(<$ty as $crate::Plugin>::PARAM_DOCS);
+                serde_json::to_vec(&options).unwrap_or_else(|_| std::vec::Vec::new())
+            }
+
             #[unsafe(no_mangle)]
             pub unsafe extern "C" fn alloc(len: i32) -> i32 {
                 let top: u32 = unsafe { core::ptr::read_volatile(&raw const HEAP_TOP) };
@@ -222,16 +321,28 @@ macro_rules! export {
                 top as i32
             }
 
+            /// Write a length-prefixed payload into a fixed memory slot.
+            ///
+            /// Returns the slot pointer, or 0 when the payload does not fit
+            /// (the host reads 0 as "no such metadata").
+            fn write_prefixed(payload: &[u8], ptr: u32, max: u32) -> i32 {
+                if 4 + payload.len() as u32 > max {
+                    return 0;
+                }
+                let memory = unsafe { $crate::memory_slice_mut(ptr, max) };
+                memory[0..4].copy_from_slice(&(payload.len() as u32).to_le_bytes());
+                memory[4..4 + payload.len()].copy_from_slice(payload);
+                ptr as i32
+            }
+
             #[unsafe(no_mangle)]
             pub extern "C" fn plugin_meta() -> i32 {
-                // Serialize into the fixed slot as a 4-byte LE length prefix
-                // followed by the manifest JSON.
-                let manifest = manifest_bytes();
-                let n = manifest.len() as u32;
-                let memory = unsafe { $crate::memory_slice_mut(META_PTR, META_MAX) };
-                memory[0..4].copy_from_slice(&n.to_le_bytes());
-                memory[4..4 + manifest.len()].copy_from_slice(manifest.as_bytes());
-                META_PTR as i32
+                write_prefixed(manifest_bytes().as_bytes(), META_PTR, META_MAX)
+            }
+
+            #[unsafe(no_mangle)]
+            pub extern "C" fn plugin_params_schema() -> i32 {
+                write_prefixed(&schema_bytes(), SCHEMA_PTR, SCHEMA_MAX)
             }
 
             #[unsafe(no_mangle)]
@@ -268,4 +379,118 @@ macro_rules! export {
             }
         };
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A params type with a nontrivial serde default.
+    #[derive(serde::Deserialize, serde::Serialize, Default)]
+    struct TestParams {
+        #[serde(default = "default_rate")]
+        rate: f64,
+        #[serde(default)]
+        verbose: bool,
+    }
+
+    fn default_rate() -> f64 {
+        2.5
+    }
+
+    struct TestPlugin;
+
+    impl Plugin for TestPlugin {
+        const ID: &'static str = "TEST";
+        const TIER: u8 = 3;
+        const CATEGORY: &'static str = "test";
+        type Params = TestParams;
+
+        fn scan(_doc: &Doc, _params: &TestParams) -> Vec<Finding> {
+            Vec::new()
+        }
+    }
+
+    #[test]
+    fn param_options_passes_through_docs_matching_real_defaults() {
+        // Given PARAM_DOCS whose literals match the Params serde defaults.
+        let docs = vec![
+            ParamDoc {
+                name: "rate",
+                default: "2.5",
+                description: "the rate",
+            },
+            ParamDoc {
+                name: "verbose",
+                default: "false",
+                description: "",
+            },
+        ];
+
+        // When building the wire schema.
+        let options = param_options::<TestPlugin>(&docs);
+
+        // Then every doc passes through with its description intact and an
+        // empty description dropped.
+        assert_eq!(options.len(), 2);
+        assert_eq!(options[0].name, "rate");
+        assert_eq!(options[0].default, serde_json::json!(2.5));
+        assert_eq!(options[0].description.as_deref(), Some("the rate"));
+        assert_eq!(options[1].name, "verbose");
+        assert_eq!(options[1].default, serde_json::json!(false));
+        assert_eq!(options[1].description, None);
+    }
+
+    #[test]
+    #[should_panic(expected = "defaults to 3, but the Params type defaults to 2.5")]
+    fn param_options_rejects_a_drifted_default_literal() {
+        // Given a doc claiming a default the Params type does not have.
+        let docs = vec![ParamDoc {
+            name: "rate",
+            default: "3",
+            description: "",
+        }];
+
+        // When building the wire schema.
+        // Then it aborts naming the disagreement.
+        param_options::<TestPlugin>(&docs);
+    }
+
+    #[test]
+    #[should_panic(expected = "is not a field of")]
+    fn param_options_rejects_an_unknown_param_name() {
+        // Given a doc naming a param that does not exist.
+        let docs = vec![ParamDoc {
+            name: "nope",
+            default: "1",
+            description: "",
+        }];
+
+        // When building the wire schema.
+        // Then it aborts.
+        param_options::<TestPlugin>(&docs);
+    }
+
+    #[test]
+    #[should_panic(expected = "is not valid JSON")]
+    fn param_options_rejects_an_invalid_default_literal() {
+        // Given a doc whose default literal is not JSON.
+        let docs = vec![ParamDoc {
+            name: "rate",
+            default: "about 2",
+            description: "",
+        }];
+
+        // When building the wire schema.
+        // Then it aborts.
+        param_options::<TestPlugin>(&docs);
+    }
+
+    #[test]
+    fn param_options_with_no_docs_is_empty() {
+        // Given no PARAM_DOCS.
+        // When building the wire schema.
+        // Then it is empty (plugins without params need nothing).
+        assert!(param_options::<TestPlugin>(&[]).is_empty());
+    }
 }

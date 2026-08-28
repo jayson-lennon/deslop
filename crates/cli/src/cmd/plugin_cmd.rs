@@ -5,7 +5,7 @@
 //! a project config's bare `wasm = "<name>.wasm"` resolves to it. Installing
 //! is inert until a config declares the plugin — there is no auto-discovery.
 
-use deslop_plugin_protocol::PluginManifest;
+use deslop_plugin_protocol::{ParamOption, PluginManifest};
 
 use crate::ExitCode;
 
@@ -14,11 +14,11 @@ fn plugin_dir(data_dir: &camino::Utf8Path) -> camino::Utf8PathBuf {
     data_dir.join("deslop").join("plugins")
 }
 
-/// Validate the embedded module and return its manifest.
+/// Validate the embedded module and return its manifest + param schema.
 ///
 /// A builtin that fails to instantiate is a build/commit bug; the error goes
 /// to stderr with the id hint (install name) for context.
-fn validated_manifest(name: &str) -> Result<PluginManifest, ExitCode> {
+fn validated_builtin(name: &str) -> Result<(PluginManifest, Vec<ParamOption>), ExitCode> {
     let Some(builtin) = crate::builtin_registry::find(name) else {
         eprintln!("deslop: unknown builtin plugin {name:?}");
         eprintln!("try one of:");
@@ -30,7 +30,7 @@ fn validated_manifest(name: &str) -> Result<PluginManifest, ExitCode> {
     match deslop_core::plugin::wasmi_host::instantiate_bytes(name, builtin.bytes) {
         Ok(plugin) => {
             use deslop_core::plugin::LintPlugin as _;
-            Ok(plugin.meta().clone())
+            Ok((plugin.meta().clone(), plugin.params_schema().to_vec()))
         }
         Err(error) => {
             eprintln!("deslop: builtin plugin {name:?} is invalid: {error}");
@@ -68,8 +68,8 @@ pub fn install_cmd(name: &str) -> i32 {
         return ExitCode::LoadFailure as i32;
     };
 
-    let manifest = match validated_manifest(name) {
-        Ok(manifest) => manifest,
+    let (manifest, schema) = match validated_builtin(name) {
+        Ok(parts) => parts,
         Err(code) => return code as i32,
     };
     let builtin = crate::builtin_registry::find(name).expect("just validated");
@@ -85,7 +85,8 @@ pub fn install_cmd(name: &str) -> i32 {
     println!("installed {name} -> {target}");
     println!("enable it in a project's .deslop.toml with:");
     println!();
-    print_config_snippet(&[&format_config_entry(builtin.name, &manifest)]);
+    let entry = format_config_entry(builtin.name, &manifest, &schema);
+    print_config_snippet(&[&entry]);
     ExitCode::Clean as i32
 }
 
@@ -104,13 +105,10 @@ pub fn install_all_cmd() -> i32 {
     // install-all should not leave a half-broken set silently installed.
     let mut entries: Vec<(String, String, &deslop_core::plugin::builtin::Builtin)> = Vec::new();
     for builtin in crate::builtin_registry::all() {
-        match validated_manifest(builtin.name) {
-            Ok(manifest) => {
-                entries.push((
-                    builtin.name.to_owned(),
-                    format_config_entry(builtin.name, &manifest),
-                    builtin,
-                ));
+        match validated_builtin(builtin.name) {
+            Ok((manifest, schema)) => {
+                let entry = format_config_entry(builtin.name, &manifest, &schema);
+                entries.push((builtin.name.to_owned(), entry, builtin));
             }
             Err(code) => return code as i32,
         }
@@ -146,10 +144,32 @@ fn print_config_snippet(entries: &[&str]) {
 
 /// One `[plugin.<id>]` table for a builtin: the config key comes from the
 /// module's own manifest id (lower-cased; matching is case-insensitive),
-/// the `wasm` value is the bare install name.
-fn format_config_entry(name: &str, manifest: &PluginManifest) -> String {
+/// the `wasm` value is the bare install name, and documented params appear
+/// as commented defaults — documentation, not pinned configuration (pinning
+/// today's defaults would silently fight future plugin versions).
+fn format_config_entry(name: &str, manifest: &PluginManifest, schema: &[ParamOption]) -> String {
     let key = manifest.id.to_lowercase();
-    format!("[plugin.{key}]\nwasm = \"{name}.wasm\"")
+    let mut out = format!("[plugin.{key}]\nwasm = \"{name}.wasm\"");
+    for option in schema {
+        out.push_str(&format!(
+            "\n# {} = {}",
+            option.name,
+            to_toml_literal(&option.default)
+        ));
+        if let Some(description) = &option.description {
+            out.push_str(&format!("   # {description}"));
+        }
+    }
+    out
+}
+
+/// Render a JSON value as the TOML literal for a config comment. Both are
+/// JSON-ish; only strings need quoting here.
+fn to_toml_literal(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::String(s) => format!("\"{s}\""),
+        other => other.to_string(),
+    }
 }
 
 /// Resolve the platform data dir, reporting to stderr when unavailable.
@@ -242,34 +262,47 @@ mod tests {
     }
 
     #[test]
-    fn validated_manifest_rejects_unknown_names() {
+    fn validated_builtin_rejects_unknown_names() {
         // Given a name that is not in the builtin registry.
         // When validating.
         // Then it fails with the load-failure code.
         assert_eq!(
-            validated_manifest("not-a-plugin"),
+            validated_builtin("not-a-plugin"),
             Err(ExitCode::LoadFailure)
         );
     }
 
     #[test]
-    fn validated_manifest_reads_the_real_builtin() {
+    fn validated_builtin_reads_manifest_and_schema_from_the_real_builtin() {
         // Given the shipped example plugin.
         // When validating.
-        // Then its manifest id comes back from the module itself.
-        let manifest = validated_manifest("example-exclaim").expect("valid builtin");
+        // Then its manifest id AND param docs come from the module itself.
+        let (manifest, schema) = validated_builtin("example-exclaim").expect("valid builtin");
         assert_eq!(manifest.id, "EXCLAIM");
+        assert_eq!(schema.len(), 1);
+        assert_eq!(schema[0].name, "threshold_gt");
+        assert_eq!(schema[0].default, serde_json::json!(1.0));
+        assert_eq!(
+            schema[0].description.as_deref(),
+            Some("exclamations per 1000 words before findings start")
+        );
     }
 
     #[test]
-    fn format_config_entry_uses_the_manifest_id_lowercased() {
-        // Given the example plugin's manifest id EXCLAIM.
-        let manifest = validated_manifest("example-exclaim").expect("valid builtin");
+    fn format_config_entry_renders_commented_defaults() {
+        // Given the example plugin's validation output.
+        let (manifest, schema) = validated_builtin("example-exclaim").expect("valid builtin");
 
         // When formatting its config entry.
-        // Then the key is the lower-cased manifest id and wasm the bare name.
-        let entry = format_config_entry("example-exclaim", &manifest);
-        assert_eq!(entry, "[plugin.exclaim]\nwasm = \"example-exclaim.wasm\"");
+        // Then the key is the lower-cased manifest id, and the documented
+        // default appears as a commented line (documentation, not config).
+        let entry = format_config_entry("example-exclaim", &manifest, &schema);
+        let expected = concat!(
+            "[plugin.exclaim]\n",
+            "wasm = \"example-exclaim.wasm\"\n",
+            "# threshold_gt = 1.0   # exclamations per 1000 words before findings start",
+        );
+        assert_eq!(entry, expected);
     }
 
     #[test]
@@ -282,9 +315,9 @@ mod tests {
             // When writing every builtin (the install-all write loop).
             let mut snippets: Vec<String> = Vec::new();
             for builtin in all {
-                let manifest = validated_manifest(builtin.name).expect("valid builtin");
+                let (manifest, schema) = validated_builtin(builtin.name).expect("valid builtin");
                 write_module(builtin.name, builtin.bytes, dir).expect("write");
-                snippets.push(format_config_entry(builtin.name, &manifest));
+                snippets.push(format_config_entry(builtin.name, &manifest, &schema));
             }
 
             // Then every module is on disk.
