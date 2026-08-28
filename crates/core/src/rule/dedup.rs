@@ -1,6 +1,6 @@
 //! Load-time compile stage: deduplicate the parsed rule set.
 //!
-//! Vocab and literal-ban terms get ONE owner each — the highest-severity
+//! Vocab and literal-ban terms get ONE owner each - the highest-severity
 //! claim wins, config order breaks same-tier ties (the first claim seen in
 //! group/entry order keeps the term; only a strictly lower tier number
 //! (higher severity) steals it).
@@ -122,14 +122,14 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
                 if spec.threshold_gt < prev_threshold {
                     // Strictest wins: this group supersedes the previous owner.
                     warnings.push(format!(
-                        "dedup: metric conflict on {}/{} — {}/{} (threshold {}) supersedes {}/{} (threshold {})",
+                        "dedup: metric conflict on {}/{} - {}/{} (threshold {}) supersedes {}/{} (threshold {})",
                         key.0, key.1, group.id_base, key.0, spec.threshold_gt, prev_gid, key.0, prev_threshold
                     ));
                     metric_owners.insert(key, (gi, spec.threshold_gt, group.id_base.clone()));
                     remove_groups.push(prev_gi);
                 } else {
                     warnings.push(format!(
-                        "dedup: metric conflict on {}/{} — {}/{} (threshold {}) dropped; {}/{} keeps the stricter {}",
+                        "dedup: metric conflict on {}/{} - {}/{} (threshold {}) dropped; {}/{} keeps the stricter {}",
                         key.0, key.1, group.id_base, key.0, spec.threshold_gt, prev_gid, key.0, prev_threshold
                     ));
                     remove_groups.push(gi);
@@ -184,7 +184,7 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
     dropped.sort_by(|a, b| a.loser_id.cmp(&b.loser_id).then(a.term.cmp(&b.term)));
     for d in &dropped {
         warnings.push(format!(
-            "dedup: `{}` owned by {} — dropped duplicate claim from {}",
+            "dedup: `{}` owned by {} - dropped duplicate claim from {}",
             d.term, d.winner_id, d.loser_id
         ));
     }

@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 /// Fully resolved deslop configuration.
 ///
 /// `BTreeMap` everywhere so iteration order is deterministic regardless of
-/// insertion order — lint output must be byte-stable run to run.
+/// insertion order - lint output must be byte-stable run to run.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
     pub packs: Packs,

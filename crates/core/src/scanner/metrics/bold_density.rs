@@ -1,4 +1,4 @@
-//! `bold_density` — strong-emphasis spans per 100 words.
+//! `bold_density` - strong-emphasis spans per 100 words.
 //!
 //! Spans come from the region map (`**...**` runs over the masked text);
 //! this module only applies the formula.

@@ -1,4 +1,4 @@
-//! `term_cluster_max` — max DISTINCT watch terms inside one window.
+//! `term_cluster_max` - max DISTINCT watch terms inside one window.
 //!
 //! Identity is the LEMMA (`term_lemmas` parallel array), so `delve` and
 //! `delves` never count as two. Windows: blank-line paragraphs, sentence

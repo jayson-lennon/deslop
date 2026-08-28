@@ -60,7 +60,7 @@ impl Span {
     /// The exact source substring this span covers.
     ///
     /// Returns `None` if the span does not lie on char boundaries or exceeds
-    /// the input length — callers surface that as an internal error rather
+    /// the input length - callers surface that as an internal error rather
     /// than panicking on multibyte documents.
     pub fn slice(self, src: &str) -> Option<&str> {
         src.get(self.start..self.end)

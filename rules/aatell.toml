@@ -1,4 +1,4 @@
-# deslop pack: aatell — github.com/MikkoParkkola/anti-ai-tell (measured frequency data)
+# deslop pack: aatell - github.com/MikkoParkkola/anti-ai-tell (measured frequency data)
 
 [[group]]
 id-base = 'AATELL'
@@ -9,7 +9,7 @@ enabled = true
 
 [[group.entries]]
 slug = 'leverage'
-advice = "Replace \"{match}\" with its plain verb (\"use\") — nominalized business-speak is a top frequency signal in Kobak 2025"
+advice = "Replace \"{match}\" with its plain verb (\"use\") - nominalized business-speak is a top frequency signal in Kobak 2025"
 terms = ['leverage']
 replacement = 'use'
 stems = true

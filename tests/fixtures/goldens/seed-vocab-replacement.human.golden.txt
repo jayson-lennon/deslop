@@ -5,5 +5,5 @@ warning[AATELL#leverage]:
   │                  ^^^^^^^^
   │                  │
   │                  AI-tell vocabulary
-  │                  help: Replace "leverage" with its plain verb ("use") — nominalized business-speak is a top frequency signal in Kobak 2025
+  │                  help: Replace "leverage" with its plain verb ("use") - nominalized business-speak is a top frequency signal in Kobak 2025
 

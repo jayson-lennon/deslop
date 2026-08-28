@@ -46,7 +46,7 @@ pub fn diagnostic(f: &deslop_core::finding::Finding, file_id: usize) -> Diagnost
     let notes = f
         .url
         .as_ref()
-        .map(|(text, href)| vec![format!("see: {text} — {href}")])
+        .map(|(text, href)| vec![format!("see: {text} - {href}")])
         .unwrap_or_default();
 
     Diagnostic {

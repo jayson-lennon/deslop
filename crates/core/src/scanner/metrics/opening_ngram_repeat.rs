@@ -1,4 +1,4 @@
-//! `opening_ngram_repeat` — max run of sentences sharing their opening
+//! `opening_ngram_repeat` - max run of sentences sharing their opening
 //! two-word bigram.
 //!
 //! Anaphora-ish openers ("We ship X. We ship Y. We ship Z.") are a metric

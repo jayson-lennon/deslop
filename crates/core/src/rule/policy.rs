@@ -34,13 +34,13 @@ impl std::fmt::Display for PolicyViolation {
             PolicyViolation::Lookahead { byte } => {
                 write!(
                     f,
-                    "lookahead `(?=`/`(?!` at byte {byte} is not supported; the engine is linear-time `regex` — widen the match and use a named capture instead"
+                    "lookahead `(?=`/`(?!` at byte {byte} is not supported; the engine is linear-time `regex` - widen the match and use a named capture instead"
                 )
             }
             PolicyViolation::Lookbehind { byte } => {
                 write!(
                     f,
-                    "lookbehind `(?<=`/`(?<!` at byte {byte} is not supported; the engine is linear-time `regex` — match the context and capture the tail instead"
+                    "lookbehind `(?<=`/`(?<!` at byte {byte} is not supported; the engine is linear-time `regex` - match the context and capture the tail instead"
                 )
             }
             PolicyViolation::AtomicGroup { byte } => {
@@ -95,7 +95,7 @@ fn safe_class_at(pattern: &str, start: usize) -> bool {
 /// Is `*`/`+` at `star` acceptable given what it quantifies?
 ///
 /// Policy: allowed when the quantified atom is a character class (safe or
-/// not, classes are position-bounded) — naked `.*` / `.+` on any-char are NOT,
+/// not, classes are position-bounded) - naked `.*` / `.+` on any-char are NOT,
 /// nor unbounded repeat of arbitrary groups unless wrapped in lookaround or
 /// followed by explicit bounds ({m,n} forms never reach here).
 fn star_allowed(pattern: &str, star: usize) -> bool {

@@ -1,4 +1,4 @@
-//! `em_dash_rate` — em dashes per 1000 words.
+//! `em_dash_rate` - em dashes per 1000 words.
 //!
 //! Spaced and attached dashes count identically; the floor (250 words)
 //! lives in [`crate::scanner::metrics::DocStats::get`], not here.

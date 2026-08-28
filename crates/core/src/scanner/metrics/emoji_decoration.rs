@@ -1,4 +1,4 @@
-//! `emoji_decoration_count` — decorative emoji in headings and bullet leads.
+//! `emoji_decoration_count` - decorative emoji in headings and bullet leads.
 //!
 //! Counting is restricted to heading bodies and list items because emoji in
 //! running prose is legitimate voice; emoji as UI decoration clusters where

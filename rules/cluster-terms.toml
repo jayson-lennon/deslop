@@ -1,4 +1,4 @@
-# deslop pack: cluster-terms — this project (single-word watch list; lints ONLY via the cluster metric)
+# deslop pack: cluster-terms - this project (single-word watch list; lints ONLY via the cluster metric)
 
 [[group]]
 id-base = 'CLUSTER'

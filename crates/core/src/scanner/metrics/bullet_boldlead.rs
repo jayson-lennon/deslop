@@ -1,4 +1,4 @@
-//! `bullet_boldlead_fraction` — bullets that OPEN with a bold span.
+//! `bullet_boldlead_fraction` - bullets that OPEN with a bold span.
 //!
 //! AI lists love "**Bold claim:** supporting words"; human lists rarely
 //! start every bullet with emphasis. A lead counts when a bold span starts

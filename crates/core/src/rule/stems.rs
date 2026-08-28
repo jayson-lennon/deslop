@@ -2,7 +2,7 @@
 //!
 //! NOT a lemmatizer: a deterministic suffixer with a min-length guard. Junk
 //! forms are harmless dead weight (lookups go through the word index), but
-//! missing forms would be silent misses — so we over-generate and dedupe.
+//! missing forms would be silent misses - so we over-generate and dedupe.
 
 /// Expand `term` into its plausible surface forms (always includes term).
 pub fn expand(term: &str) -> Vec<String> {

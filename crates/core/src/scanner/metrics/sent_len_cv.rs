@@ -1,4 +1,4 @@
-//! `sent_len_cv` — coefficient of variation of sentence word counts.
+//! `sent_len_cv` - coefficient of variation of sentence word counts.
 //!
 //! Monotone rhythm (every sentence ~15 words) is an AI tell; human prose
 //! varies. CV = stddev / mean over the document's sentences. The floor

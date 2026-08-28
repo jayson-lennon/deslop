@@ -74,7 +74,7 @@ impl Default for UrlToml {
 
 /// Mandatory self-tests embedded in every rule group.
 ///
-/// Note: the loader rejects an empty `must_match` — a rule that matches
+/// Note: the loader rejects an empty `must_match` - a rule that matches
 /// nothing is not a rule.
 #[derive(Debug, Clone, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -1,4 +1,4 @@
-//! `heading_titlecase_fraction` — share of headings in Title Case.
+//! `heading_titlecase_fraction` - share of headings in Title Case.
 //!
 //! Title Case = >=80% of content words (non-minor, excluding the first
 //! word) capitalized, with at least 3 words. Headings under 3 words

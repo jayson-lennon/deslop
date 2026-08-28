@@ -1,4 +1,4 @@
-//! `tricolon_max_streak` — consecutive sentences containing "x, y, and z".
+//! `tricolon_max_streak` - consecutive sentences containing "x, y, and z".
 //!
 //! The tricolon itself is one sentence; the SIGNAL is strings of them back
 //! to back, so the metric tracks the longest run.

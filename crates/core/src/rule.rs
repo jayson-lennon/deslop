@@ -1,4 +1,4 @@
-//! Rule types: [`RuleGroup`], [`ActiveEntry`], [`RuleSet`] — the scanner
+//! Rule types: [`RuleGroup`], [`ActiveEntry`], [`RuleSet`] - the scanner
 //! contract. Loading lives in [`loader`]; schema parsing in [`schema`].
 
 pub mod dedup;

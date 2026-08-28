@@ -1,4 +1,4 @@
-# deslop pack: aisigns — this project (WP:AISIGNS artifacts + document metrics)
+# deslop pack: aisigns - this project (WP:AISIGNS artifacts + document metrics)
 
 [[group]]
 id-base = 'AISIGNS'
@@ -14,7 +14,7 @@ href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup'
 
 [[group.entries]]
 slug = 'chatgpt-referral'
-advice = 'Delete the ChatGPT/Copilot referral query — the URL was copied from an LLM share/citation flow, not typed by a human'
+advice = 'Delete the ChatGPT/Copilot referral query - the URL was copied from an LLM share/citation flow, not typed by a human'
 terms = [
     'utm_source=chatgpt.com',
     'utm_source=chat.openai.com',
@@ -49,7 +49,7 @@ category = 'gemini-artifacts'
 
 [[group.entries]]
 slug = 'grok-cards'
-advice = 'Remove the raw Grok render callout (`grok_render_citation_card_json`) — internal UI instructions leaked into output text'
+advice = 'Remove the raw Grok render callout (`grok_render_citation_card_json`) - internal UI instructions leaked into output text'
 terms = [
     'grok_render_citation_card_json',
     "{{\"citation_cards\"",
@@ -59,7 +59,7 @@ category = 'grok-artifacts'
 
 [[group.entries]]
 slug = 'knowledge-cutoff'
-advice = 'Delete the assistant preamble about my knowledge cutoff / not having real-time data — a chat-transcript opener that leaked into the document'
+advice = 'Delete the assistant preamble about my knowledge cutoff / not having real-time data - a chat-transcript opener that leaked into the document'
 terms = [
     'my knowledge cutoff',
     'as of my last update',
@@ -70,13 +70,13 @@ category = 'assistant-preamble'
 
 [[group.entries]]
 slug = 'lenticular-dagger'
-advice = 'DeepSeek-style †/‡ dagger chains left where citations should be — use real references or nothing'
+advice = 'DeepSeek-style †/‡ dagger chains left where citations should be - use real references or nothing'
 terms = ['†††††', '††††', '[citation: {N}]']
 category = 'deepseek-daggers'
 
 [[group.entries]]
 slug = 'oaicite'
-advice = 'Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) — paste-converted markup that never belonged in prose; re-cite properly or drop the claim'
+advice = 'Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) - paste-converted markup that never belonged in prose; re-cite properly or drop the claim'
 terms = [
     'contentReference[oaicite:{N}]{{index={N}}}',
     '[oaicite:{N}]',
@@ -86,13 +86,13 @@ category = 'chatgpt-artifacts'
 
 [[group.entries]]
 slug = 'perplexity'
-advice = 'Strip the Perplexity artifact ([attached_file:N]/[webpage:N]) — sandbox plumbing, not citation; reference the source by name instead'
+advice = 'Strip the Perplexity artifact ([attached_file:N]/[webpage:N]) - sandbox plumbing, not citation; reference the source by name instead'
 terms = ['[attached_file:{N}]', '[webpage:{N}]', '[webpage_content]']
 category = 'perplexity-artifacts'
 
 [[group.entries]]
 slug = 'leaked-search-pointer'
-advice = 'Delete the `turn0searchN` web-search pointer — leaked ChatGPT tool state, not content; replace with a real citation or nothing'
+advice = 'Delete the `turn0searchN` web-search pointer - leaked ChatGPT tool state, not content; replace with a real citation or nothing'
 terms = [
     'turn0search{N}',
     'turn0view{N}',
@@ -106,7 +106,7 @@ category = 'chatgpt-artifacts'
 
 [[group.entries]]
 slug = 'unfilled-placeholder'
-advice = "This template placeholder was never filled in ('[Your Name]', 'url=URL', 'PASTE_X_HERE', 'INSERT_X') — complete the value or delete the scaffolding line"
+advice = "This template placeholder was never filled in ('[Your Name]', 'url=URL', 'PASTE_X_HERE', 'INSERT_X') - complete the value or delete the scaffolding line"
 terms = [
     '[your name]',
     '[client name]',
@@ -529,7 +529,7 @@ kind = 'metric'
 tier = 3
 category = 'document-signals'
 message = '{value:.0%} of double quotes are curly'
-advice = 'Curly-quote share {value:.0%} — chat exports carry typographic quotes; normalize to straight ASCII (# TODO tune)'
+advice = 'Curly-quote share {value:.0%} - chat exports carry typographic quotes; normalize to straight ASCII (# TODO tune)'
 scope = 'anywhere'
 stat = 'curly_double_ratio'
 per_words = 1
@@ -545,7 +545,7 @@ kind = 'metric'
 tier = 3
 category = 'document-signals'
 message = 'Em-dash density {value} per {per_words} words'
-advice = 'Em-dash density {value}/1000 words exceeds conversational norms — swap most for commas, parentheses, or colons (# TODO tune)'
+advice = 'Em-dash density {value}/1000 words exceeds conversational norms - swap most for commas, parentheses, or colons (# TODO tune)'
 scope = 'anywhere'
 stat = 'em_dash_rate'
 per_words = 1000

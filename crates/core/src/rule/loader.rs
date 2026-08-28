@@ -200,7 +200,7 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
         push(
             None,
             format!(
-                "entry `{}` fixture failure: {} — sample: {:?}",
+                "entry `{}` fixture failure: {} - sample: {:?}",
                 failure.slug, failure.problem, failure.fixture
             ),
         );
@@ -209,7 +209,7 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
 
 /// Load packs declared in `cfg`.
 ///
-/// Builtin pack stems resolve to `<rules_root>/rules/<stem>.toml` — one
+/// Builtin pack stems resolve to `<rules_root>/rules/<stem>.toml` - one
 /// flat file per pack, any number of `[[group]]` tables inside. `extra_paths`
 /// name files or directories, used as-is.
 ///

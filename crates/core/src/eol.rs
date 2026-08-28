@@ -65,7 +65,7 @@ impl Normalized {
     ///
     /// # Panics
     ///
-    /// Only if `start` exceeds normalized length — a programming error.
+    /// Only if `start` exceeds normalized length - a programming error.
     pub fn span_to_orig(&self, start: usize, end: usize) -> (usize, usize) {
         let orig_start = self.norm_to_orig[start.min(self.norm_to_orig.len())];
         let orig_end = if end >= self.norm_to_orig.len() {

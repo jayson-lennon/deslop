@@ -2,7 +2,7 @@
 //!
 //! THE invariant: `masked.len() == src.len()` byte-for-byte. All scanner
 //! offsets work on `masked`; all finding spans point into ORIGINAL text;
-//! because lengths match, no translation is needed — masked positions ARE
+//! because lengths match, no translation is needed - masked positions ARE
 //! original positions.
 
 /// Syntactic scope of a source range.
@@ -182,7 +182,7 @@ fn apply_masks(src: &str, spans: &[MaskedSpan]) -> String {
     }
     // SAFETY (memory-safety perspective): we only replaced non-NUL ASCII with
     // NUL and otherwise copied valid UTF-8. Multi-byte chars were either left
-    // intact or replaced whole? No — a masked span may cut multibyte chars,
+    // intact or replaced whole? No - a masked span may cut multibyte chars,
     // so re-validate and fall back to char-boundary-safe masking.
     match String::from_utf8(buf) {
         Ok(masked) => {

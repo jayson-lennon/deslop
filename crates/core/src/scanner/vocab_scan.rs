@@ -29,7 +29,7 @@ pub struct VocabIndex {
 }
 
 impl VocabIndex {
-    /// Build from (term, slug) pairs — already stem-expanded upstream.
+    /// Build from (term, slug) pairs - already stem-expanded upstream.
     pub fn build<I: IntoIterator<Item = (String, String)>>(pairs: I) -> VocabIndex {
         let mut idx = VocabIndex::default();
         for (term, slug) in pairs {
@@ -49,7 +49,7 @@ impl VocabIndex {
     ///
     /// Scope routing: headings + prose scan; if `heading_terms_only` some
     /// entries declare heading-only scopes they'd be filtered here (v1: no
-    /// per-entry scope yet — kind-level default applies).
+    /// per-entry scope yet - kind-level default applies).
     pub fn scan(&self, src: &str, map: &RegionMap, allow: &dyn Fn(Scope) -> bool) -> Vec<VocabHit> {
         let words = tokenize_visible(src, map);
         let mut hits = Vec::new();

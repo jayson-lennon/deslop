@@ -95,10 +95,10 @@ pub fn load_for_lint(cfg: &deslop_core::config::Config) -> deslop_core::rule::lo
 }
 
 /// Where the builtin packs live, resolved once per run:
-/// 1. `~/.config/deslop/rules` (via the `dirs` crate) when it exists —
+/// 1. `~/.config/deslop/rules` (via the `dirs` crate) when it exists -
 ///    user-installed packs,
 /// 2. `./rules` when present (repo development layout, incl. tests),
-/// 3. alongside the executable (`<exe_dir>/rules` — installed layout),
+/// 3. alongside the executable (`<exe_dir>/rules` - installed layout),
 /// 4. Cargo target fallback (`target/debug` ancestor with a `rules/`),
 /// 5. `.` as the last resort.
 fn rules_root() -> camino::Utf8PathBuf {

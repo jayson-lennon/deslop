@@ -2,7 +2,7 @@
 //!
 //! One submodule per stat under `scanner/metrics/`; each exposes a
 //! `measure()` that fills its field of [`DocStats`]. The coordinator
-//! [`compute()`] runs them all in one pass over the prepared document —
+//! [`compute()`] runs them all in one pass over the prepared document -
 //! adding a stat means a new submodule, a `DocStats` field, and one
 //! delegate line here.
 //!
@@ -22,7 +22,7 @@ mod sent_len_cv;
 mod term_cluster_max;
 mod tricolon_streak;
 
-/// Canonical stat identifiers (closed set — adding one is a deliberate PR).
+/// Canonical stat identifiers (closed set - adding one is a deliberate PR).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Stat {
     EmDashRate,
@@ -177,7 +177,7 @@ pub(crate) fn sentences(prose: &str) -> Vec<(usize, usize)> {
             while j < prose.len() && matches!(bytes[j], b'.' | b'!' | b'?') {
                 j += 1;
             }
-            // Guard: abbreviation like "e.g." — inspect only the final
+            // Guard: abbreviation like "e.g." - inspect only the final
             // word fragment before the dot (bounded, no allocation).
             let mut win_start = i.saturating_sub(12).max(start);
             while win_start < i && !prose.is_char_boundary(win_start) {
@@ -308,7 +308,7 @@ pub fn anchor_for(stat: Stat, _text: &str, _map: &crate::scanner::regions::Regio
     match stat {
         // A zero-width anchor renders an empty span; diagnostics prefer a
         // caret on something real, so anchor line starts suffice. Keep 0
-        // for all stats v1 (T9 says "near densest cluster" — refine in the
+        // for all stats v1 (T9 says "near densest cluster" - refine in the
         // phase-6 triage window).
         _ => 0,
     }
@@ -319,7 +319,7 @@ pub fn anchor_for(stat: Stat, _text: &str, _map: &crate::scanner::regions::Regio
 pub(crate) mod testutil {
     use super::Inputs;
 
-    /// Inputs with no structural ranges — prose-only docs.
+    /// Inputs with no structural ranges - prose-only docs.
     pub fn inputs(prose: &str) -> Inputs<'_> {
         Inputs {
             prose,

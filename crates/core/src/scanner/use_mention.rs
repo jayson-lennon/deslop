@@ -2,7 +2,7 @@
 //!
 //! After structural masking, scan remaining prose for QUOTED occurrences of
 //! dictionary terms and mask the quoted phrase too. Only exact whole-term
-//! matches count — quoting is deliberate commentary, near-misses are prose.
+//! matches count - quoting is deliberate commentary, near-misses are prose.
 
 use super::regions::RegionMap;
 

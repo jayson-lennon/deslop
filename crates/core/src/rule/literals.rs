@@ -9,7 +9,7 @@
 //! - `[cite: {N}]`, `url=PASTE_SPOTIFY_TRACK_URL_HERE`
 //!
 //! Compilation lowers to a sequence of segments so matching can run as a
-//! plain substring hunt per segment with a digit-scan between them — no
+//! plain substring hunt per segment with a digit-scan between them - no
 //! regex escaping hazards.
 
 /// One compiled piece of a ban marker.

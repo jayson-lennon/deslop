@@ -1,4 +1,4 @@
-//! `curly_double_ratio` — curly double quotes vs straight doubles.
+//! `curly_double_ratio` - curly double quotes vs straight doubles.
 //!
 //! Needs at least 20 total doubles before the ratio means anything;
 //! below that the field reads 0.0 and the doc floor silences the stat.

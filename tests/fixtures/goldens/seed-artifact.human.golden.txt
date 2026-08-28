@@ -5,9 +5,9 @@ error[AISIGNS#oaicite]:
   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   │         │
   │         Chatbot markup artifact
-  │         help: Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) — paste-converted markup that never belonged in prose; re-cite properly or drop the claim
+  │         help: Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) - paste-converted markup that never belonged in prose; re-cite properly or drop the claim
   │
-  = see: Wikipedia:Signs of AI writing — https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup
+  = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup
 
 error[AISIGNS#oaicite]: 
   ┌─ tests/fixtures/docs/seed-artifact.md:1:25
@@ -16,7 +16,7 @@ error[AISIGNS#oaicite]:
   │                         ^^^^^^^^^^^^
   │                         │
   │                         Chatbot markup artifact
-  │                         help: Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) — paste-converted markup that never belonged in prose; re-cite properly or drop the claim
+  │                         help: Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) - paste-converted markup that never belonged in prose; re-cite properly or drop the claim
   │
-  = see: Wikipedia:Signs of AI writing — https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup
+  = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup
 

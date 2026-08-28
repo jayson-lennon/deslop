@@ -54,7 +54,7 @@ pub fn validate(template: &str, allowed: &[&str]) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!(
-            "unknown placeholder(s) {} — allowed: {}",
+            "unknown placeholder(s) {} - allowed: {}",
             unknown
                 .iter()
                 .map(|s| format!("{{{s}}}"))

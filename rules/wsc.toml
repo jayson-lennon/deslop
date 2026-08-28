@@ -1,4 +1,4 @@
-# deslop pack: wsc — github.com/theserverlessdev/wsc (words + prose patterns)
+# deslop pack: wsc - github.com/theserverlessdev/wsc (words + prose patterns)
 
 [[group]]
 id-base = 'WSC'
@@ -336,7 +336,9 @@ advice = "\"{hedge}\" flattens the audience into a marketing segment; address TH
 
 [group.fixtures]
 must_match = ["Whether you're a beginner or an expert, this guide helps."]
-must_not_match = ['She could not decide whether the coat or the jacket suited the weather.']
+must_not_match = [
+    'She could not decide whether the coat or the jacket suited the weather.',
+]
 
 [[group]]
 id-base = 'WSC-PAT-COPULA-PUFFERY'
@@ -365,8 +367,12 @@ regex = "\\b(?:intricate|delicate|complex|careful) dance\\b\n"
 advice = "Rewrite the construction plainly (wsc: The \"delicate dance between X and Y\" metaphor is a documented LLM favorite)"
 
 [group.fixtures]
-must_match = ['Negotiating the treaty required a delicate dance between allies.']
-must_not_match = ["The critics praised the film's delicate balance of humor and dread."]
+must_match = [
+    'Negotiating the treaty required a delicate dance between allies.',
+]
+must_not_match = [
+    "The critics praised the film's delicate balance of humor and dread.",
+]
 
 [[group]]
 id-base = 'WSC-PAT-DESPITE-CHALLENGES'
@@ -380,7 +386,9 @@ regex = "\\bdespite (?:its|these|their|the)\\b[^.!?\\n]{1,60}?\\b(?:faces?|faced
 advice = "Rewrite the construction plainly (wsc: The \"Despite its X, [subject] faces challenges\" formula is a documented AI outline habit (WP:AISIGNS; Russell 2025))"
 
 [group.fixtures]
-must_match = ['Despite its modest budget, the film faces challenges few blockbusters attempt.']
+must_match = [
+    'Despite its modest budget, the film faces challenges few blockbusters attempt.',
+]
 must_not_match = ['Despite the rain, the picnic continued in good spirits.']
 
 [[group]]
@@ -395,8 +403,12 @@ regex = "\\bfrom [^,.;!?\\n]{2,40} to [^,.;!?\\n]{2,40}, (?:and )?from [^,.;!?\\
 advice = "Rewrite the construction plainly (wsc: Chained \"from X to Y, from Z to W\" false ranges are a documented AI comprehensiveness gesture (WP:AISIGNS))"
 
 [group.fixtures]
-must_match = ['The course spans from baking basics to pastry arts, from grilling to sous-vide.']
-must_not_match = ['The trail runs from the parking lot to the lake and back again.']
+must_match = [
+    'The course spans from baking basics to pastry arts, from grilling to sous-vide.',
+]
+must_not_match = [
+    'The trail runs from the parking lot to the lake and back again.',
+]
 
 [[group]]
 id-base = 'WSC-PAT-META-ANNOUNCEMENT'
@@ -411,7 +423,9 @@ advice = "Rewrite the construction plainly (wsc: \"This article aims to explore.
 
 [group.fixtures]
 must_match = ['This article aims to explore the history of the canal system.']
-must_not_match = ['The professor asked the article aims to be cited properly, awkwardly.']
+must_not_match = [
+    'The professor asked the article aims to be cited properly, awkwardly.',
+]
 
 [[group]]
 id-base = 'WSC-PAT-NEGATIVE-PARALLELISM'
@@ -425,8 +439,14 @@ regex = "\\bn(?:ot|[''’]t) (?:just|only|merely|simply|about) [^.!?\\n]{1,80}?[
 advice = "Drop the negation scaffold and state it positively: roughly \"{payload}\""
 
 [group.fixtures]
-must_match = ["It's not merely faster; it's transformative for the whole pipeline.", "This is not just a feature update, it's a complete rethinking of the workflow."]
-must_not_match = ['We did not enjoy the film, but finished it anyway.', 'The engine is not only powerful; the brakes are excellent.']
+must_match = [
+    "It's not merely faster; it's transformative for the whole pipeline.",
+    "This is not just a feature update, it's a complete rethinking of the workflow.",
+]
+must_not_match = [
+    'We did not enjoy the film, but finished it anyway.',
+    'The engine is not only powerful; the brakes are excellent.',
+]
 
 [[group]]
 id-base = 'WSC-PAT-NOT-ONLY-BUT-ALSO'
@@ -456,7 +476,9 @@ advice = "Rewrite the construction plainly (wsc: \"plays a crucial/vital/key rol
 
 [group.fixtures]
 must_match = ['Fiber plays a crucial role in digestive health.']
-must_not_match = ['The crane operator played an important cassette during the demolition.']
+must_not_match = [
+    'The crane operator played an important cassette during the demolition.',
+]
 
 [[group]]
 id-base = 'WSC-PAT-TRAILING-PARTICIPIAL-ANALYSIS'
@@ -471,7 +493,9 @@ advice = "Rewrite the construction plainly (wsc: Trailing \", highlighting/under
 
 [group.fixtures]
 must_match = ['The results improved by 40%, highlighting the new cache design.']
-must_not_match = ['The clause returned to the committee, and the highlighting of each error was manual.']
+must_not_match = [
+    'The clause returned to the committee, and the highlighting of each error was manual.',
+]
 
 [[group]]
 id-base = 'WSC-PAT-UNFILLED-PLACEHOLDER'
@@ -501,4 +525,6 @@ advice = "Rewrite the construction plainly (wsc: Vague authority attribution (\"
 
 [group.fixtures]
 must_match = ['Experts agree that the method works better than the control.']
-must_not_match = ["Dr. Maria Lane, the study's lead author, agrees the sample was small."]
+must_not_match = [
+    "Dr. Maria Lane, the study's lead author, agrees the sample was small.",
+]

@@ -240,7 +240,7 @@ regex = 'stands as an?'
 #[test]
 fn same_term_in_two_groups_reports_one_finding_from_highest_tier() {
     // Given the same term in a tier-2 group and a tier-3 group (one file,
-    // two groups — dedup keeps the stricter tier 2).
+    // two groups - dedup keeps the stricter tier 2).
     let shadow = VOCAB_RULE
         .replace("TEST-VOCAB", "TEST-VOCAB-2")
         .replace("tier = 2", "tier = 3");

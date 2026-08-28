@@ -9,8 +9,8 @@ pub const TEMPLATE: &str = r#"# deslop configuration. Place at project root; the
 [packs]
 # Which builtin packs load, in load order. A pack is ONE TOML file in
 # rules/<stem>.toml containing any number of [[group]] tables. On load,
-# every vocab/literal term gets ONE owner — the stricter (lower) tier wins,
-# config order breaks ties — and identical pattern regexes compile once and
+# every vocab/literal term gets ONE owner - the stricter (lower) tier wins,
+# config order breaks ties - and identical pattern regexes compile once and
 # fan their findings out to every owning rule.
 #   aatell         - Tier 2: frequency-measured AI-tell words (seed rewrites)
 #   slop           - Tier 2: AI-slop words and phrases
@@ -60,7 +60,7 @@ pub fn run() -> i32 {
         lock,
         "{}",
         if wrote {
-            "wrote .deslop.toml — see comments inside for each knob"
+            "wrote .deslop.toml - see comments inside for each knob"
         } else {
             "deslop: cannot write ./.deslop.toml"
         }
