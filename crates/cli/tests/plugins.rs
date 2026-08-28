@@ -1,4 +1,4 @@
-//! CLI integration tests for `[plugins]`: end-to-end through the real
+//! CLI integration tests for `[plugin.<id>]`: end-to-end through the real
 //! binary with `.wasm` files compiled from WAT in-process (no wasm
 //! toolchain needed).
 //!
@@ -18,24 +18,32 @@ fn fixture_wasm(name: &str) -> Vec<u8> {
     wat::parse_str(&wat).unwrap_or_else(|e| panic!("parse {name}: {e}"))
 }
 
-/// A project dir with a `.deslop.toml` declaring `paths` + one doc.
+/// A project dir with a `.deslop.toml` declaring one plugin + one doc.
 struct Project {
     dir: tempfile::TempDir,
 }
 
 impl Project {
+    /// Spills `bytes` as `<name>` next to the config and declares it via
+    /// `./` (config-dir anchoring).
+    fn with_plugin(name: &str, bytes: &[u8]) -> Self {
+        let dir = tempfile::tempdir().expect("tempdir");
+        std::fs::write(dir.path().join(name), bytes).expect("write plugin");
+        std::fs::write(
+            dir.path().join(".deslop.toml"),
+            format!("[plugin.fixture]\nwasm = \"./{name}\"\n"),
+        )
+        .expect("write config");
+        std::fs::write(dir.path().join("doc.md"), "some words here\n").expect("write doc");
+        Self { dir }
+    }
+
+    /// A project with an arbitrary config string.
     fn with_config(config: &str) -> Self {
         let dir = tempfile::tempdir().expect("tempdir");
         std::fs::write(dir.path().join(".deslop.toml"), config).expect("write config");
         std::fs::write(dir.path().join("doc.md"), "some words here\n").expect("write doc");
         Self { dir }
-    }
-
-    /// Absolute path for `paths = [...]` entries.
-    fn spill_plugin(&self, name: &str, bytes: &[u8]) -> String {
-        let path = self.dir.path().join(name);
-        std::fs::write(&path, bytes).expect("write plugin");
-        path.to_str().expect("utf8").to_owned()
     }
 
     fn run(&self, args: &[&str]) -> (String, String, i32) {
@@ -58,19 +66,13 @@ impl Project {
 #[test]
 fn plugin_findings_render_in_json_with_plugin_kind() {
     // Given a project with a valid plugin.
-    let project = Project::with_config("[plugins]\npaths = [\"plug.wasm\"]\n");
-    let path = project.spill_plugin("plug.wasm", &fixture_wasm("happy.wat"));
-    std::fs::write(
-        project.dir.path().join(".deslop.toml"),
-        format!("[plugins]\npaths = [\"{path}\"]\n"),
-    )
-    .expect("rewrite config");
+    let project = Project::with_plugin("plug.wasm", &fixture_wasm("happy.wat"));
 
     // When linting as JSON.
     let (stdout, _stderr, code) = project.run(&["--format", "json", "doc.md"]);
 
     // Then the finding carries kind "plugin" and the frozen field order.
-    assert_eq!(code, 0);
+    assert_eq!(code, 0, "{stdout}");
     assert!(stdout.contains("\"rule_id\":\"FIXTURE#demo\""), "{stdout}");
     assert!(stdout.contains("\"kind\":\"plugin\""), "{stdout}");
     assert!(stdout.contains("\"tier\":3"), "{stdout}");
@@ -80,8 +82,7 @@ fn plugin_findings_render_in_json_with_plugin_kind() {
 #[test]
 fn missing_plugin_file_warns_and_does_not_change_exit_code() {
     // Given a project whose plugin path does not exist.
-    let project =
-        Project::with_config("[plugins]\npaths = [\"/nonexistent/really-not-here.wasm\"]\n");
+    let project = Project::with_config("[plugin.ghost]\nwasm = \"./really-not-here.wasm\"\n");
 
     // When linting.
     let (_stdout, stderr, code) = project.run(&["doc.md"]);
@@ -95,8 +96,7 @@ fn missing_plugin_file_warns_and_does_not_change_exit_code() {
 #[test]
 fn trapping_plugin_warns_per_document_and_exit_stays_clean() {
     // Given a project with a plugin whose scan traps.
-    let project = Project::with_config("[plugins]\npaths = [\"plug.wasm\"]\n");
-    project.spill_plugin("plug.wasm", &fixture_wasm("trap.wat"));
+    let project = Project::with_plugin("plug.wasm", &fixture_wasm("trap.wat"));
 
     // When linting.
     let (_stdout, stderr, code) = project.run(&["doc.md"]);
@@ -113,14 +113,13 @@ fn trapping_plugin_warns_per_document_and_exit_stays_clean() {
 #[test]
 fn rules_listing_includes_plugin_rows() {
     // Given a project with a valid plugin.
-    let project = Project::with_config("[plugins]\npaths = [\"plug.wasm\"]\n");
-    project.spill_plugin("plug.wasm", &fixture_wasm("happy.wat"));
+    let project = Project::with_plugin("plug.wasm", &fixture_wasm("happy.wat"));
 
     // When listing rules (table).
     let (stdout, _stderr, code) = project.run(&["rules"]);
 
     // Then the plugin appears as a row with kind "plugin".
-    assert_eq!(code, 0);
+    assert_eq!(code, 0, "{stdout}");
     assert!(stdout.contains("FIXTURE"), "{stdout}");
     assert!(stdout.contains("plugin"), "{stdout}");
 

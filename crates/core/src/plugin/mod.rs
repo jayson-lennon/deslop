@@ -13,7 +13,7 @@
 //! tests. Everything above the trait (scanner, CLI) never knows which one it
 //! is talking to.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use std::fmt;
 
 pub mod fake;
@@ -116,26 +116,44 @@ pub enum PluginError {
     Protocol { id: String, detail: String },
 }
 
-/// Host-owned knobs for one plugin, from `[plugins.<id>.runtime]`.
+/// Host-owned knobs for one plugin, from `[plugin.<id>.runtime]`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PluginRuntime {
     /// Explicit fuel budget replacing the size-scaled default.
     pub fuel: Option<u64>,
 }
 
-/// Resolved `[plugins]` configuration.
+/// One `[plugin.<id>]` declaration after config parsing.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PluginDeclaration {
+    /// The table key exactly as written (`[plugin.exclaim]` → `exclaim`),
+    /// matched against the module's manifest id case-insensitively at load.
+    pub key: String,
+    /// Module path after resolution: absolute paths verbatim, `./`/`../`
+    /// forms anchored at the config file's directory, bare names anchored
+    /// at the user plugin dir (`<data>/deslop/plugins`). Raw as-given when
+    /// parsing text without anchors (test mode).
+    pub path: camino::Utf8PathBuf,
+    /// Load-level switch: `false` skips the plugin entirely — the module
+    /// is never read and the plugin is absent from `deslop rules`.
+    /// (Scan-level silencing is `[lints] ID = "allow"`.)
+    pub enabled: bool,
+}
+
+/// Resolved `[plugin.<id>]` configuration.
 ///
 /// `params` and `runtime` are keyed by the plugin id in UPPER-CASE so that
 /// config table names match manifests case-insensitively
-/// (`[plugins.exclaim]` configures the `EXCLAIM` plugin).
+/// (`[plugin.exclaim]` configures the `EXCLAIM` plugin).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PluginConfig {
-    /// Absolute paths of plugin files to load.
-    pub paths: Vec<camino::Utf8PathBuf>,
-    /// Opaque `[plugins.<id>]` tables, passed to plugins verbatim as
+    /// Plugin declarations keyed by upper-cased table key.
+    pub plugins: BTreeMap<String, PluginDeclaration>,
+    /// Opaque `[plugin.<id>]` tables (minus the reserved `wasm`, `enabled`
+    /// and `runtime` keys), passed to plugins verbatim as
     /// [`PluginInput::config`]. The host never interprets them.
     pub params: BTreeMap<String, serde_json::Value>,
-    /// Host knobs per plugin id (`[plugins.<id>.runtime]`).
+    /// Host knobs per plugin id (`[plugin.<id>.runtime]`).
     pub runtime: BTreeMap<String, PluginRuntime>,
 }
 
@@ -196,31 +214,39 @@ pub fn validate_finding_slug(slug: &str) -> Result<(), String> {
 pub fn load_plugins(cfg: &PluginConfig) -> (Vec<Box<dyn LintPlugin>>, Vec<String>) {
     let mut loaded: Vec<Box<dyn LintPlugin>> = Vec::new();
     let mut warnings: Vec<String> = Vec::new();
-    let mut seen: HashSet<String> = HashSet::new();
 
-    for path in &cfg.paths {
-        match wasmi_host::instantiate(path) {
+    for (key, decl) in &cfg.plugins {
+        if !decl.enabled {
+            continue;
+        }
+        match wasmi_host::instantiate(&decl.path) {
             Ok(mut plugin) => {
                 let id = plugin.meta().id.clone();
-                let key = id.to_uppercase();
-                if let Some(runtime) = cfg.runtime.get(&key) {
+                // The table key is the author's handle for this module; a
+                // mismatch would silently route params/lints to nowhere, so
+                // it is a skip-with-warning like any other bad module.
+                if !id.eq_ignore_ascii_case(key) {
+                    warnings.push(format!(
+                        "deslop: skipping plugin {}: manifest id {id:?} does not match config key {key:?}",
+                        decl.path
+                    ));
+                    continue;
+                }
+                if let Some(runtime) = cfg.runtime.get(key) {
                     plugin.set_fuel_override(runtime.fuel);
                 }
                 let params = cfg
                     .params
-                    .get(&key)
+                    .get(key)
                     .cloned()
                     .unwrap_or_else(|| serde_json::json!({}));
-                if seen.insert(key) {
-                    loaded.push(Box::new(WithParams::new(plugin, params)));
-                } else {
-                    warnings.push(format!(
-                        "deslop: duplicate plugin id {id} at {path}; keeping the first"
-                    ));
-                }
+                loaded.push(Box::new(WithParams::new(plugin, params)));
             }
             Err(error) => {
-                warnings.push(format!("deslop: skipping plugin from {path}: {error}"));
+                warnings.push(format!(
+                    "deslop: skipping plugin from {}: {error}",
+                    decl.path
+                ));
             }
         }
     }
@@ -316,11 +342,22 @@ mod tests {
         assert_eq!(fuel_for(Some(&rt), 10_000), 1234);
     }
 
+    fn declaration(key: &str, path: &str) -> PluginDeclaration {
+        PluginDeclaration {
+            key: key.to_owned(),
+            path: path.into(),
+            enabled: true,
+        }
+    }
+
     #[test]
     fn load_plugins_skips_missing_files_with_a_warning() {
         // Given config pointing at a file that does not exist.
         let cfg = PluginConfig {
-            paths: vec!["/nonexistent/plugin.wasm".into()],
+            plugins: BTreeMap::from([(
+                "MISSING".to_owned(),
+                declaration("missing", "/nonexistent/plugin.wasm"),
+            )]),
             ..PluginConfig::default()
         };
 
@@ -335,11 +372,29 @@ mod tests {
     }
 
     #[test]
-    fn load_plugins_with_no_paths_loads_nothing_and_warns_nothing() {
+    fn load_plugins_with_no_declarations_loads_nothing_and_warns_nothing() {
         // Given empty plugin config.
         // When loading.
         // Then the result is empty and silent.
         let (plugins, warnings) = load_plugins(&PluginConfig::default());
+        assert!(plugins.is_empty());
+        assert!(warnings.is_empty());
+    }
+
+    #[test]
+    fn load_plugins_honors_enabled_false() {
+        // Given a declaration switched off at load level.
+        let mut decl = declaration("gone", "/nonexistent/plugin.wasm");
+        decl.enabled = false;
+        let cfg = PluginConfig {
+            plugins: BTreeMap::from([("GONE".to_owned(), decl)]),
+            ..PluginConfig::default()
+        };
+
+        // When loading.
+        let (plugins, warnings) = load_plugins(&cfg);
+
+        // Then the module is never read: no plugin, no warning.
         assert!(plugins.is_empty());
         assert!(warnings.is_empty());
     }

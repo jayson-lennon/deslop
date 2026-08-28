@@ -138,13 +138,21 @@ pub enum ConfigError {
 /// to [`Config::default`] when none exists. An explicit `start` pointing at a
 /// file is honored as THE config location (`--config PATH` semantics).
 ///
+/// Bare `wasm` file names resolve against the user plugin install dir,
+/// `<XDG data dir>/deslop/plugins` (e.g. `~/.local/share/deslop/plugins`).
+/// `data_dir` is the platform data directory; `None` leaves bare names
+/// unresolved (tests, or hosts without a data dir).
+///
 /// # Errors
 ///
 /// Returns [`ConfigError`] when an existing config cannot be read or parsed;
 /// a missing discovered config means defaults apply.
-pub fn discover(start: &camino::Utf8Path) -> Result<Config, error_stack::Report<ConfigError>> {
+pub fn discover(
+    start: &camino::Utf8Path,
+    data_dir: Option<&camino::Utf8Path>,
+) -> Result<Config, error_stack::Report<ConfigError>> {
     if start.is_file() {
-        return parse_config_file(start);
+        return parse_config_file(start, data_dir);
     }
 
     let found = start
@@ -153,12 +161,15 @@ pub fn discover(start: &camino::Utf8Path) -> Result<Config, error_stack::Report<
         .find(|candidate| candidate.is_file());
 
     match found {
-        Some(path) => parse_config_file(&path),
+        Some(path) => parse_config_file(&path, data_dir),
         None => Ok(Config::default()),
     }
 }
 
-fn parse_config_file(path: &camino::Utf8Path) -> Result<Config, error_stack::Report<ConfigError>> {
+fn parse_config_file(
+    path: &camino::Utf8Path,
+    data_dir: Option<&camino::Utf8Path>,
+) -> Result<Config, error_stack::Report<ConfigError>> {
     let text = std::fs::read_to_string(path).map_err(|source| {
         error_stack::Report::new(ConfigError::Read {
             path: path.to_owned(),
@@ -173,21 +184,34 @@ fn parse_config_file(path: &camino::Utf8Path) -> Result<Config, error_stack::Rep
                 source: std::io::Error::other("invalid config syntax"),
             })
         })
-        .and_then(|cfg| resolve_plugin_paths(cfg, path))
+        .and_then(|cfg| resolve_plugin_paths(cfg, path, data_dir))
 }
 
-/// Re-anchor relative `plugins.paths` entries against the config file's
-/// directory. Done post-parse so `parse_config_str` stays text-only (the
-/// test path leaves paths cwd-relative).
+/// Re-anchor plugin `wasm` paths now that the config file's location is
+/// known. All resolution happens here so `parse_config_str` stays
+/// text-only: absolute paths pass through exactly; `./`/`../` forms join
+/// onto the config file's directory (repo-local modules); bare names join
+/// onto the user plugin install dir `<data_dir>/deslop/plugins` (left
+/// as-given when `data_dir` is unavailable).
 fn resolve_plugin_paths(
     mut cfg: Config,
     config_path: &camino::Utf8Path,
+    data_dir: Option<&camino::Utf8Path>,
 ) -> Result<Config, error_stack::Report<ConfigError>> {
-    if let Some(dir) = config_path.parent() {
-        for path in &mut cfg.plugins.paths {
-            if path.is_relative() {
-                *path = dir.join(&*path);
-            }
+    let config_dir = config_path.parent();
+    let install_dir: Option<camino::Utf8PathBuf> =
+        data_dir.map(|dir| dir.join("deslop").join("plugins"));
+    for decl in cfg.plugins.plugins.values_mut() {
+        let wasm = decl.path.as_str();
+        // Normalize `./x` to `x` so joins render `<dir>/x`, not `<dir>/./x`.
+        let relative = wasm.strip_prefix("./").unwrap_or(wasm);
+        let anchored: Option<&camino::Utf8Path> = match () {
+            _ if decl.path.is_absolute() => None,
+            _ if wasm.starts_with("./") || wasm.starts_with("../") => config_dir,
+            _ => install_dir.as_deref(),
+        };
+        if let Some(dir) = anchored {
+            decl.path = dir.join(relative);
         }
     }
     Ok(cfg)
@@ -221,7 +245,9 @@ struct RawConfig {
     output: RawOutput,
     #[serde(default)]
     lints: BTreeMap<String, RawLintLevel>,
-    #[serde(default)]
+    /// TOML section `[plugin.<id>]` (singular); the typed config keeps the
+    /// plural field name since it holds every declaration.
+    #[serde(default, rename = "plugin")]
     plugins: RawPlugins,
 }
 
@@ -263,81 +289,78 @@ struct RawOutput {
     color: Option<String>,
 }
 
-/// Raw `[plugins]` section: a list of files plus opaque per-plugin tables.
+/// Raw `[plugin.<id>]` section: one table per plugin, carrying the module
+/// path, an optional enable switch, host knobs in `.runtime`, and opaque
+/// params everywhere else.
 ///
 /// Decoded as a raw `toml::Table` (not serde-flattened structs) because the
-/// table keys are plugin ids we must pass through untouched, and one of
-/// them (`runtime`) is host-owned. Hand-rolling keeps the "everything under
-/// `[plugins.<id>]` except `.runtime` is opaque" rule explicit.
+/// table keys are plugin ids we must pass through untouched, and two of the
+/// inner keys (`wasm`, `runtime`) are host-owned. Hand-rolling keeps the
+/// "everything under `[plugin.<id>]` except `wasm`/`enabled`/`runtime` is
+/// opaque" rule explicit.
 #[derive(Debug, Default, serde::Deserialize)]
 struct RawPlugins(toml::Table);
 
+/// The `.wasm` extension every `wasm` value must carry; lookup is literal.
+const WASM_EXT: &str = "wasm";
+
 impl RawPlugins {
-    /// Resolve into the typed plugin config.
+    /// Validate and split into typed declarations + params.
     ///
-    /// `config_dir` anchors relative `paths` entries; `None` leaves them
-    /// as-given (the `parse_config_str` test path).
-    fn into_plugin_config(
-        self,
-        config_dir: Option<&camino::Utf8Path>,
-    ) -> Result<crate::plugin::PluginConfig, String> {
+    /// Paths are kept AS WRITTEN here; anchoring happens later in
+    /// `resolve_plugin_paths`, once the config file's directory and the
+    /// data dir are known.
+    fn into_plugin_config(self) -> Result<crate::plugin::PluginConfig, String> {
         let mut out = crate::plugin::PluginConfig::default();
         for (key, value) in &self.0 {
             match key.as_str() {
-                "paths" => {
-                    let items = value
-                        .as_array()
-                        .ok_or_else(|| "plugins.paths must be an array of strings".to_string())?;
-                    for item in items {
-                        let raw = item
-                            .as_str()
-                            .ok_or_else(|| "plugins.paths entries must be strings".to_string())?;
-                        let path = camino::Utf8PathBuf::from(raw);
-                        out.paths.push(match config_dir {
-                            Some(dir) if path.is_relative() => dir.join(path),
-                            _ => path,
-                        });
-                    }
-                }
                 "lints" | "packs" | "scan" | "output" => {
                     return Err(format!(
-                        "unexpected key [plugins.{key}] (this belongs at the top level)"
+                        "unexpected key [plugin.{key}] (this belongs at the top level)"
                     ));
                 }
                 other => {
                     let table = value
                         .as_table()
-                        .ok_or_else(|| format!("plugins.{other} must be a table"))?;
-                    // `.runtime` is host-owned; everything else is opaque params.
-                    let mut runtime = crate::plugin::PluginRuntime::default();
+                        .ok_or_else(|| format!("plugin.{other} must be a table"))?;
+                    // Reserved keys are host-consumed; the rest is opaque.
                     let mut params = table.clone();
+                    let wasm = params
+                        .remove("wasm")
+                        .ok_or_else(|| format!("plugin.{other} is missing the wasm key"))?;
+                    let wasm = wasm
+                        .as_str()
+                        .ok_or_else(|| format!("plugin.{other}.wasm must be a string"))?;
+                    if !wasm.ends_with(WASM_EXT) {
+                        return Err(format!(
+                            "plugin.{other}.wasm must end in .wasm (literal file lookup), \
+                             got {wasm:?}"
+                        ));
+                    }
+                    let enabled = match params.remove("enabled") {
+                        Some(v) => v
+                            .as_bool()
+                            .ok_or_else(|| format!("plugin.{other}.enabled must be a boolean"))?,
+                        None => true,
+                    };
+                    let mut runtime = crate::plugin::PluginRuntime::default();
                     if let Some(rt) = params.remove("runtime") {
                         let rt = rt
                             .as_table()
-                            .ok_or_else(|| format!("plugins.{other}.runtime must be a table"))?;
-                        for (rk, rv) in rt {
-                            match rk.as_str() {
-                                "fuel" => {
-                                    let fuel = rv.as_integer().ok_or_else(|| {
-                                        format!("plugins.{other}.runtime.fuel must be an integer")
-                                    })?;
-                                    if fuel < 0 {
-                                        return Err(format!(
-                                            "plugins.{other}.runtime.fuel must be >= 0"
-                                        ));
-                                    }
-                                    runtime.fuel = Some(fuel as u64);
-                                }
-                                unknown => {
-                                    return Err(format!(
-                                        "unknown plugins.{other}.runtime key {unknown:?} \
-                                         (known: fuel)"
-                                    ));
-                                }
-                            }
-                        }
+                            .ok_or_else(|| format!("plugin.{other}.runtime must be a table"))?;
+                        parse_runtime(other, rt, &mut runtime)?;
                     }
                     let id = other.to_uppercase();
+                    let decl = crate::plugin::PluginDeclaration {
+                        key: other.to_owned(),
+                        path: camino::Utf8PathBuf::from(wasm),
+                        enabled,
+                    };
+                    if out.plugins.insert(id.clone(), decl).is_some() {
+                        return Err(format!(
+                            "plugin.{other} declared twice (keys differing only by case collide)"
+                        ));
+                    }
                     if runtime != crate::plugin::PluginRuntime::default() {
                         out.runtime.insert(id.clone(), runtime);
                     }
@@ -352,6 +375,33 @@ impl RawPlugins {
         }
         Ok(out)
     }
+}
+
+/// Parse one plugin's `.runtime` table into host knobs.
+fn parse_runtime(
+    id: &str,
+    rt: &toml::Table,
+    runtime: &mut crate::plugin::PluginRuntime,
+) -> Result<(), String> {
+    for (rk, rv) in rt {
+        match rk.as_str() {
+            "fuel" => {
+                let fuel = rv
+                    .as_integer()
+                    .ok_or_else(|| format!("plugin.{id}.runtime.fuel must be an integer"))?;
+                if fuel < 0 {
+                    return Err(format!("plugin.{id}.runtime.fuel must be >= 0"));
+                }
+                runtime.fuel = Some(fuel as u64);
+            }
+            unknown => {
+                return Err(format!(
+                    "unknown plugin.{id}.runtime key {unknown:?} (known: fuel)"
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Convert a toml value to JSON, preserving table contents verbatim.
@@ -381,12 +431,6 @@ fn toml_to_json(value: &toml::Value) -> serde_json::Value {
 impl RawConfig {
     /// Convert with level validation; `Err` carries the offending key+level.
     fn into_config(self) -> Result<Config, String> {
-        self.into_config_in_dir(None)
-    }
-
-    /// Like [`Self::into_config`] but anchors relative plugin paths at
-    /// `config_dir` when provided.
-    fn into_config_in_dir(self, config_dir: Option<&camino::Utf8Path>) -> Result<Config, String> {
         let mut lint = std::collections::BTreeMap::new();
         for (key, level) in self.lints {
             let level = level.into_level().map_err(|e| format!("{key}: {e}"))?;
@@ -394,8 +438,8 @@ impl RawConfig {
         }
         let plugins = self
             .plugins
-            .into_plugin_config(config_dir)
-            .map_err(|e| format!("[plugins] {e}"))?;
+            .into_plugin_config()
+            .map_err(|e| format!("[plugin] {e}"))?;
         let mut cfg = Config {
             lint,
             plugins,
@@ -497,18 +541,6 @@ mod tests {
     }
 
     #[test]
-    fn unknown_fields_are_rejected() {
-        // Given a document containing a misspelled section.
-        let text = "[scanx]\ntiers = [1]\n";
-
-        // When parsing.
-        let result = parse_config_str(text);
-
-        // Then parsing fails rather than silently ignoring.
-        assert!(result.is_err());
-    }
-
-    #[test]
     fn explicit_overrides_reach_typed_config() {
         // Given a config overriding every section.
         let text = r#"
@@ -546,8 +578,11 @@ color = "never"
         std::fs::write(root.join(".deslop.toml"), "[scan]\ntiers = [1]\n").expect("write");
 
         // When discovering from the deep child.
-        let cfg = discover(camino::Utf8Path::from_path(root.join("b").as_path()).expect("utf8"))
-            .expect("discover");
+        let cfg = discover(
+            camino::Utf8Path::from_path(root.join("b").as_path()).expect("utf8"),
+            None,
+        )
+        .expect("discover");
 
         // Then the parent's config applies.
         assert_eq!(cfg.scan.tiers, vec![1]);
@@ -559,48 +594,64 @@ color = "never"
         let dir = tempfile::tempdir().expect("tempdir");
 
         // When discovering from inside it.
-        let cfg =
-            discover(camino::Utf8Path::from_path(dir.path()).expect("utf8")).expect("discover");
+        let cfg = discover(camino::Utf8Path::from_path(dir.path()).expect("utf8"), None)
+            .expect("discover");
 
         // Then defaults apply (all five builtin packs).
         assert_eq!(cfg.packs.builtin.len(), 5);
     }
 
     #[test]
-    fn plugins_section_parses_paths_and_params() {
-        // Given a config declaring one plugin file and one params table.
+    fn plugin_block_parses_wasm_params_and_runtime() {
+        // Given a config declaring one plugin with params and a fuel knob.
         let text = r#"
-[plugins]
-paths = ["plug.wasm"]
-
-[plugins.exclaim]
+[plugin.exclaim]
+wasm = "exclaim.wasm"
 threshold_gt = 2.5
 
-[plugins.exclaim.runtime]
+[plugin.exclaim.runtime]
 fuel = 123456
 "#;
 
         // When parsing.
         let cfg = parse_config_str(text).expect("parse");
 
-        // Then paths stay relative (text mode) and params are opaque JSON.
-        assert_eq!(
-            cfg.plugins.paths,
-            vec![camino::Utf8PathBuf::from("plug.wasm")]
-        );
+        // Then the wasm value stays as-written (text mode) under the
+        // upper-cased key, and params are opaque JSON.
+        let decl = cfg.plugins.plugins.get("EXCLAIM").expect("declaration");
+        assert_eq!(decl.path, camino::Utf8PathBuf::from("exclaim.wasm"));
+        assert!(decl.enabled);
         let params = cfg.plugins.params.get("EXCLAIM").expect("params");
         assert_eq!(params["threshold_gt"], serde_json::json!(2.5));
-        // And the runtime table never leaks into params.
+        // And the reserved keys never leak into params.
+        assert!(params.get("wasm").is_none());
         assert!(params.get("runtime").is_none());
         // And the runtime knob landed in its own map.
         assert_eq!(cfg.plugins.runtime["EXCLAIM"].fuel, Some(123_456));
     }
 
     #[test]
+    fn plugin_enabled_false_marks_the_declaration() {
+        // Given a plugin switched off at the load level.
+        let text = r#"
+[plugin.p]
+wasm = "p.wasm"
+enabled = false
+"#;
+
+        // When parsing.
+        let cfg = parse_config_str(text).expect("parse");
+
+        // Then the declaration carries enabled = false.
+        assert!(!cfg.plugins.plugins["P"].enabled);
+    }
+
+    #[test]
     fn plugin_table_keys_become_uppercase_ids() {
         // Given a config using lowercase plugin ids.
         let text = r#"
-[plugins.myplug]
+[plugin.myplug]
+wasm = "myplug.wasm"
 flag = true
 "#;
 
@@ -612,21 +663,50 @@ flag = true
     }
 
     #[test]
-    fn plugins_section_absent_yields_default() {
-        // Given a config without [plugins].
+    fn plugin_section_absent_yields_default() {
+        // Given a config without any [plugin.*] table.
         let cfg = parse_config_str("[lints]\nFOO = \"allow\"\n").expect("parse");
 
         // Then the plugin config is empty.
-        assert!(cfg.plugins.paths.is_empty());
+        assert!(cfg.plugins.plugins.is_empty());
         assert!(cfg.plugins.params.is_empty());
         assert!(cfg.plugins.runtime.is_empty());
     }
 
     #[test]
-    fn plugins_unknown_runtime_key_is_a_config_error() {
+    fn plugin_missing_wasm_key_is_a_config_error() {
+        // Given a plugin table with no wasm path.
+        let text = "[plugin.p]\nthreshold = 1\n";
+
+        // When parsing.
+        let result = parse_config_str(text);
+
+        // Then it fails naming the missing key.
+        let err = format!("{:?}", result.expect_err("must fail"));
+        assert!(err.contains("missing the wasm key"), "{err}");
+    }
+
+    #[test]
+    fn plugin_wasm_without_wasm_extension_is_a_config_error() {
+        // Given a wasm path that is not a .wasm file.
+        let text = "[plugin.p]\nwasm = \"p.wat\"\n";
+
+        // When parsing.
+        let result = parse_config_str(text);
+
+        // Then it fails naming the extension requirement.
+        let err = format!("{:?}", result.expect_err("must fail"));
+        assert!(err.contains(".wasm"), "{err}");
+    }
+
+    #[test]
+    fn plugin_unknown_runtime_key_is_a_config_error() {
         // Given a runtime table with an unrecognized knob.
         let text = r#"
-[plugins.p.runtime]
+[plugin.p]
+wasm = "p.wasm"
+
+[plugin.p.runtime]
 fual = 10
 "#;
 
@@ -639,10 +719,13 @@ fual = 10
     }
 
     #[test]
-    fn plugins_negative_fuel_is_a_config_error() {
+    fn plugin_negative_fuel_is_a_config_error() {
         // Given a negative fuel value.
         let text = r#"
-[plugins.p.runtime]
+[plugin.p]
+wasm = "p.wasm"
+
+[plugin.p.runtime]
 fuel = -5
 "#;
 
@@ -654,14 +737,81 @@ fuel = -5
     }
 
     #[test]
-    fn plugins_scalar_entry_is_a_config_error() {
+    fn plugin_scalar_entry_is_a_config_error() {
         // Given a plugin entry that is not a table.
-        let text = "[plugins]\np = 3\n";
+        let text = "plugin = 3\n";
 
         // When parsing.
         let result = parse_config_str(text);
 
         // Then it fails with a type error.
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn wasm_paths_resolve_by_form_against_the_right_anchor() {
+        // Given a config using all three path forms and a known data dir.
+        let text = r#"
+[plugin.installed]
+wasm = "installed.wasm"
+
+[plugin.repolocal]
+wasm = "./modules/repo.wasm"
+
+[plugin.absolute]
+wasm = "/opt/lints/abs.wasm"
+"#;
+        let raw: RawConfig = toml::from_str(text).expect("toml");
+        let mut cfg = raw.into_config().expect("convert");
+
+        // When resolving with both anchors known.
+        let config_path = camino::Utf8PathBuf::from("/repo/.deslop.toml");
+        let data_dir = camino::Utf8PathBuf::from("/home/u/.local/share");
+        cfg = resolve_plugin_paths(cfg, &config_path, Some(&data_dir)).expect("resolve");
+
+        // Then each form lands at its anchor: bare → install dir,
+        // ./ → config dir, absolute → untouched.
+        assert_eq!(
+            cfg.plugins.plugins["INSTALLED"].path,
+            camino::Utf8PathBuf::from("/home/u/.local/share/deslop/plugins/installed.wasm")
+        );
+        assert_eq!(
+            cfg.plugins.plugins["REPOLOCAL"].path,
+            camino::Utf8PathBuf::from("/repo/modules/repo.wasm")
+        );
+        assert_eq!(
+            cfg.plugins.plugins["ABSOLUTE"].path,
+            camino::Utf8PathBuf::from("/opt/lints/abs.wasm")
+        );
+    }
+
+    #[test]
+    fn case_colliding_plugin_keys_are_a_config_error() {
+        // Given two tables whose keys differ only by case.
+        let text = r#"
+[plugin.Ex]
+wasm = "a.wasm"
+
+[plugin.ex]
+wasm = "b.wasm"
+"#;
+
+        // When parsing.
+        let result = parse_config_str(text);
+
+        // Then the collision is rejected (one id, two declarations).
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn unknown_fields_are_rejected() {
+        // Given a document containing a misspelled section.
+        let text = "[scanx]\ntiers = [1]\n";
+
+        // When parsing.
+        let result = parse_config_str(text);
+
+        // Then parsing fails rather than silently ignoring.
         assert!(result.is_err());
     }
 }

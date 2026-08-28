@@ -3,7 +3,9 @@
 //! The fixtures under `tests/fixtures/plugins` are hand-written WAT modules
 //! compiled in-process by the `wat` crate, so no wasm32 toolchain is needed.
 
-use deslop_core::plugin::{LintPlugin, PluginConfig, PluginError, PluginInput, load_plugins};
+use deslop_core::plugin::{
+    LintPlugin, PluginConfig, PluginDeclaration, PluginError, PluginInput, load_plugins,
+};
 
 /// Compile a WAT fixture from `tests/fixtures/plugins` to wasm bytes.
 fn fixture(name: &str) -> Vec<u8> {
@@ -14,11 +16,26 @@ fn fixture(name: &str) -> Vec<u8> {
     wat::parse_str(&wat).unwrap_or_else(|e| panic!("parse {name}: {e}"))
 }
 
-/// Write bytes to a temp file (models a user's `plugins.paths` entry).
+/// Write bytes to a temp file (models a user's `wasm = "..."` declaration).
 fn spill(dir: &tempfile::TempDir, name: &str, bytes: &[u8]) -> camino::Utf8PathBuf {
     let path = camino::Utf8PathBuf::from_path_buf(dir.path().join(name)).expect("utf8 path");
     std::fs::write(&path, bytes).expect("write fixture");
     path
+}
+
+/// A config declaring `path` under table key `key`.
+fn config_with(key: &str, path: camino::Utf8PathBuf) -> PluginConfig {
+    PluginConfig {
+        plugins: std::collections::BTreeMap::from([(
+            key.to_owned(),
+            PluginDeclaration {
+                key: key.to_owned(),
+                path,
+                enabled: true,
+            },
+        )]),
+        ..PluginConfig::default()
+    }
 }
 
 fn sample_input() -> PluginInput {
@@ -144,23 +161,20 @@ fn scan_is_reusable_across_documents() {
 }
 
 #[test]
-fn duplicate_plugin_ids_keep_the_first_and_warn() {
-    // Given two different files declaring the same plugin id.
+fn mismatched_config_key_skips_the_plugin_with_a_warning() {
+    // Given a valid module declared under a key that does not match its
+    // manifest id (FIXTURE).
     let wasm = fixture("happy.wat");
     let tmp = tempfile::tempdir().expect("tempdir");
-    let a = spill(&tmp, "first.wasm", &wasm);
-    let b = spill(&tmp, "second.wasm", &wasm);
-    let cfg = PluginConfig {
-        paths: vec![a, b],
-        ..PluginConfig::default()
-    };
+    let path = spill(&tmp, "happy.wasm", &wasm);
+    let cfg = config_with("WRONGNAME", path);
 
-    // When loading both.
+    // When loading.
     let (plugins, warnings) = load_plugins(&cfg);
 
-    // Then only the first loads and the duplicate is warned about.
-    assert_eq!(plugins.len(), 1);
+    // Then the plugin is skipped with a warning naming both handles.
+    assert!(plugins.is_empty());
     assert_eq!(warnings.len(), 1);
-    assert!(warnings[0].contains("second.wasm"), "{}", warnings[0]);
     assert!(warnings[0].contains("FIXTURE"), "{}", warnings[0]);
+    assert!(warnings[0].contains("WRONGNAME"), "{}", warnings[0]);
 }

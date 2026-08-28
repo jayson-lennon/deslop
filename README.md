@@ -371,24 +371,39 @@ mask bytes appear as `\0`; `doc.heading_ranges`, `doc.bold_spans` and
 findings whose spans live in those same coordinates. The host remaps them
 to the original document and validates everything.
 
-### Build and wire it up
+### Build and install
 
 ```console
 $ rustup target add wasm32-unknown-unknown      # once, developer machine only
 $ cargo build -p example-exclaim --target wasm32-unknown-unknown --release
 ```
 
+Personal plugins live in the plugin install dir
+`~/.local/share/deslop/plugins/` (the platform data dir; created by you,
+never scanned — a file there does nothing until a config declares it).
+Repo plugins can sit anywhere in the repo.
+
 ```toml
 # .deslop.toml
-[plugins]
-paths = ["target/wasm32-unknown-unknown/release/example_exclaim.wasm"]
+[plugin.exclaim]
+wasm = "exclaim.wasm"    # bare name → ~/.local/share/deslop/plugins/exclaim.wasm
+threshold_gt = 1.0       # everything except wasm/enabled/runtime is an opaque param
 
-[plugins.exclaim]        # opaque params, passed to the plugin verbatim
-threshold_gt = 1.0
-
-# [plugins.exclaim.runtime]   # host knobs (optional)
-# fuel = 100_000_000          # per-call compute budget; default scales with document size
+# [plugin.exclaim.runtime]   # host knobs (optional)
+# fuel = 100_000_000         # per-call compute budget; default scales with document size
 ```
+
+The `wasm` path resolves by form (must always end in `.wasm`):
+
+| Form | Resolves against | Use |
+|---|---|---|
+| `/abs/path.wasm` | exactly as written | machine-specific locations |
+| `./rel.wasm`, `../up/rel.wasm` | the `.deslop.toml`'s directory | repo-committed plugins |
+| `name.wasm` | `~/.local/share/deslop/plugins/` | personally installed plugins |
+
+Add `enabled = false` to switch a plugin off at load level — the module is
+never read and it disappears from `deslop rules` (whereas `[lints] ID =
+"allow"` keeps it loaded and listed but silent during scans).
 
 Plugin findings behave exactly like native findings: they show up in
 `deslop rules`, can be silenced or re-tiered via `[lints]` (`EXCLAIM =

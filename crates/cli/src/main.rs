@@ -133,11 +133,14 @@ fn run(cli: Cli) -> i32 {
     }
 
     // Config resolution: explicit path wins; else walk up from cwd.
+    // Bare `wasm` names resolve against the user plugin install dir under
+    // the platform data dir (~/.local/share/deslop/plugins on Linux).
     let start = cli
         .config
         .clone()
         .unwrap_or_else(|| camino::Utf8PathBuf::from("."));
-    let cfg = match deslop_core::config::discover(&start) {
+    let data_dir = dirs::data_dir().and_then(|p| camino::Utf8PathBuf::from_path_buf(p).ok());
+    let cfg = match deslop_core::config::discover(&start, data_dir.as_deref()) {
         Ok(cfg) => cfg,
         Err(report) => {
             eprintln!("deslop: {report:?}");

@@ -15,16 +15,14 @@
 //! Then wire it up:
 //!
 //! ```toml
-//! [plugins]
-//! paths = ["target/wasm32-unknown-unknown/release/example_exclaim.wasm"]
-//!
-//! [plugins.exclaim]
+//! [plugin.exclaim]
+//! wasm = "./target/wasm32-unknown-unknown/release/example_exclaim.wasm"
 //! threshold_gt = 1.0   # findings per 1000 words; omit for the default
 //! ```
 
 use deslop_plugin_sdk::{Doc, Finding, Plugin, export};
 
-/// `[plugins.<id>]` table. All fields default, so the section is optional.
+/// `[plugin.<id>]` table. All fields default, so the section is optional.
 #[derive(serde::Deserialize, Default)]
 pub struct Params {
     /// Report when the rate exceeds this many exclamations per 1000 words.

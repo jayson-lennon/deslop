@@ -35,9 +35,17 @@
 //! cargo build -p your-plugin --target wasm32-unknown-unknown --release
 //! ```
 //!
-//! Then point `[plugins] paths` in `.deslop.toml` at the `.wasm` and give
-//! the plugin its params under `[plugins.<your-id-lowercase>]`. See the
+//! Then declare the plugin in `.deslop.toml` and give it its params in the
+//! same table. The `wasm` path resolves by form: absolute paths are used
+//! exactly, `./`/`../` paths are relative to the config file, and bare
+//! names look in the install dir `~/.local/share/deslop/plugins/`. See the
 //! `example-exclaim` crate for a complete working plugin.
+//!
+//! ```toml
+//! [plugin.exclaim]
+//! wasm = "exclaim.wasm"     # → ~/.local/share/deslop/plugins/exclaim.wasm
+//! threshold_gt = 1.0        # anything but wasm/enabled/runtime is a param
+//! ```
 //!
 //! # Panics
 //!
@@ -111,7 +119,7 @@ pub trait Plugin {
     /// ABI version this SDK speaks; bumping is a breaking release.
     const ABI_VERSION: u32 = PROTOCOL_ABI;
 
-    /// The plugin's configuration, deserialized from `[plugins.<id>]`.
+    /// The plugin's configuration, deserialized from `[plugin.<id>]`.
     /// Use `#[serde(default)]` fields so a missing table still works.
     type Params: serde::de::DeserializeOwned + Default;
 
