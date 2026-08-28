@@ -378,3 +378,32 @@ advice = 'replace {bogus} please'
         loaded.errors
     );
 }
+
+#[test]
+fn builtin_pack_advices_carry_no_todo_markers() {
+    // Given the default config (all five builtin packs).
+    let cfg = Config::default();
+    let root = camino::Utf8Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../")
+        .into_std_path_buf();
+
+    // When loading the builtin packs from the repo root.
+    let loaded = load(&cfg, camino::Utf8Path::from_path(&root).expect("utf8"));
+
+    // Then no errors and no advice mentions TODO.
+    assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+    let offenders: Vec<String> = loaded
+        .rule_set
+        .groups
+        .iter()
+        .flat_map(|g| {
+            g.entries
+                .iter()
+                .filter_map(|e| e.advice_override.as_ref())
+                .chain(g.advice.iter())
+        })
+        .filter(|a| a.contains("TODO"))
+        .cloned()
+        .collect();
+    assert!(offenders.is_empty(), "advice with TODO: {offenders:?}");
+}

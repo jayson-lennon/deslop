@@ -9,7 +9,7 @@ enabled = true
 
 [[group.entries]]
 slug = 'leverage'
-advice = "Replace \"{match}\" with its plain verb (\"use\") - nominalized business-speak is a top frequency signal in Kobak 2025"
+advice = "Replace \"{match}\" with its plain verb (\"use\")"
 terms = ['leverage']
 replacement = 'use'
 stems = true
@@ -23,7 +23,7 @@ stems = true
 
 [[group.entries]]
 slug = 'transformative'
-advice = 'Strong AI tell; one use is worth flagging'
+advice = 'Strong AI tell; one use is worth flagging - replace "transformative" with a concrete description of the change'
 terms = ['transformative']
 replacement = 'big'
 stems = true

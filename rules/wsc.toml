@@ -349,7 +349,7 @@ category = 'copula-puffery'
 [[group.entries]]
 slug = 'main'
 regex = "\\bstands as an?\\b|\\bholds the distinction of\\b|\\bserves as a (?:testament|beacon|reminder|symbol|cornerstone)\\b\n"
-advice = "Rewrite the construction plainly (wsc: Inflated copulas (\"stands as a\", \"serves as a testament\") replace plain \"is\" in AI prose (WP:AISIGNS; Geng & Trotta 2025))"
+advice = "Rewrite the construction plainly (wsc: inflated copulas (\"stands as a\", \"serves as a testament\") replace plain \"is\" in AI prose)"
 
 [group.fixtures]
 must_match = ['The cathedral stands as a testament to medieval craft.']
@@ -383,7 +383,7 @@ category = 'despite-challenges'
 [[group.entries]]
 slug = 'main'
 regex = "\\bdespite (?:its|these|their|the)\\b[^.!?\\n]{1,60}?\\b(?:faces?|faced|continues? to face|remains?)\\b[^.!?\\n]{0,40}?\\bchallenges\\b\n"
-advice = "Rewrite the construction plainly (wsc: The \"Despite its X, [subject] faces challenges\" formula is a documented AI outline habit (WP:AISIGNS; Russell 2025))"
+advice = "Rewrite the construction plainly (wsc: the \"Despite its X, [subject] faces challenges\" formula is a documented AI outline habit)"
 
 [group.fixtures]
 must_match = [
@@ -400,7 +400,7 @@ category = 'false-range'
 [[group.entries]]
 slug = 'main'
 regex = "\\bfrom [^,.;!?\\n]{2,40} to [^,.;!?\\n]{2,40}, (?:and )?from [^,.;!?\\n]{2,40} to\\b\n"
-advice = "Rewrite the construction plainly (wsc: Chained \"from X to Y, from Z to W\" false ranges are a documented AI comprehensiveness gesture (WP:AISIGNS))"
+advice = "Rewrite the construction plainly (wsc: chained \"from X to Y, from Z to W\" false ranges are a documented AI comprehensiveness gesture)"
 
 [group.fixtures]
 must_match = [
@@ -419,7 +419,7 @@ category = 'meta-announcement'
 [[group.entries]]
 slug = 'main'
 regex = "\\bthis (?:article|blog post|post|essay|guide) (?:aims|seeks) to\\b\n"
-advice = "Rewrite the construction plainly (wsc: \"This article aims to explore...\" meta-announcements are ~50x more frequent in AI text (GPTZero))"
+advice = "Rewrite the construction plainly (wsc: \"This article aims to explore...\" meta-announcements are a machine-drafted framing)"
 
 [group.fixtures]
 must_match = ['This article aims to explore the history of the canal system.']
@@ -457,7 +457,7 @@ category = 'not-only-but-also'
 [[group.entries]]
 slug = 'main'
 regex = "\\bnot only\\b[^.!?\\n]{2,80}?\\bbut also\\b\n"
-advice = "Rewrite the construction plainly (wsc: \"not only... but also\" is heavily overused by LLMs of every generation (Russell 2025; WP:AISIGNS))"
+advice = "Rewrite the construction plainly (wsc: \"not only... but also\" is heavily overused by LLMs of every generation)"
 
 [group.fixtures]
 must_match = ['The update is not only faster but also more stable.']
@@ -472,7 +472,7 @@ category = 'pivotal-role-claim'
 [[group.entries]]
 slug = 'main'
 regex = "\\bplay(?:s|ed|ing)? an? (?:crucial|pivotal|vital|key|critical|essential|significant|central|integral|major|prominent|important) (?:role|part)\\b\n"
-advice = "Rewrite the construction plainly (wsc: \"plays a crucial/vital/key role\" is an AI significance cliche (WP:AISIGNS grandiose-phrase list))"
+advice = "Rewrite the construction plainly (wsc: \"plays a crucial/vital/key role\" is an AI significance cliche)"
 
 [group.fixtures]
 must_match = ['Fiber plays a crucial role in digestive health.']
@@ -489,7 +489,7 @@ category = 'trailing-participial-analysis'
 [[group.entries]]
 slug = 'main'
 regex = ",\\s+(?:further |thereby |ultimately )?(?:highlighting|underscoring|showcasing|reflecting|emphasi[sz]ing|demonstrating|signall?ing|illustrating|cementing|solidifying|reinforcing|exemplifying|epitomizing|symbolizing|embodying|heralding)\\b\n"
-advice = "Rewrite the construction plainly (wsc: Trailing \", highlighting/underscoring/showcasing...\" significance clauses are the best-evidenced syntactic AI tell (Reinhart PNAS 2025; WP:AISIGNS))"
+advice = "Rewrite the construction plainly (wsc: trailing \", highlighting/underscoring/showcasing...\" significance clauses are a strongly evidenced syntactic AI tell)"
 
 [group.fixtures]
 must_match = ['The results improved by 40%, highlighting the new cache design.']
@@ -506,7 +506,7 @@ category = 'unfilled-placeholder'
 [[group.entries]]
 slug = 'main'
 regex = "\\[(?:your (?:name|username|email|company(?: name)?)|company name|insert [^\\]\\n]{2,40}|[a-z ]{0,20}goes here)\\]\n"
-advice = "Rewrite the construction plainly (wsc: Unfilled template placeholders (\"[Your Name]\", \"[insert X]\") are AI draft output left incomplete (WP:AISIGNS))"
+advice = "Rewrite the construction plainly (wsc: unfilled template placeholders (\"[Your Name]\", \"[insert X]\") are AI draft output left incomplete)"
 
 [group.fixtures]
 must_match = ['Send it to [Your Name] before Friday.']
@@ -521,7 +521,7 @@ category = 'vague-attribution'
 [[group.entries]]
 slug = 'main'
 regex = "\\b(?:(?:experts|critics|observers|scholars|analysts|commentators) (?:have )?(?:widely )?(?:agree(?:d|ment)?|argue[ds]?|suggest(?:s|ed)?|believe[ds]?|note[ds]?|cite[ds]?|claim(?:s|ed)?|warn(?:s|ed)?|say|said|pointed out))\\b|\\bindustry (?:reports?|experts?|leaders?|insiders?) (?:have )?(?:widely )?(?:agree[sd]?|argue[ds]?|suggest(?:s|ed)?|warn(?:s|ed)?)\\b|\\bstudies (?:show|suggest|indicate|have shown)\\b|\\bresearch (?:shows|suggests|indicates|has shown)\\b\n"
-advice = "Rewrite the construction plainly (wsc: Vague authority attribution (\"experts agree\", \"studies show\") without a named source is a documented AI weasel pattern (WP:AISIGNS))"
+advice = "Rewrite the construction plainly (wsc: vague authority attribution (\"experts agree\", \"studies show\") without a named source is a documented AI weasel pattern)"
 
 [group.fixtures]
 must_match = ['Experts agree that the method works better than the control.']
