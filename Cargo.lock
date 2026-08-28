@@ -188,6 +188,7 @@ dependencies = [
  "tempfile",
  "termcolor",
  "walkdir",
+ "wat",
  "wherror",
 ]
 

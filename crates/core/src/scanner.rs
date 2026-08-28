@@ -308,8 +308,10 @@ fn plugin_findings(
         let tier = tier_of(manifest.tier);
         for pf in dedupe_by_slug(produced, id) {
             let entry_id = format!("{id}#{}", pf.slug);
-            // Per-finding gate: allow/note/warn/error by GROUP#slug, then GROUP.
-            let level = settings.level_for(id, &pf.slug);
+            // Per-finding gate: allow/note/warn/error by GROUP#slug, then
+            // GROUP. Native code passes the full entry id as the exact key;
+            // plugins follow the same shape.
+            let level = settings.level_for(id, &entry_id);
             if level == Some(crate::config::LintLevel::Allow) {
                 continue;
             }

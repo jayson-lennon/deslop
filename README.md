@@ -312,3 +312,90 @@ $ deslop doc.md                 # fixtures re-verify on every load
 
 If `must_match`/`must_not_match` samples fail, the pack refuses to load
 with a named entry and sample — that is the pack's unit test.
+
+---
+
+## WASM plugins
+
+Packs express what a TOML rule can say. When a check needs logic a pack
+can't express — a custom document metric, stateful iteration over
+structure, anything programmatic — write a plugin: a Rust struct plus one
+macro call, compiled to `.wasm` and declared in `.deslop.toml`.
+
+**Pack or plugin?** If a `vocab`/`pattern`/`literal-ban`/`metric` entry can
+express it, write a pack (less machinery, config-only tuning). Plugins are
+for logic packs can't reach.
+
+### The whole plugin
+
+```rust,ignore
+// crates/example-exclaim/src/lib.rs — the reference plugin, unabridged
+use deslop_plugin_sdk::{export, Doc, Finding, Plugin};
+
+#[derive(serde::Deserialize, Default)]
+struct Params {
+    #[serde(default = "default_threshold")]
+    threshold_gt: f64,               // report above this many "!"s per 1000 words
+}
+fn default_threshold() -> f64 { 1.0 }
+
+struct Exclaim;
+
+impl Plugin for Exclaim {
+    const ID: &'static str = "EXCLAIM";     // [lints] key, `deslop rules` name
+    const TIER: u8 = 3;                     // 1 artifact / 2 tell / 3 density
+    const CATEGORY: &'static str = "emphasis";
+    type Params = Params;
+
+    fn scan(doc: &Doc, params: &Params) -> Vec<Finding> {
+        let bangs = doc.text.bytes().filter(|&b| b == b'!').count();
+        let words = doc.text.split_whitespace().count();
+        if bangs == 0 || words < 250 { return vec![]; }
+        let rate = bangs as f64 / words as f64 * 1000.0;
+        if rate <= params.threshold_gt { return vec![]; }
+        let at = doc.text.find('!').unwrap();
+        vec![Finding::new("exclamania", (at, at + 1),
+                format!("exclamation rate {rate:.1} per 1000 words"))
+            .with_advice("cut most of these; one reads confident, ten reads shaky")]
+    }
+}
+
+export!(Exclaim);
+```
+
+Nothing above mentions wasm, memory, or serialization — the SDK handles
+allocation, the JSON wire protocol, and the exports. `scan` gets the
+document (`doc.text` is normalized prose with quoted-term masking applied,
+mask bytes appear as `\0`; `doc.heading_ranges`, `doc.bold_spans` and
+`doc.list_items` are byte ranges in the same coordinates) and returns
+findings whose spans live in those same coordinates. The host remaps them
+to the original document and validates everything.
+
+### Build and wire it up
+
+```console
+$ rustup target add wasm32-unknown-unknown      # once, developer machine only
+$ cargo build -p example-exclaim --target wasm32-unknown-unknown --release
+```
+
+```toml
+# .deslop.toml
+[plugins]
+paths = ["target/wasm32-unknown-unknown/release/example_exclaim.wasm"]
+
+[plugins.exclaim]        # opaque params, passed to the plugin verbatim
+threshold_gt = 1.0
+
+# [plugins.exclaim.runtime]   # host knobs (optional)
+# fuel = 100_000_000          # per-call compute budget; default scales with document size
+```
+
+Plugin findings behave exactly like native findings: they show up in
+`deslop rules`, can be silenced or re-tiered via `[lints]` (`EXCLAIM =
+"allow"`, `EXCLAIM = "error"`, or per-slug `"EXCLAIM#exclamania"`), feed
+the exit code by tier, and render in all formats. They are report-only —
+`deslop fix` never rewrites text because of a plugin.
+
+A plugin that traps, exceeds its fuel budget, or emits invalid spans is
+skipped for that document with a warning on stderr; it never changes the
+exit code or aborts the run.
