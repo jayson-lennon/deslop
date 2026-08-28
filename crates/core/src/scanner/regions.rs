@@ -88,9 +88,16 @@ pub fn build_regions(src: &str) -> RegionMap {
                     end: range.end,
                 });
             }
-            // Inline code.
+            // Inline code. The event range covers the backtick markup; the
+            // naive `range.end - code.len()` estimate lands mid-char for
+            // multibyte content, so anchor on the content's last raw
+            // occurrence and let boundary-snapping cover the rest.
             Event::Code(code) => {
-                let inner_start = range.end.saturating_sub(code.len());
+                let raw = &src[range.start..range.end];
+                let inner_start = match raw.rfind(code.as_ref()) {
+                    Some(rel) => range.start + rel,
+                    None => range.end.saturating_sub(code.len()),
+                };
                 mask_spans.push(MaskedSpan {
                     start: inner_start,
                     end: range.end,
@@ -112,9 +119,35 @@ pub fn build_regions(src: &str) -> RegionMap {
     auto_link_and_raw_html_urls(src, &mut mask_spans);
 
     scopes.sort_by_key(|(s, _, _)| *s);
+    mask_spans.sort_by_key(|s| (s.start, s.end));
+    snap_spans_to_boundaries(src, &mut mask_spans);
     RegionMap {
         masked: apply_masks(src, &mask_spans),
         scopes,
+    }
+}
+
+/// Snap every mask span outward to UTF-8 char boundaries.
+///
+/// Mask ranges are computed by several producers (pulldown event ranges,
+/// `rfind` of a *decoded* link destination inside a raw slice, bare-URL
+/// heuristics). A producer that measures in decoded bytes while slicing raw
+/// text can land a span edge mid-char - byte-wise NULing would then emit
+/// invalid UTF-8 and drop the fast path. Expanding edges outward keeps the
+/// mask conservative (hides a hair more) and every span edge a boundary.
+fn snap_spans_to_boundaries(src: &str, spans: &mut [MaskedSpan]) {
+    let len = src.len();
+    for span in spans.iter_mut() {
+        let mut lo = span.start.min(len);
+        let mut hi = span.end.min(len);
+        while lo > 0 && !src.is_char_boundary(lo) {
+            lo -= 1;
+        }
+        while hi < len && !src.is_char_boundary(hi) {
+            hi += 1;
+        }
+        span.start = lo;
+        span.end = hi;
     }
 }
 
@@ -210,6 +243,40 @@ fn mask_char_safe(src: &str, spans: &[MaskedSpan]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mask_span_cut_mid_multibyte_keeps_length_and_valid_utf8() {
+        // Given a code span whose raw form is LONGER than its decoded form
+        // (entity) and whose raw neighborhood holds multibyte chars, the
+        // `range.end - code.len()` producer can land mid-char.
+        let src = "\u{201c}a\u{201d} `&#x201D;` tail";
+
+        // When building regions.
+        let map = build_regions(src);
+
+        // Then the mask stays length-preserving and valid UTF-8: byte-NUL
+        // invariants hold and pattern scanning can slice runs safely.
+        assert_eq!(map.masked.len(), src.len());
+        // And the masked hole covers the entity, not a half-char.
+        assert!(map.masked.contains('\u{201c}'));
+    }
+
+    #[test]
+    fn mask_span_cut_mid_multibyte_expands_to_full_chars() {
+        // Given a span deliberately crafted to start inside a multibyte char.
+        let src = "a\u{2014}b";
+        let mut spans = vec![MaskedSpan { start: 2, end: 4 }];
+
+        // When snapping to boundaries and masking.
+        snap_spans_to_boundaries(src, &mut spans);
+        let map = RegionMap {
+            masked: apply_masks(src, &spans),
+            scopes: vec![],
+        };
+
+        // Then masked length equals source length and bytes are valid.
+        assert_eq!(map.masked.len(), src.len());
+    }
 
     #[test]
     fn masked_length_always_equals_source_length() {
