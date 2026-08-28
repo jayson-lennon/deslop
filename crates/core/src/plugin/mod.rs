@@ -16,6 +16,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
+pub mod builtin;
 pub mod fake;
 pub mod wasmi_host;
 
