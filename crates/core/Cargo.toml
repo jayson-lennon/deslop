@@ -18,7 +18,9 @@ error-stack = { workspace = true }
 walkdir = { workspace = true }
 camino = { workspace = true }
 deslop-plugin-protocol = { path = "../plugin-protocol" }
+wasmi = "1.1"
 
 [dev-dependencies]
 rstest = { workspace = true }
 tempfile = { workspace = true }
+wat = "1.258.0"

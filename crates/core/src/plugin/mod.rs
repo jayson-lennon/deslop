@@ -16,10 +16,13 @@
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
-use deslop_plugin_protocol::{PluginFinding, PluginInput, PluginManifest, PROTOCOL_ABI};
 
 pub mod fake;
 pub mod wasmi_host;
+
+pub use deslop_plugin_protocol::{PluginFinding, PluginInput, PluginManifest};
+
+use deslop_plugin_protocol::PROTOCOL_ABI;
 
 /// Fuel budget baseline for a single plugin call, independent of input size.
 ///
