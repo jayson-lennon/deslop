@@ -150,7 +150,18 @@ fn rewrite(src: &str, findings: &[Finding]) -> String {
         let Some(replacement) = &finding.replacement else {
             continue;
         };
-        out.replace_range(finding.span.start..finding.span.end, replacement);
+        // Deletion rewrites: also eat one following space so
+        // "crucial and it is important to note that we" doesn't collapse
+        // into "and  we" with a double blank.
+        if replacement.is_empty() {
+            let mut end = finding.span.end;
+            if out[end..].starts_with(' ') {
+                end += 1;
+            }
+            out.replace_range(finding.span.start..end, "");
+        } else {
+            out.replace_range(finding.span.start..finding.span.end, replacement);
+        }
     }
     out
 }

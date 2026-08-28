@@ -130,3 +130,17 @@ fn second_write_run_is_idempotent() {
     assert_eq!(run.body(), once);
     assert_eq!(run.body(), "We will use the existing pipeline.\n");
 }
+
+const DELETION_DOC: &str = "crucial and it is important to note that we ship.\n";
+
+#[test]
+fn deletion_replacement_eats_one_following_space() {
+    // Given a doc whose hit carries an empty replacement (deletion).
+    let run = FixRun::new("deletion", DELETION_DOC);
+
+    // When applying --write.
+    run.run_fix(&["--write"]);
+
+    // Then the phrase vanishes WITHOUT leaving a double blank.
+    assert_eq!(run.body(), "crucial and we ship.\n");
+}
