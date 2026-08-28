@@ -241,11 +241,13 @@ The `justfile` is minimal; use `cargo` directly for the rest.
 
 | Role | Command | Description |
 |---|---|---|
-| `vcs` | `git` | Branches off `main`; `trunk` is the long-lived line |
+| `vcs` | `git` | `git status`, `git diff`, `git log`, ... |
 | `check` | `cargo check --workspace` | Fast compile check |
 | `test` | `cargo test --workspace` | **All tests must pass before committing** |
 | `lint` | `cargo clippy --workspace` | Warnings are not negotiable |
 | `format` | `cargo fmt` | Apply formatting |
+| `commit` | `git add -A && git commit -m '<message>'` | Stage and commit all work |
+| `sync-trunk` | `git rebase main` | Run on your working branch to bring in the latest `main` (resolve conflicts, re-run tests, commit). NEVER merge or push your branch onto `main` |
 | gallery | `just gallery` | Lint `tests/gallery/gallery.md` with the trigger pack — visual regression check for rendered output |
 
 Wasm plugin development additionally needs `rustup target add wasm32-unknown-unknown` (developer machine only; building `deslop` itself never requires it).
