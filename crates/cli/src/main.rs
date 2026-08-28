@@ -111,6 +111,8 @@ enum PluginCommand {
         /// Builtin plugin name (`deslop plugin list` shows them).
         name: String,
     },
+    /// Install every builtin plugin and print one config block for all.
+    InstallAll,
     /// List builtin plugins and their install state.
     List,
 }
@@ -265,6 +267,7 @@ fn run(cli: Cli) -> i32 {
         Some(Command::Init) => cmd::init_cmd::run(),
         Some(Command::Plugin { command }) => match command {
             PluginCommand::Install { name } => cmd::plugin_cmd::install_cmd(&name),
+            PluginCommand::InstallAll => cmd::plugin_cmd::install_all_cmd(),
             PluginCommand::List => cmd::plugin_cmd::list_cmd(),
         },
         None => {

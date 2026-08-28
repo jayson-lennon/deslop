@@ -64,9 +64,7 @@ fn write_module(
 
 /// Entry point for `deslop plugin install <name>`.
 pub fn install_cmd(name: &str) -> i32 {
-    let Some(data_dir) = dirs::data_dir().and_then(|p| camino::Utf8PathBuf::from_path_buf(p).ok())
-    else {
-        eprintln!("deslop: no user data directory available on this platform");
+    let Some(data_dir) = resolve_data_dir() else {
         return ExitCode::LoadFailure as i32;
     };
 
@@ -84,15 +82,85 @@ pub fn install_cmd(name: &str) -> i32 {
         }
     };
 
-    // Usage hint from the module's own manifest id; the config key matches
-    // it case-insensitively, so lowercase is always valid.
-    let key_hint = manifest.id.to_lowercase();
     println!("installed {name} -> {target}");
     println!("enable it in a project's .deslop.toml with:");
     println!();
-    println!("  [plugin.{key_hint}]");
-    println!("  wasm = \"{}.wasm\"", builtin.name);
+    print_config_snippet(&[&format_config_entry(builtin.name, &manifest)]);
     ExitCode::Clean as i32
+}
+
+/// Entry point for `deslop plugin install-all`.
+///
+/// Installs every builtin, then prints ONE TOML block declaring all of them
+/// — paste it into `.deslop.toml` (project) or `~/.config/deslop/deslop.toml`
+/// (user-global) and every plugin is wired up.
+pub fn install_all_cmd() -> i32 {
+    let Some(data_dir) = resolve_data_dir() else {
+        return ExitCode::LoadFailure as i32;
+    };
+    let dir = plugin_dir(&data_dir);
+
+    // Validate everything first: an invalid builtin is a build bug, and
+    // install-all should not leave a half-broken set silently installed.
+    let mut entries: Vec<(String, String, &deslop_core::plugin::builtin::Builtin)> = Vec::new();
+    for builtin in crate::builtin_registry::all() {
+        match validated_manifest(builtin.name) {
+            Ok(manifest) => {
+                entries.push((
+                    builtin.name.to_owned(),
+                    format_config_entry(builtin.name, &manifest),
+                    builtin,
+                ));
+            }
+            Err(code) => return code as i32,
+        }
+    }
+
+    for (name, _, builtin) in &entries {
+        match write_module(name, builtin.bytes, &dir) {
+            Ok(target) => println!("installed {name} -> {target}"),
+            Err(detail) => {
+                eprintln!("deslop: {detail}");
+                return ExitCode::LoadFailure as i32;
+            }
+        }
+    }
+
+    println!();
+    let snippets: Vec<&str> = entries.iter().map(|(_, e, _)| e.as_str()).collect();
+    print_config_snippet(&snippets);
+    ExitCode::Clean as i32
+}
+
+/// Render the paste-ready TOML block: a fenced snippet of `[plugin.<id>]`
+/// tables (keys lower-cased from each module's own manifest id).
+fn print_config_snippet(entries: &[&str]) {
+    println!("paste into .deslop.toml (or ~/.config/deslop/deslop.toml):");
+    println!();
+    println!("```toml");
+    for entry in entries {
+        println!("{entry}");
+    }
+    println!("```");
+}
+
+/// One `[plugin.<id>]` table for a builtin: the config key comes from the
+/// module's own manifest id (lower-cased; matching is case-insensitive),
+/// the `wasm` value is the bare install name.
+fn format_config_entry(name: &str, manifest: &PluginManifest) -> String {
+    let key = manifest.id.to_lowercase();
+    format!("[plugin.{key}]\nwasm = \"{name}.wasm\"")
+}
+
+/// Resolve the platform data dir, reporting to stderr when unavailable.
+fn resolve_data_dir() -> Option<camino::Utf8PathBuf> {
+    match dirs::data_dir().and_then(|p| camino::Utf8PathBuf::from_path_buf(p).ok()) {
+        Some(dir) => Some(dir),
+        None => {
+            eprintln!("deslop: no user data directory available on this platform");
+            None
+        }
+    }
 }
 
 /// Entry point for `deslop plugin list`.
@@ -191,6 +259,42 @@ mod tests {
         // Then its manifest id comes back from the module itself.
         let manifest = validated_manifest("example-exclaim").expect("valid builtin");
         assert_eq!(manifest.id, "EXCLAIM");
+    }
+
+    #[test]
+    fn format_config_entry_uses_the_manifest_id_lowercased() {
+        // Given the example plugin's manifest id EXCLAIM.
+        let manifest = validated_manifest("example-exclaim").expect("valid builtin");
+
+        // When formatting its config entry.
+        // Then the key is the lower-cased manifest id and wasm the bare name.
+        let entry = format_config_entry("example-exclaim", &manifest);
+        assert_eq!(entry, "[plugin.exclaim]\nwasm = \"example-exclaim.wasm\"");
+    }
+
+    #[test]
+    fn install_all_places_every_builtin_and_prints_one_block() {
+        // Given an empty install dir.
+        with_dir(|dir| {
+            let all = crate::builtin_registry::all();
+            assert!(!all.is_empty(), "registry must not be empty");
+
+            // When writing every builtin (the install-all write loop).
+            let mut snippets: Vec<String> = Vec::new();
+            for builtin in all {
+                let manifest = validated_manifest(builtin.name).expect("valid builtin");
+                write_module(builtin.name, builtin.bytes, dir).expect("write");
+                snippets.push(format_config_entry(builtin.name, &manifest));
+            }
+
+            // Then every module is on disk.
+            for builtin in all {
+                assert!(dir.join(format!("{}.wasm", builtin.name)).is_file());
+            }
+            // And the snippet block contains one [plugin.*] table per builtin.
+            let block = snippets.join("\n");
+            assert_eq!(block.matches("[plugin.").count(), all.len());
+        });
     }
 
     #[test]

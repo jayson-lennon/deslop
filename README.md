@@ -383,13 +383,15 @@ toolchain:
 
 ```console
 $ deslop plugin list                    # what's available, and what's installed
-$ deslop plugin install example-exclaim
+$ deslop plugin install example-exclaim # install one
+$ deslop plugin install-all             # install every builtin at once
 ```
 
 That writes `~/.local/share/deslop/plugins/example-exclaim.wasm` (the
 platform data dir) and prints the `[plugin.<id>]` snippet to enable it.
-Installing is inert by itself — the directory is never scanned; a plugin
-runs only where a config declares it.
+`install-all` writes every builtin and prints a single copy-paste block
+declaring all of them. Installing is inert by itself — the directory is
+never scanned; a plugin runs only where a config declares it.
 
 ```toml
 # .deslop.toml
