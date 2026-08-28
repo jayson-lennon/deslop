@@ -250,16 +250,24 @@ fn metric_findings(
         let Some(spec) = &group.metric else { continue };
         let local_stat = metrics::Stat::parse(spec.stat.name()).expect("same registry");
         // Cluster stat is per-rule (terms vary); compute directly on masked.
-        // (value, anchor span in norm text). Cluster stat is per-rule
-        // (terms vary); other stats anchor at zero (whole-doc finding).
+        // (value, anchor span in norm text): cluster anchors at its densest
+        // window's final hit; whole-doc stats anchor at the FIRST occurrence
+        // of their signal so the caret sits on evidence, not byte 0.
         let measured: Option<(f64, metrics::ClusterHit)> = match local_stat {
             metrics::Stat::TermClusterMax => {
                 metrics::term_cluster_max(norm_text, &spec.terms, &spec.term_lemmas, spec.window)
                     .map(|(n, hit)| (n as f64, hit))
             }
-            _ => stats
-                .get(local_stat)
-                .map(|v| (v, metrics::ClusterHit { start: 0, end: 0 })),
+            _ => stats.get(local_stat).map(|v| {
+                let (s, e) = metrics::first_signal_span(
+                    local_stat,
+                    norm_text,
+                    &bold_spans,
+                    &heading_ranges,
+                    &list_items,
+                );
+                (v, metrics::ClusterHit { start: s, end: e })
+            }),
         };
         let Some((value, hit)) = measured else {
             continue;

@@ -28,7 +28,23 @@ fn severity(tier: Tier) -> Severity {
 }
 
 /// Build the diagnostic for one finding against a registered `file_id`.
+///
+/// A finding whose span is empty at byte 0 is DOCUMENT-level (whole-doc
+/// metrics): rendered as a note with no span label, since pointing a caret
+/// at whatever text opens the file reads as "this lint is about line 1".
 pub fn diagnostic(f: &deslop_core::finding::Finding, file_id: usize) -> Diagnostic<usize> {
+    if f.span.start == 0 && f.span.end == 0 {
+        let mut d = Diagnostic::new(severity(f.tier))
+            .with_code(f.entry_id.clone())
+            .with_message(f.message.clone());
+        if let Some(advice) = &f.advice {
+            d = d.with_notes(vec![format!("help: {advice}")]);
+        }
+        if let Some((text, href)) = &f.url {
+            d = d.with_notes(vec![format!("see: {text} - {href}")]);
+        }
+        return d;
+    }
     let mut labels = vec![Label {
         style: LabelStyle::Primary,
         file_id,

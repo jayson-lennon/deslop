@@ -22,7 +22,7 @@ pub fn measure(inputs: &Inputs<'_>, stats: &mut DocStats) {
 }
 
 /// Title Case decision for one heading body.
-fn is_titlecase(text: &str) -> bool {
+pub(crate) fn is_titlecase(text: &str) -> bool {
     let minor = ["of", "the", "and", "in", "on", "to", "a", "an", "for"];
     let words: Vec<&str> = text
         .split_whitespace()

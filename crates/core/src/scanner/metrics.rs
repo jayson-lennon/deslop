@@ -11,6 +11,7 @@
 //! docs from producing explosive nonsense rates; they live in
 //! [`DocStats::get`], next to the values they guard.
 
+mod anchors;
 mod bold_density;
 mod bullet_boldlead;
 mod curly_double_ratio;
@@ -301,17 +302,17 @@ pub fn list_item_ranges(map: &crate::scanner::regions::RegionMap) -> Vec<(usize,
     })
 }
 
-/// Where a metric finding anchors: at the densest spot of its signal when
-/// meaningful, else document start.
-#[allow(clippy::match_single_binding)]
-pub fn anchor_for(stat: Stat, _text: &str, _map: &crate::scanner::regions::RegionMap) -> usize {
-    match stat {
-        // A zero-width anchor renders an empty span; diagnostics prefer a
-        // caret on something real, so anchor line starts suffice. Keep 0
-        // for all stats v1 (T9 says "near densest cluster" - refine in the
-        // phase-6 triage window).
-        _ => 0,
-    }
+/// Where a whole-doc metric finding anchors: the first occurrence of the
+/// stat's underlying signal (first curly quote, first Title Case heading,
+/// ...), so the caret sits on evidence instead of byte 0.
+pub(crate) fn first_signal_span(
+    stat: Stat,
+    text: &str,
+    bold_spans: &[(usize, usize)],
+    heading_ranges: &[(usize, usize)],
+    list_items: &[(usize, usize)],
+) -> (usize, usize) {
+    anchors::first_signal_span(stat, text, bold_spans, heading_ranges, list_items)
 }
 
 /// Shared test scaffolding for the per-stat submodules.
