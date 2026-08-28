@@ -3,6 +3,7 @@
 pub mod fix_cmd;
 pub mod init_cmd;
 pub mod lint_cmd;
+pub mod plugin_cmd;
 pub mod rules_cmd;
 
 /// Command execution failure (already reported to stderr).

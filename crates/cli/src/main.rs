@@ -96,6 +96,39 @@ enum Command {
     },
     /// Write an annotated starter `.deslop.toml`.
     Init,
+    /// Install builtin plugin modules to the user plugin dir.
+    Plugin {
+        #[command(subcommand)]
+        command: PluginCommand,
+    },
+}
+
+/// `deslop plugin` subcommands.
+#[derive(Debug, Clone, Subcommand)]
+enum PluginCommand {
+    /// Install a builtin plugin module to the user plugin dir.
+    Install {
+        /// Builtin plugin name (`deslop plugin list` shows them).
+        name: String,
+    },
+    /// List builtin plugins and their install state.
+    List,
+}
+
+/// Thin re-export seam so subcommand modules can reach the embedded
+/// plugin registry without importing core internals directly.
+mod builtin_registry {
+    pub use deslop_core::plugin::builtin::{BUILTINS, Builtin};
+
+    /// Find one builtin by install name.
+    pub fn find(name: &str) -> Option<&'static Builtin> {
+        BUILTINS.iter().find(|b| b.name == name)
+    }
+
+    /// Every builtin, in install order.
+    pub fn all() -> &'static [Builtin] {
+        BUILTINS
+    }
 }
 
 /// Process exit contract.
@@ -225,6 +258,10 @@ fn run(cli: Cli) -> i32 {
             }
         }
         Some(Command::Init) => cmd::init_cmd::run(),
+        Some(Command::Plugin { command }) => match command {
+            PluginCommand::Install { name } => cmd::plugin_cmd::install_cmd(&name),
+            PluginCommand::List => cmd::plugin_cmd::list_cmd(),
+        },
         None => {
             // Lint: load rules first; any load failure aborts with exit 2
             // before a single document is scanned (spec exit precedence).

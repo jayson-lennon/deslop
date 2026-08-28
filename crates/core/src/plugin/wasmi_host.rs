@@ -310,6 +310,19 @@ pub fn instantiate(path: &camino::Utf8Path) -> Result<WasmiPlugin, PluginError> 
     WasmiPlugin::from_bytes(&id_hint, &wasm)
 }
 
+/// Instantiate a plugin from in-memory wasm bytes.
+///
+/// Used by `deslop plugin install` to validate embedded builtin modules and
+/// read back their manifests. Same error contract as [`instantiate`].
+///
+/// # Errors
+///
+/// Returns [`PluginError::Load`] for invalid modules, missing exports,
+/// invalid manifests, or instantiation traps.
+pub fn instantiate_bytes(id_hint: &str, wasm: &[u8]) -> Result<WasmiPlugin, PluginError> {
+    WasmiPlugin::from_bytes(id_hint, wasm)
+}
+
 const _: () = {
     // Compile-time reminder: the ABI this file speaks must match the
     // protocol crate version it was compiled against.

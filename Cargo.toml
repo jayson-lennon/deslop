@@ -11,6 +11,7 @@ rust-version = "1.85"
 [workspace.dependencies]
 # internal
 deslop-core = { path = "crates/core" }
+deslop-plugin-protocol = { path = "plugins/protocol" }
 
 # CLI surface
 clap = { version = "4", features = ["derive"] }

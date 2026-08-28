@@ -182,6 +182,7 @@ dependencies = [
  "clap",
  "codespan-reporting",
  "deslop-core",
+ "deslop-plugin-protocol",
  "dirs",
  "error-stack",
  "serde_json",

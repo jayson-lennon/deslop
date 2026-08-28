@@ -37,7 +37,10 @@ pub struct Builtin {
 /// The builtin plugin set, in install order.
 pub const BUILTINS: &[Builtin] = &[Builtin {
     name: "example-exclaim",
-    bytes: include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../plugins/example-exclaim.wasm")),
+    bytes: include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../plugins/example-exclaim.wasm"
+    )),
 }];
 
 #[cfg(test)]

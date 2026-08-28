@@ -329,7 +329,7 @@ for logic packs can't reach.
 ### The whole plugin
 
 ```rust,ignore
-// crates/example-exclaim/src/lib.rs — the reference plugin, unabridged
+// plugins/example-exclaim/src/lib.rs — the reference plugin, unabridged
 use deslop_plugin_sdk::{export, Doc, Finding, Plugin};
 
 #[derive(serde::Deserialize, Default)]
@@ -378,10 +378,18 @@ $ rustup target add wasm32-unknown-unknown      # once, developer machine only
 $ cargo build -p example-exclaim --target wasm32-unknown-unknown --release
 ```
 
-Personal plugins live in the plugin install dir
-`~/.local/share/deslop/plugins/` (the platform data dir; created by you,
-never scanned — a file there does nothing until a config declares it).
-Repo plugins can sit anywhere in the repo.
+Builtin plugins ship inside the deslop binary and install without any
+toolchain:
+
+```console
+$ deslop plugin list                    # what's available, and what's installed
+$ deslop plugin install example-exclaim
+```
+
+That writes `~/.local/share/deslop/plugins/example-exclaim.wasm` (the
+platform data dir) and prints the `[plugin.<id>]` snippet to enable it.
+Installing is inert by itself — the directory is never scanned; a plugin
+runs only where a config declares it.
 
 ```toml
 # .deslop.toml
