@@ -250,7 +250,10 @@ fn metric_findings(
         let Some(spec) = &group.metric else { continue };
         let local_stat = metrics::Stat::parse(spec.stat.name()).expect("same registry");
 
-        // Cluster: per-rule terms, one finding PER offending window.
+        // Cluster: per-rule terms, one finding PER offending window. The
+        // finding spans the whole WINDOW, not the last trigger word: the
+        // message preview and the terms note carry the evidence, so a
+        // caret on one arbitrary hit would misstate the finding.
         if local_stat == metrics::Stat::TermClusterMax {
             for w in
                 metrics::cluster_windows(norm_text, &spec.terms, &spec.term_lemmas, spec.window)
@@ -258,8 +261,12 @@ fn metric_findings(
                 if (w.distinct as f64) <= spec.threshold_gt {
                     continue;
                 }
-                let (o_start, o_end) = norm.span_to_orig(w.last_hit.0, w.last_hit.1);
-                let context = cluster_context(&w, norm_text, spec.window);
+                // Trim the blank-line padding from paragraph/document window
+                // bounds so the span (and excerpt) start and end on content.
+                let bounds = trim_window_bounds(norm_text, w.bounds);
+                let (o_start, o_end) = norm.span_to_orig(bounds.0, bounds.1);
+                let context = cluster_context(&w);
+                let preview = metrics::first_words(norm_text, w.bounds, 12).join(" ");
                 findings.push(metric_finding(
                     group,
                     spec,
@@ -268,6 +275,8 @@ fn metric_findings(
                     orig_src,
                     settings,
                     Some(context),
+                    Some(preview),
+                    true,
                 ));
             }
             continue;
@@ -299,14 +308,20 @@ fn metric_findings(
             orig_src,
             settings,
             None,
+            None,
+            false,
         ));
     }
 }
 
 /// Build one metric Finding. `context` carries the cluster metric's
-/// evidence chain (which words fired, in order); `None` for whole-doc
-/// stats. The window's own count drives `{value}` so a per-window finding
-/// reports ITS number, not the document maximum.
+/// evidence (which words fired, indented under a header); `None` for
+/// whole-doc stats. `preview` is the window's opening words for the
+/// `{preview}` message var (cluster only). `anchorless` marks window-spanned
+/// cluster findings for caret-free human rendering. The window's own count
+/// drives `{value}` so a per-window finding reports ITS number, not the
+/// document maximum.
+#[allow(clippy::too_many_arguments)]
 fn metric_finding(
     group: &crate::rule::RuleGroup,
     spec: &crate::rule::MetricSpec,
@@ -315,6 +330,8 @@ fn metric_finding(
     orig_src: &str,
     settings: &LintSettings,
     context: Option<String>,
+    preview: Option<String>,
+    anchorless: bool,
 ) -> Finding {
     let (o_start, o_end) = span;
     // Denominator aware message: value is already "per per_words".
@@ -324,6 +341,7 @@ fn metric_finding(
         "per_words" => Some(per_words.to_string()),
         "stat" => Some(spec.stat.name().to_string()),
         "window" => Some(spec.window.name().to_string()),
+        "preview" => preview.clone(),
         _ => None,
     };
     let message = group
@@ -347,43 +365,39 @@ fn metric_finding(
         url: group.url.clone(),
         context,
         replacement: None,
+        anchorless,
     }
 }
 
-/// Hardcoded cluster context line: first 4 words of the window, then the
-/// distinct trigger words in first-occurrence order, `...` between and a
-/// trailing `...`. Doc-window windows get no word prefix (a document has
-/// no meaningful opening snippet). Example:
-/// `In conclusion, the team...also...aptly...adept...`
-fn cluster_context(
-    w: &metrics::ClusterWindowHit,
-    norm_text: &str,
-    window: crate::rule::ClusterWindow,
-) -> String {
-    let mut out = String::new();
-    if window != crate::rule::ClusterWindow::Document {
-        // Opening words verbatim - but NOT words that are themselves
-        // triggers: the chain below lists every trigger, and showing
-        // `also...also...` twice when the paragraph OPENS with a trigger
-        // reads as a bug.
-        for word in metrics::first_words(norm_text, w.bounds, 4) {
-            let lower = word.to_lowercase();
-            let is_trigger = w.terms_in_order.iter().any(|t| t.to_lowercase() == lower);
-            if is_trigger {
-                continue;
-            }
-            // A word ending its own sentence already carries a period;
-            // trim it so the ellipsis reads as one dot, not four.
-            let word = word.trim_end_matches('.');
-            out.push_str(word);
-            out.push_str("...");
-        }
-    }
+/// Hardcoded cluster evidence note: a `Clustered terms:` header, then one
+/// line per DISTINCT trigger word in first-occurrence order, each indented
+/// two spaces. Rendered as a note list by the human renderer and as a
+/// single multi-line string by the other formats. Example:
+/// `Clustered terms:\n  also\n  aptly\n  adept`
+fn cluster_context(w: &metrics::ClusterWindowHit) -> String {
+    let mut out = String::from("Clustered terms:");
     for term in &w.terms_in_order {
+        out.push_str("\n  ");
         out.push_str(term);
-        out.push_str("...");
     }
     out
+}
+
+/// Shrink raw window bounds to their content: paragraph windows include the
+/// blank-line separator that opens them, and the trailing newline can ride
+/// along too. Leading/trailing `\n` bytes are padding, never prose, so
+/// trimming them cannot split a multibyte character.
+fn trim_window_bounds(text: &str, bounds: (usize, usize)) -> (usize, usize) {
+    let bytes = text.as_bytes();
+    let mut start = bounds.0.min(text.len());
+    let mut end = bounds.1.min(text.len());
+    while start < end && bytes[start] == b'\n' {
+        start += 1;
+    }
+    while end > start && bytes[end - 1] == b'\n' {
+        end -= 1;
+    }
+    (start, end)
 }
 
 fn scope_predicate(scope: &str) -> impl Fn(regions::Scope) -> bool + '_ {
@@ -437,6 +451,7 @@ fn make_finding(
         url: group.url.clone(),
         context: None,
         replacement,
+        anchorless: false,
     }
 }
 

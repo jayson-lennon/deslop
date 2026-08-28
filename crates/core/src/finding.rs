@@ -98,4 +98,10 @@ pub struct Finding {
     pub context: Option<String>,
     /// Vocab-only mechanical rewrite; `None` = report-only.
     pub replacement: Option<String>,
+    /// True only for window-spanned cluster findings: the span covers a
+    /// whole sentence/paragraph/document, so a caret over it is noise. The
+    /// human renderer draws the excerpt block (gutter + numbered source
+    /// lines) WITHOUT any underline or arrow marks; other renderers ignore
+    /// this flag.
+    pub anchorless: bool,
 }

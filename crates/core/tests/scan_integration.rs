@@ -341,7 +341,7 @@ id-base = "TEST-CLUSTER"
 kind = "metric"
 tier = 3
 category = "vocabulary-density"
-message = '{value:.0} distinct in one {window}'
+message = '{value:.0} distinct in the {window} starting "{preview}"'
 advice = 'vary the vocabulary'
 stat = 'term_cluster_max'
 window = 'paragraph'
@@ -366,59 +366,90 @@ fn cluster_emits_one_finding_per_offending_window() {
 
     // Then BOTH dense paragraphs report independently.
     assert_eq!(cluster.len(), 2);
-    // And each finding's value is its own window's distinct count.
-    assert_eq!(cluster[0].message, "3 distinct in one paragraph");
-    assert_eq!(cluster[1].message, "3 distinct in one paragraph");
-    // And anchors stay inside their own windows.
-    assert!(cluster[0].excerpt == "notably" || cluster[0].excerpt == "robust");
-    assert!(cluster[1].excerpt == "robust" || cluster[1].excerpt == "crucial");
+    // And each finding's value is its own window's distinct count, with the
+    // window kind and opening preview in the message.
+    assert_eq!(
+        cluster[0].message,
+        "3 distinct in the paragraph starting \"crucial robust notably here.\""
+    );
+    assert_eq!(
+        cluster[1].message,
+        "3 distinct in the paragraph starting \"adept crucial robust there\""
+    );
+    // And each finding spans its whole WINDOW, anchored at its first word.
+    assert_eq!(
+        &src[cluster[0].span.start..cluster[0].span.start + "crucial".len()],
+        "crucial"
+    );
+    assert_eq!(
+        &src[cluster[1].span.start..cluster[1].span.start + "adept".len()],
+        "adept"
+    );
+    // And window findings render anchorless.
+    assert!(cluster[0].anchorless);
+    assert!(cluster[1].anchorless);
 }
 
 #[test]
-fn cluster_context_lists_triggers_in_order_with_prefix() {
-    // Given a paragraph that opens with non-trigger words.
+fn cluster_context_lists_distinct_terms_indented_under_header() {
+    // Given a paragraph with four distinct triggers in first-occurrence order.
     let rules = load_with(&[("cluster.toml", CLUSTER_RULE)]);
-    let src = "The plan felt crucial and robust, also notably adept.\n";
+    let src = "The plan felt crucial and robust, notably adept too.\n";
 
     // When scanning.
     let findings = scan(src, &rules, &LintSettings::default());
 
-    // Then the context line shows the window opening, then triggers.
+    // Then the context is a header plus one 2-space-indented line per
+    // distinct term.
     let ctx = findings[0].context.as_deref().expect("context");
     assert_eq!(
         ctx,
-        "The...plan...felt...crucial...robust...notably...adept..."
+        "Clustered terms:\n  crucial\n  robust\n  notably\n  adept"
     );
 }
 
 #[test]
-fn cluster_context_omits_prefix_words_that_are_triggers() {
-    // Given a paragraph that OPENS with triggers.
-    let rules = load_with(&[("cluster.toml", CLUSTER_RULE)]);
-    let src = "crucial robust notably quick.\n";
+fn cluster_document_window_message_previews_and_spans_document() {
+    // Given a document-window rule and a document longer than the preview.
+    let doc_rule = CLUSTER_RULE.replace("window = 'paragraph'", "window = 'document'");
+    let rules = load_with(&[("cluster.toml", &doc_rule)]);
+    let src = "one two three four five six seven eight nine ten eleven twelve thirteen crucial robust notably adept.\n";
 
     // When scanning.
     let findings = scan(src, &rules, &LintSettings::default());
 
-    // Then triggers appear once (in the chain), never duplicated in a
-    // prefix; the one non-trigger opening word still shows.
-    let ctx = findings[0].context.as_deref().expect("context");
-    assert_eq!(ctx, "quick...crucial...robust...notably...");
+    // Then the message names the window kind and previews the FIRST 12 words.
+    assert_eq!(
+        findings[0].message,
+        "4 distinct in the document starting \"one two three four five six seven eight nine ten eleven twelve\""
+    );
+    // And the finding spans the whole document (minus the trailing newline).
+    assert_eq!(findings[0].span.start, 0);
+    assert_eq!(
+        &src[findings[0].span.start..findings[0].span.end],
+        src.trim_end_matches('\n')
+    );
+    assert!(findings[0].anchorless);
 }
 
 #[test]
-fn cluster_document_window_has_no_word_prefix() {
-    // Given a document-window rule.
-    let doc_rule = CLUSTER_RULE.replace("window = 'paragraph'", "window = 'document'");
-    let rules = load_with(&[("cluster.toml", &doc_rule)]);
-    let src = "crucial robust notably adept.\n";
+fn cluster_window_span_maps_through_crlf() {
+    // Given a CRLF document whose second paragraph holds three triggers.
+    let rules = load_with(&[("cluster.toml", CLUSTER_RULE)]);
+    let src = "intro para.\r\n\r\ncrucial robust notably here.\r\n";
 
     // When scanning.
     let findings = scan(src, &rules, &LintSettings::default());
 
-    // Then the context is the bare trigger chain (no doc "prefix").
-    let ctx = findings[0].context.as_deref().expect("context");
-    assert_eq!(ctx, "crucial...robust...notably...adept...");
+    // Then the window span lifts to ORIGINAL coordinates: it starts at the
+    // window's first word and ends after the window's final content byte
+    // (the trailing CRLF is padding, not prose).
+    let f = &findings[0];
+    assert_eq!(
+        &src[f.span.start..f.span.end],
+        "crucial robust notably here."
+    );
+    assert!(f.anchorless);
 }
 
 #[test]

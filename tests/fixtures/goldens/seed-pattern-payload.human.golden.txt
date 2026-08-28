@@ -14,5 +14,5 @@ warning[AATELL#transformative]:
   │                              ^^^^^^^^^^^^^^
   │                              │
   │                              AI-tell vocabulary
-  │                              help: Strong AI tell; one use is worth flagging
+  │                              help: Strong AI tell; one use is worth flagging - replace "transformative" with a concrete description of the change
 

@@ -5,7 +5,7 @@ note[AISIGNS-METRIC-EM-DASH-RATE]:
    │                               ^
    │                               │
    │                               Em-dash density 13.4 per 1000 words
-   │                               help: Em-dash density 13.4/1000 words exceeds conversational norms - swap most for commas, parentheses, or colons (# TODO tune)
+   │                               help: Em-dash density 13.4/1000 words exceeds conversational norms - reword the sentences instead; em-dashes as a default pause are a machine tell
    │
    = see: Wikipedia:Signs of AI writing § Style - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style
 
