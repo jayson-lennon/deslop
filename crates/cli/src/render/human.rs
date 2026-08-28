@@ -177,6 +177,10 @@ fn render_anchorless(
     // two printed lines wants the SHOWN width anyway.
     let shown_lines = src[f.span.start..f.span.end].lines().count().min(2);
     let width = (line + shown_lines.saturating_sub(1)).to_string().len();
+    // codespan aligns every gutter glyph (`┌─`, `│`, `=`) one space past the
+    // line-number width, so bars line up with the `{:width$} │ ` source
+    // lines regardless of how wide the numbers are.
+    let pad = " ".repeat(width + 1);
 
     // Header: bold intense severity color on `severity[CODE]`, bold on the
     // `: message` tail - the codespan header shape.
@@ -188,10 +192,10 @@ fn render_anchorless(
 
     // Gutter: blue `┌─` then plain `path:line:col`; blue `│` continuations.
     out.set_color(&gutter)?;
-    write!(out, "   ┌─ ")?;
+    write!(out, "{pad}┌─ ")?;
     out.reset()?;
     writeln!(out, "{path}:{line}:{col}")?;
-    gutter_line(out)?;
+    gutter_line(out, &pad)?;
     // Numbered source lines; a window spanning more than two lines prints
     // its first two, then an ellipsis continuation (never the whole doc).
     let total_lines = src[f.span.start..f.span.end].lines().count();
@@ -208,11 +212,11 @@ fn render_anchorless(
     }
     if printed < total_lines {
         out.set_color(&gutter)?;
-        writeln!(out, "   │ …")?;
+        writeln!(out, "{pad}│ …")?;
         out.reset()?;
     }
-    gutter_line(out)?;
-    write_anchorless_notes(f, out)
+    gutter_line(out, &pad)?;
+    write_anchorless_notes(f, out, &pad)
 }
 
 /// Severity name as printed in the header (`error`/`warning`/`note`).
@@ -224,18 +228,18 @@ fn sev_name(tier: Tier) -> &'static str {
     }
 }
 
-/// One blue `│` gutter line (no source text).
-fn gutter_line(out: &mut Buffer) -> std::io::Result<()> {
+/// One blue `│` gutter line (no source text), aligned to the number width.
+fn gutter_line(out: &mut Buffer, pad: &str) -> std::io::Result<()> {
     out.set_color(&blue_style())?;
-    write!(out, "   │")?;
+    write!(out, "{pad}│")?;
     out.reset()?;
     writeln!(out)
 }
 
-/// One blue-bulleted `   = ` note line, matching codespan's note style.
-fn note_line(text: &str, out: &mut Buffer) -> std::io::Result<()> {
+/// One blue-bulleted ` = ` note line at the shared gutter column.
+fn note_line(text: &str, out: &mut Buffer, pad: &str) -> std::io::Result<()> {
     out.set_color(&blue_style())?;
-    write!(out, "   =")?;
+    write!(out, "{pad}=")?;
     out.reset()?;
     writeln!(out, " {text}")
 }
@@ -250,17 +254,18 @@ fn note_line(text: &str, out: &mut Buffer) -> std::io::Result<()> {
 fn write_anchorless_notes(
     f: &deslop_core::finding::Finding,
     out: &mut Buffer,
+    pad: &str,
 ) -> std::io::Result<()> {
     if let Some(advice) = &f.advice {
-        note_line(&format!("help: {advice}"), out)?;
+        note_line(&format!("help: {advice}"), out, pad)?;
     }
     if let Some(context) = &f.context {
         for note in context.split('\n') {
-            note_line(note, out)?;
+            note_line(note, out, pad)?;
         }
     }
     if let Some((text, href)) = &f.url {
-        note_line(&format!("see: {text} - {href}"), out)?;
+        note_line(&format!("see: {text} - {href}"), out, pad)?;
     }
     writeln!(out)
 }
@@ -426,12 +431,12 @@ mod tests {
 
         // Then notes follow the codespan ` = ` style: help first, one note
         // per context line (terms indented under the header), then the link.
-        assert!(text.contains("   = help: vary the vocabulary"), "{text}");
-        assert!(text.contains("   = Clustered terms:"), "{text}");
-        assert!(text.contains("   =   also"), "{text}");
-        assert!(text.contains("   =   adept"), "{text}");
+        assert!(text.contains("  = help: vary the vocabulary"), "{text}");
+        assert!(text.contains("  = Clustered terms:"), "{text}");
+        assert!(text.contains("  =   also"), "{text}");
+        assert!(text.contains("  =   adept"), "{text}");
         assert!(
-            text.contains("   = see: Wiki - https://example.com/wiki"),
+            text.contains("  = see: Wiki - https://example.com/wiki"),
             "{text}"
         );
     }
@@ -498,7 +503,7 @@ mod tests {
         // continuation line - never the whole document.
         assert!(text.contains("1 │ a1"), "{text}");
         assert!(text.contains("2 │ b2"), "{text}");
-        assert!(text.contains("   │ …"), "{text}");
+        assert!(text.contains("  │ …"), "{text}");
         assert!(!text.contains("c3"), "{text}");
         assert!(!text.contains("d4"), "{text}");
     }
