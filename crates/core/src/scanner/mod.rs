@@ -47,6 +47,28 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
 
     let mut findings = Vec::new();
 
+    // ONE shared vocab index for the whole ruleset: tokenization happens
+    // once per document, not once per entry.
+    let shared_vocab = {
+        let mut pairs: Vec<(String, String)> = Vec::new();
+        for g in &rules.groups {
+            if !g.enabled {
+                continue;
+            }
+            for e in &g.entries {
+                if settings.level_for(&g.id_base, &e.id) == Some(crate::config::LintLevel::Allow) {
+                    continue;
+                }
+                if let Matcher::Vocab { terms, .. } = &e.matcher {
+                    for t in terms {
+                        pairs.push((t.clone(), e.id.clone()));
+                    }
+                }
+            }
+        }
+        vocab_scan::VocabIndex::build(pairs)
+    };
+
     for group in &rules.groups {
         if !group.enabled {
             continue;
@@ -67,34 +89,8 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
             if entry_level == Some(crate::config::LintLevel::Allow) {
                 continue;
             }
-            let _ = entry_level;
             match &entry.matcher {
-                Matcher::Vocab { terms, .. } => {
-                    let index = vocab_scan::VocabIndex::build(
-                        terms.iter().map(|t| (t.clone(), entry.id.clone())),
-                    );
-                    let scope_allow = scope_predicate(&group.scope);
-                    for hit in index.scan(text, &map, &scope_allow) {
-                        findings.push(make_finding(
-                            group,
-                            entry.id.as_str(),
-                            KindTag::Vocab,
-                            effective_tier(settings, group, &entry.id),
-                            hit.start,
-                            hit.end,
-                            hit.matched.clone(),
-                            &[],
-                            entry
-                                .message_override
-                                .as_deref()
-                                .or(group.message.as_deref()),
-                            entry.advice_override.as_deref().or(group.advice.as_deref()),
-                            entry.replacement.clone(),
-                            &norm,
-                            src,
-                        ));
-                    }
-                }
+                Matcher::Vocab { .. } => {}
                 Matcher::Pattern(re) => {
                     for hit in pattern_scan::scan(re, text, &map) {
                         findings.push(make_finding(
@@ -148,6 +144,34 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
                     }
                 }
             }
+        }
+    }
+
+    // Shared vocab scan: one pass, then per-hit entry resolution.
+    {
+        let scope_allow = scope_predicate("prose");
+        for hit in shared_vocab.scan(text, &map, &scope_allow) {
+            let Some((group, entry)) = resolve_entry(rules, &hit.entry_slug) else {
+                continue;
+            };
+            findings.push(make_finding(
+                group,
+                entry.id.as_str(),
+                KindTag::Vocab,
+                effective_tier(settings, group, &entry.id),
+                hit.start,
+                hit.end,
+                hit.matched.clone(),
+                &[],
+                entry
+                    .message_override
+                    .as_deref()
+                    .or(group.message.as_deref()),
+                entry.advice_override.as_deref().or(group.advice.as_deref()),
+                entry.replacement.clone(),
+                &norm,
+                src,
+            ));
         }
     }
 
@@ -323,6 +347,19 @@ fn build_dictionary(rules: &RuleSet) -> Vec<String> {
     out.sort();
     out.dedup();
     out
+}
+
+/// Find (group, entry) by globally-unique entry id.
+fn resolve_entry<'a>(
+    rules: &'a crate::rule::RuleSet,
+    id: &str,
+) -> Option<(&'a crate::rule::RuleGroup, &'a crate::rule::ActiveEntry)> {
+    for g in &rules.groups {
+        if let Some(e) = g.entries.iter().find(|e| e.id == id) {
+            return Some((g, e));
+        }
+    }
+    None
 }
 
 /// Sort: (offset, tier number, entry id).

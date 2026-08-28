@@ -40,12 +40,13 @@ fn visible_runs(map: &RegionMap) -> Vec<(usize, usize)> {
 /// Run one compiled regex across all visible runs.
 pub fn scan(re: &Regex, src: &str, map: &RegionMap) -> Vec<PatternHit> {
     let mut hits = Vec::new();
+    let names: Vec<Option<&str>> = re.capture_names().collect();
     for (run_start, run_end) in visible_runs(map) {
         let hay = &src[run_start..run_end];
-        let names: Vec<Option<&str>> = re.capture_names().collect();
-        let mut offset = 0;
-        while let Ok(Some(m)) = re.captures_from_pos(hay, offset) {
-            let whole = m.get(0).expect("group 0 exists on match");
+        for m in re.captures_iter(hay).flatten() {
+            let Some(whole) = m.get(0) else {
+                continue;
+            };
             let mut captures = Vec::new();
             for (idx, name) in names.iter().enumerate().skip(1) {
                 if let Some(n) = name {
@@ -59,15 +60,6 @@ pub fn scan(re: &Regex, src: &str, map: &RegionMap) -> Vec<PatternHit> {
                 end: run_start + whole.end(),
                 captures,
             });
-            if whole.end() == whole.start() {
-                // Zero-width safety.
-                offset = whole.end() + 1;
-            } else {
-                offset = whole.end();
-            }
-            if offset > hay.len() {
-                break;
-            }
         }
     }
     hits.sort_by_key(|h| (h.start, h.end));

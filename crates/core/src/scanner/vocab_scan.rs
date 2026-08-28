@@ -17,21 +17,32 @@ pub struct VocabHit {
     pub entry_slug: String,
 }
 
-/// Compiled dictionary for one ruleset snapshot.
+/// Compiled dictionary for one ruleset snapshot (SHARED across entries).
 #[derive(Debug, Default, Clone)]
 pub struct VocabIndex {
-    /// lowercase surface form (single word or phrase) -> entry slug.
-    pub terms: HashMap<String, String>,
+    /// lowercase surface form (single word or phrase) -> entry slugs.
+    pub terms: HashMap<String, Vec<String>>,
+    /// Longest phrase length any term spans (caps n-gram probing).
+    pub max_words: usize,
+    /// First words of multi-word phrases (guards n-gram probing).
+    phrase_heads: std::collections::HashSet<String>,
 }
 
 impl VocabIndex {
     /// Build from (term, slug) pairs — already stem-expanded upstream.
     pub fn build<I: IntoIterator<Item = (String, String)>>(pairs: I) -> VocabIndex {
-        let mut terms = HashMap::new();
+        let mut idx = VocabIndex::default();
         for (term, slug) in pairs {
-            terms.insert(term.to_lowercase(), slug);
+            let lowered = term.to_lowercase();
+            let mut words = lowered.split(' ');
+            let head = words.next().unwrap_or_default().to_string();
+            if words.next().is_some() {
+                idx.max_words = idx.max_words.max(lowered.split(' ').count());
+                idx.phrase_heads.insert(head);
+            }
+            idx.terms.entry(lowered).or_default().push(slug);
         }
-        VocabIndex { terms }
+        idx
     }
 
     /// Find all visible whole-word occurrences in scannable scopes.
@@ -42,21 +53,26 @@ impl VocabIndex {
     pub fn scan(&self, src: &str, map: &RegionMap, allow: &dyn Fn(Scope) -> bool) -> Vec<VocabHit> {
         let words = tokenize_visible(src, map);
         let mut hits = Vec::new();
+        let max_len = self.max_words.max(1);
         let mut i = 0;
         while i < words.len() {
-            // Try longest run of up to 4 words.
-            let matched = (1..=4usize)
+            // Probe longest-first, bounded by the dictionary's longest
+            // phrase AND by whether this word starts any phrase at all.
+            let upper = if self.phrase_heads.contains(&words[i].lower) {
+                max_len
+            } else {
+                1
+            };
+            let matched = (1..=upper)
                 .rev()
-                .find_map(|len| self.try_run(src, map, allow, &words[i..], len));
-            match matched {
-                Some(hit) => {
-                    // Advance past every word the matched phrase consumed.
-                    let span_words = phrase_word_count(src, &words[i..], &hit);
-                    i += span_words.max(1);
-                    hits.push(hit);
-                }
-                None => i += 1,
+                .filter_map(|len| self.try_run(src, map, allow, &words[i..], len))
+                .next();
+            // Always advance one word: sub-phrases starting at interior
+            // words (other entries' terms) must still be probed.
+            if let Some(group_hits) = matched {
+                hits.extend(group_hits);
             }
+            i += 1;
         }
         hits
     }
@@ -68,13 +84,15 @@ impl VocabIndex {
         allow: &dyn Fn(Scope) -> bool,
         words: &[Word],
         len: usize,
-    ) -> Option<VocabHit> {
+    ) -> Option<Vec<VocabHit>> {
         if words.len() < len {
             return None;
         }
         let run = &words[..len];
-        // Phrases must be contiguous-ish: single spaces between words only.
+        // Cheapest gate first: dictionary hash probe. Single-word probes
+        // reuse the precomputed lowercase; phrases build once.
         let candidate: String = collapse_phrase(src, run)?;
+        let slugs = self.terms.get(&candidate)?;
         let start = run.first()?.start;
         let end = run.get(len - 1)?.end;
         // Visibility: first+last bytes must be visible and inside same region.
@@ -84,31 +102,29 @@ impl VocabIndex {
         if !allow(map.scope_at(start)) {
             return None;
         }
-        let slug = self.terms.get(&candidate)?.clone();
-        Some(VocabHit {
-            start,
-            end,
-            matched: candidate,
-            entry_slug: slug,
-        })
+        Some(
+            slugs
+                .iter()
+                .map(|slug| VocabHit {
+                    start,
+                    end,
+                    matched: candidate.clone(),
+                    entry_slug: slug.clone(),
+                })
+                .collect::<Vec<_>>(),
+        )
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct Word {
     start: usize,
     end: usize,
+    /// Lowercased surface (computed once per document, not per probe).
+    lower: String,
 }
 
 /// Count how many word tokens the hit's byte span actually covers.
-fn phrase_word_count(src: &str, remaining: &[Word], hit: &VocabHit) -> usize {
-    remaining
-        .iter()
-        .take_while(|w| w.start < hit.end && w.end > hit.start)
-        .filter(|w| src[w.start..w.end].chars().any(char::is_alphanumeric))
-        .count()
-}
-
 /// Split on non-alphanumeric boundaries, keeping spans; skip masked words.
 fn tokenize_visible(src: &str, map: &RegionMap) -> Vec<Word> {
     let mut words = Vec::new();
@@ -138,12 +154,19 @@ fn push_word(src: &str, map: &RegionMap, s: usize, e: usize, words: &mut Vec<Wor
     if src[s..e].bytes().any(|b| b == 0) {
         return;
     }
-    words.push(Word { start: s, end: e });
+    words.push(Word {
+        start: s,
+        end: e,
+        lower: src[s..e].to_lowercase(),
+    });
 }
 
 /// Single-space separator between words? Collapse to canonical phrase form.
 fn collapse_phrase(src: &str, run: &[Word]) -> Option<String> {
-    let mut out = String::new();
+    if run.len() == 1 {
+        return Some(run[0].lower.clone());
+    }
+    let mut out = String::with_capacity(run.iter().map(|w| w.lower.len() + 1).sum());
     for (idx, w) in run.iter().enumerate() {
         if idx > 0 {
             let gap = &src[run[idx - 1].end..w.start];
@@ -152,9 +175,9 @@ fn collapse_phrase(src: &str, run: &[Word]) -> Option<String> {
             }
             out.push(' ');
         }
-        out.push_str(&src[w.start..w.end]);
+        out.push_str(&w.lower);
     }
-    Some(out.to_lowercase())
+    Some(out)
 }
 
 #[cfg(test)]

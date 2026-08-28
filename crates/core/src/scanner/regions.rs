@@ -39,12 +39,23 @@ impl RegionMap {
     /// Masked code feels like it should be excluded entirely; scanners
     /// consult `is_masked` for that instead. Uncovered bytes default to Prose.
     pub fn scope_at(&self, offset: usize) -> Scope {
-        self.scopes
-            .iter()
-            .filter(|(s, e, _)| s <= &offset && &offset < e)
-            .map(|(_, _, sc)| *sc)
-            .next_back()
-            .unwrap_or(Scope::Prose)
+        // Scopes are sorted and non-overlapping; binary search the last
+        // one starting at or before `offset`.
+        match self.scopes.binary_search_by(|(s, e, _)| {
+            if *s > offset {
+                std::cmp::Ordering::Greater
+            } else if *e <= offset {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        }) {
+            Ok(i) => self.scopes[i].2,
+            Err(next) => {
+                let _ = next;
+                Scope::Prose
+            }
+        }
     }
 
     pub fn is_masked(&self, offset: usize) -> bool {
