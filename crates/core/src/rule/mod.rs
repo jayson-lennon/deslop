@@ -116,4 +116,3 @@ pub struct Loaded {
     pub rule_set: RuleSet,
     pub errors: Vec<LoadError>,
 }
-

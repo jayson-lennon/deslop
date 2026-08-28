@@ -66,7 +66,10 @@ fn loads_good_pack_with_zero_errors() {
     write(tmp.path(), "rules/pack.toml", GOOD_VOCAB);
 
     // When loading.
-    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
 
     // Then no errors and one group lands.
     assert!(loaded.errors.is_empty(), "errors: {:?}", loaded.errors);
@@ -79,7 +82,10 @@ fn missing_pack_file_is_recorded_naming_the_stem() {
     let tmp = tempfile::tempdir().expect("tempdir");
 
     // When loading.
-    let loaded = load(&cfg_for(&["missing"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(
+        &cfg_for(&["missing"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
 
     // Then an error names the expected flat path.
     assert!(
@@ -99,7 +105,10 @@ fn bad_toml_yields_error_with_line_number() {
     write(tmp.path(), "rules/pack.toml", BAD_TOML);
 
     // When loading.
-    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
 
     // Then exactly one error naming the file and a line.
     assert_eq!(loaded.errors.len(), 1);
@@ -135,10 +144,17 @@ fn multi_group_file_loads_every_group() {
         .replace("MODERN-VOCAB", "CLUSTER-X")
         .replace("delve", "garner");
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/pack.toml", &format!("{GOOD_VOCAB}\n{second}"));
+    write(
+        tmp.path(),
+        "rules/pack.toml",
+        &format!("{GOOD_VOCAB}\n{second}"),
+    );
 
     // When loading.
-    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
 
     // Then both groups are active.
     assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
@@ -159,7 +175,10 @@ fn duplicate_term_across_groups_dedups_to_highest_tier_owner() {
     );
 
     // When loading.
-    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
 
     // Then the higher tier keeps the term and the emptied group is gone,
     // with a dedup line naming winner and loser.
@@ -205,10 +224,17 @@ fn duplicate_entry_slugs_across_groups_are_legal_within_a_file() {
     // Given two groups in one file whose entries share a slug.
     let other = GOOD_VOCAB.replace("MODERN-VOCAB", "OTHER-GROUP");
     let tmp = tempfile::tempdir().expect("tempdir");
-    write(tmp.path(), "rules/pack.toml", &format!("{GOOD_VOCAB}\n{other}"));
+    write(
+        tmp.path(),
+        "rules/pack.toml",
+        &format!("{GOOD_VOCAB}\n{other}"),
+    );
 
     // When loading.
-    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
 
     // Then no duplicate-id error appears (ids differ by group prefix).
     assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
@@ -226,7 +252,9 @@ fn extra_path_pack_file_loads() {
     write(
         tmp.path(),
         "team/custom.toml",
-        &GOOD_VOCAB.replace("MODERN-VOCAB", "TEAM").replace("delve", "reckon"),
+        &GOOD_VOCAB
+            .replace("MODERN-VOCAB", "TEAM")
+            .replace("delve", "reckon"),
     );
 
     let cfg = Config {
@@ -266,7 +294,10 @@ regex = 'delve'
     write(tmp.path(), "rules/pack.toml", broken);
 
     // When loading.
-    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
 
     // Then a fixture failure is recorded naming the entry.
     assert!(
@@ -301,7 +332,10 @@ regex = 'delve'
     write(tmp.path(), "rules/pack.toml", good);
 
     // When loading.
-    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
 
     // Then no fixture failures exist.
     assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
@@ -329,7 +363,10 @@ advice = 'replace {bogus} please'
     write(tmp.path(), "rules/pack.toml", bad);
 
     // When loading.
-    let loaded = load(&cfg_for(&["pack"]), camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
 
     // Then the template error is recorded naming the field.
     assert!(

@@ -397,7 +397,10 @@ fn resolve_entry<'a>(
 fn pattern_owners<'a>(
     rules: &'a RuleSet,
     settings: &LintSettings,
-) -> Vec<(&'a regex::Regex, Vec<(&'a crate::rule::RuleGroup, &'a crate::rule::ActiveEntry)>)> {
+) -> Vec<(
+    &'a regex::Regex,
+    Vec<(&'a crate::rule::RuleGroup, &'a crate::rule::ActiveEntry)>,
+)> {
     let mut order: Vec<&'a regex::Regex> = Vec::new();
     let mut owners: std::collections::HashMap<
         &'a str,

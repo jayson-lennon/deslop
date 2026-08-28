@@ -279,7 +279,10 @@ fn distinct_regex_strings_are_not_merged() {
     let other = PATTERN_RULE
         .replace("stands as an?", "serves as a")
         .replace("TEST-PAT", "TEST-PAT-2")
-        .replace("stands as a testament to the effort", "serves as a beacon of hope");
+        .replace(
+            "stands as a testament to the effort",
+            "serves as a beacon of hope",
+        );
     let rules = load_with(&[("p.toml", &format!("{PATTERN_RULE}\n{other}"))]);
     let src = "it stands as a testament; it serves as a beacon";
 

@@ -247,13 +247,7 @@ pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
                 continue;
             }
         };
-        parse_pack_file(
-            &file,
-            &text,
-            &mut seen_ids,
-            &mut entry_ids,
-            &mut loaded,
-        );
+        parse_pack_file(&file, &text, &mut seen_ids, &mut entry_ids, &mut loaded);
     }
     // Compile stage: one owner per term (highest tier, then config order),
     // metric conflicts resolved to the strictest threshold.

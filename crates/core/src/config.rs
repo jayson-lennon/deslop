@@ -99,16 +99,10 @@ impl Default for Config {
     fn default() -> Config {
         Config {
             packs: Packs {
-                builtin: [
-                    "aatell",
-                    "slop",
-                    "wsc",
-                    "aisigns",
-                    "cluster-terms",
-                ]
-                .iter()
-                .map(|s| (*s).to_owned())
-                .collect(),
+                builtin: ["aatell", "slop", "wsc", "aisigns", "cluster-terms"]
+                    .iter()
+                    .map(|s| (*s).to_owned())
+                    .collect(),
                 extra_paths: Vec::new(),
             },
             scan: Scan {

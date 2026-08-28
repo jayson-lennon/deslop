@@ -56,8 +56,7 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
             continue;
         }
         for entry in &group.entries {
-            let (terms, owners): (Vec<String>, &mut HashMap<String, Claim>) = match &entry.matcher
-            {
+            let (terms, owners): (Vec<String>, &mut HashMap<String, Claim>) = match &entry.matcher {
                 Matcher::Vocab { terms, .. } => (terms.clone(), &mut vocab_owners),
                 Matcher::Literal { needles } => (needles.clone(), &mut literal_owners),
                 _ => continue,
@@ -105,8 +104,7 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
 
     // Metric dedup: (stat, window, sorted terms) -> strictest threshold wins.
     // Value = (group index, threshold, id-base) of the surviving claim.
-    let mut metric_owners: HashMap<MetricKey, MetricClaim> =
-        HashMap::new();
+    let mut metric_owners: HashMap<MetricKey, MetricClaim> = HashMap::new();
     let mut remove_groups: Vec<usize> = Vec::new();
     for (gi, group) in rules.groups.iter().enumerate() {
         let Some(spec) = &group.metric else { continue };
@@ -157,8 +155,8 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
             continue;
         }
         let owners = &owners_by_group[gi];
-        group.entries.retain_mut(|entry: &mut crate::rule::ActiveEntry| {
-            match &mut entry.matcher {
+        group.entries.retain_mut(
+            |entry: &mut crate::rule::ActiveEntry| match &mut entry.matcher {
                 Matcher::Vocab { terms, .. } => {
                     terms.retain(|t| owners.get(t).is_some_and(|c| c.entry_id == entry.id));
                     !terms.is_empty()
@@ -168,8 +166,8 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
                     !needles.is_empty()
                 }
                 _ => true,
-            }
-        });
+            },
+        );
     }
 
     // Remove conflicted metric groups, then emptied vocab/literal groups.
