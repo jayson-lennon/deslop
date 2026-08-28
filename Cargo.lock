@@ -190,6 +190,7 @@ name = "deslop-core"
 version = "0.1.0"
 dependencies = [
  "camino",
+ "deslop-plugin-protocol",
  "error-stack",
  "pulldown-cmark",
  "regex",
@@ -201,6 +202,14 @@ dependencies = [
  "unicode-segmentation",
  "walkdir",
  "wherror",
+]
+
+[[package]]
+name = "deslop-plugin-protocol"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
