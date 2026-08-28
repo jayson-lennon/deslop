@@ -145,14 +145,12 @@ fn render_anchorless(
         Tier::Density => "note",
     };
     let (line, col) = super::line_col(src, f.span.start);
-    let width = {
-        // Gutter width fits the last line number actually printed (or the
-        // window's end line, whichever is wider).
-        let end_line = super::line_col(src, f.span.end.saturating_sub(1).max(f.span.start)).0;
-        let shown = src[f.span.start..f.span.end].lines().count().min(2);
-        (line + shown.saturating_sub(1)).max(end_line)
-    };
-    let width = width.to_string().len();
+    // Gutter width fits the last line number actually printed. Never derive
+    // it from span.end: subtracting one from a byte offset that sits at a
+    // multibyte char boundary panics, and a document-window span capped to
+    // two printed lines wants the SHOWN width anyway.
+    let shown_lines = src[f.span.start..f.span.end].lines().count().min(2);
+    let width = (line + shown_lines.saturating_sub(1)).to_string().len();
 
     writeln!(out, "{sev}[{}]: {}", f.entry_id, f.message)?;
     writeln!(out, "   ┌─ {path}:{line}:{col}")?;
@@ -436,5 +434,21 @@ mod tests {
         assert!(text.contains("   │ …"), "{text}");
         assert!(!text.contains("c3"), "{text}");
         assert!(!text.contains("d4"), "{text}");
+    }
+
+    #[test]
+    fn anchorless_span_ending_on_multibyte_char_renders() {
+        // Given a window whose end byte sits at a multibyte char boundary.
+        let src = "检查 crucial robust 检查\n";
+        let end = src.find('\n').expect("newline");
+        let mut f = sample_finding(Span::new(0, end), src);
+        f.anchorless = true;
+
+        // When rendering.
+        let text = render_one(&f, src);
+
+        // Then the block renders without panicking on the boundary.
+        assert!(text.contains("1 │ 检查 crucial robust 检查"), "{text}");
+        assert!(!text.contains('^'), "{text}");
     }
 }
