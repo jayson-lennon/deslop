@@ -1,32 +1,32 @@
-::notice file=/tmp/gallery.md,line=1,col=1,endLine=1,endColumn=1,title=AISIGNS-METRIC-SENTENCE-LENGTH-MONOTONY::Sentence-length coefficient of variation 1.3
-help: Uniform sentence lengths produce an even, synthetic cadence; combine some sentences and split others for rhythm (# TODO tune)
-::notice file=/tmp/gallery.md,line=3,col=74,endLine=3,endColumn=75,title=AISIGNS-METRIC-EM-DASH-RATE::Em-dash density 11.8 per 1000 words
-help: Em-dash density 11.8/1000 words exceeds conversational norms - swap most for commas, parentheses, or colons (# TODO tune)
-::notice file=/tmp/gallery.md,line=9,col=1,endLine=10,endColumn=1,title=AISIGNS-METRIC-BULLET-BOLDLEAD::100%25 of bullets open with '**Term:**' lead-ins
-help: Uniform **bold lead-in:** bullets are listicle scaffolding; vary or convert to flowing sentences (# TODO tune)
-::error file=/tmp/gallery.md,line=24,col=29,endLine=24,endColumn=65,title=AISIGNS#oaicite::Chatbot markup artifact
+::notice file=tests/gallery/gallery.md,line=1,col=1,endLine=1,endColumn=1,title=AISIGNS-METRIC-SENTENCE-LENGTH-MONOTONY::Sentence-length coefficient of variation 1.3
+help: Uniform sentence lengths produce an even, synthetic cadence; combine some sentences and split others for rhythm
+::notice file=tests/gallery/gallery.md,line=3,col=74,endLine=3,endColumn=75,title=AISIGNS-METRIC-EM-DASH-RATE::Em-dash density 11.8 per 1000 words
+help: Em-dash density 11.8/1000 words exceeds conversational norms - reword the sentences instead; em-dashes as a default pause are a machine tell
+::notice file=tests/gallery/gallery.md,line=9,col=1,endLine=10,endColumn=1,title=AISIGNS-METRIC-BULLET-BOLDLEAD::100%25 of bullets open with '**Term:**' lead-ins
+help: Uniform **bold lead-in:** bullets are listicle scaffolding; vary or convert to flowing sentences
+::error file=tests/gallery/gallery.md,line=24,col=29,endLine=24,endColumn=65,title=AISIGNS#oaicite::Chatbot markup artifact
 help: Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) - paste-converted markup that never belonged in prose; re-cite properly or drop the claim
-::error file=/tmp/gallery.md,line=24,col=45,endLine=24,endColumn=56,title=AISIGNS#oaicite::Chatbot markup artifact
+::error file=tests/gallery/gallery.md,line=24,col=45,endLine=24,endColumn=56,title=AISIGNS#oaicite::Chatbot markup artifact
 help: Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) - paste-converted markup that never belonged in prose; re-cite properly or drop the claim
-::warning file=/tmp/gallery.md,line=28,col=9,endLine=28,endColumn=17,title=AATELL#leverage::AI-tell vocabulary
-help: Replace "leverage" with its plain verb ("use") - nominalized business-speak is a top frequency signal in Kobak 2025
-::warning file=/tmp/gallery.md,line=28,col=40,endLine=28,endColumn=50,title=SLOP#delve-into::AI-tell vocabulary
+::notice file=tests/gallery/gallery.md,line=28,col=1,endLine=30,endColumn=48,title=CLUSTER::8 distinct watch-list words cluster in the paragraph starting "We will leverage the team's synergy to delve into the testament of"
+help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
+::warning file=tests/gallery/gallery.md,line=28,col=9,endLine=28,endColumn=17,title=AATELL#leverage::AI-tell vocabulary
+help: Replace "leverage" with its plain verb ("use")
+::warning file=tests/gallery/gallery.md,line=28,col=40,endLine=28,endColumn=50,title=SLOP#delve-into::AI-tell vocabulary
 help: AI-tell vocabulary; state the idea in your own plain words
-::warning file=/tmp/gallery.md,line=28,col=55,endLine=28,endColumn=64,title=AATELL#testament::AI-tell vocabulary
+::warning file=tests/gallery/gallery.md,line=28,col=55,endLine=28,endColumn=64,title=AATELL#testament::AI-tell vocabulary
 help: Admiration formula ("a testament to"); state what it demonstrates
-::warning file=/tmp/gallery.md,line=29,col=43,endLine=29,endColumn=71,title=SLOP#it-is-important-to-note-that::AI-tell vocabulary
+::warning file=tests/gallery/gallery.md,line=29,col=43,endLine=29,endColumn=71,title=SLOP#it-is-important-to-note-that::AI-tell vocabulary
 help: AI-tell vocabulary; state the idea in your own plain words
-::notice file=/tmp/gallery.md,line=30,col=16,endLine=30,endColumn=24,title=CLUSTER::8 distinct watch-list words cluster in one paragraph
-help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
-::warning file=/tmp/gallery.md,line=34,col=7,endLine=34,endColumn=50,title=WSC-PAT-NEGATIVE-PARALLELISM#main::AI writing construction
+::warning file=tests/gallery/gallery.md,line=34,col=7,endLine=34,endColumn=50,title=WSC-PAT-NEGATIVE-PARALLELISM#main::AI writing construction
 help: Drop the negation scaffold and state it positively: roughly "it is a discipline"
-::notice file=/tmp/gallery.md,line=39,col=5,endLine=39,endColumn=6,title=AISIGNS-METRIC-CURLY-DOUBLE-RATIO::100%25 of double quotes are curly
-help: Curly-quote share 100% - chat exports carry typographic quotes; normalize to straight ASCII (# TODO tune)
-::notice file=/tmp/gallery.md,line=50,col=29,endLine=50,endColumn=37,title=CLUSTER::11 distinct watch-list words cluster in one paragraph
+::notice file=tests/gallery/gallery.md,line=39,col=5,endLine=39,endColumn=6,title=AISIGNS-METRIC-CURLY-DOUBLE-RATIO::100%25 of double quotes are curly
+help: Curly-quote share 100% - chat exports carry typographic quotes; normalize to straight ASCII
+::notice file=tests/gallery/gallery.md,line=49,col=1,endLine=51,endColumn=69,title=CLUSTER::11 distinct watch-list words cluster in the paragraph starting "Paragraph window: the team felt also aptly adept aims align across crucial"
 help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
-::warning file=/tmp/gallery.md,line=55,col=21,endLine=55,endColumn=31,title=AATELL#leverage::AI-tell vocabulary
-help: Replace "leveraging" with its plain verb ("use") - nominalized business-speak is a top frequency signal in Kobak 2025
-::notice file=/tmp/gallery.md,line=55,col=54,endLine=55,endColumn=63,title=CLUSTER::13 distinct watch-list words cluster in one paragraph
+::notice file=tests/gallery/gallery.md,line=53,col=1,endLine=55,endColumn=64,title=CLUSTER::13 distinct watch-list words cluster in the paragraph starting "Second dense paragraph so you can see two independent cluster notes in"
 help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
-::notice file=/tmp/gallery.md,line=58,col=66,endLine=58,endColumn=70,title=CLUSTER::7 distinct watch-list words cluster in one paragraph
+::warning file=tests/gallery/gallery.md,line=55,col=21,endLine=55,endColumn=31,title=AATELL#leverage::AI-tell vocabulary
+help: Replace "leveraging" with its plain verb ("use")
+::notice file=tests/gallery/gallery.md,line=57,col=1,endLine=59,endColumn=58,title=CLUSTER::7 distinct watch-list words cluster in the paragraph starting "Sentence window next: crucial robust notably adept. Adept crucial robust notably aims."
 help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis

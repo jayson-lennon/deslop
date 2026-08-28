@@ -1,30 +1,30 @@
 note[AISIGNS-METRIC-SENTENCE-LENGTH-MONOTONY]: Sentence-length coefficient of variation 1.3
- = help: Uniform sentence lengths produce an even, synthetic cadence; combine some sentences and split others for rhythm (# TODO tune)
+ = help: Uniform sentence lengths produce an even, synthetic cadence; combine some sentences and split others for rhythm
  = see: Wikipedia:Signs of AI writing § Style - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style
 
 note[AISIGNS-METRIC-EM-DASH-RATE]: 
-  ┌─ /tmp/gallery.md:3:74
+  ┌─ tests/gallery/gallery.md:3:74
   │
 3 │ One document designed to trip every *output shape* the linter can render —
   │                                                                          ^
   │                                                                          │
   │                                                                          Em-dash density 11.8 per 1000 words
-  │                                                                          help: Em-dash density 11.8/1000 words exceeds conversational norms - swap most for commas, parentheses, or colons (# TODO tune)
+  │                                                                          help: Em-dash density 11.8/1000 words exceeds conversational norms - reword the sentences instead; em-dashes as a default pause are a machine tell
   │
   = see: Wikipedia:Signs of AI writing § Style - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style
 
 note[AISIGNS-METRIC-BULLET-BOLDLEAD]: 
-   ┌─ /tmp/gallery.md:9:1
+   ┌─ tests/gallery/gallery.md:9:1
    │    
  9 │ ╭ ╭ 1. **Tier-1 error, spanned, with help + url** (literal-ban artifact)
 10 │ │ │ 2. **Tier-2 warning, spanned, with help + replacement** (fixable vocab tell)
    │ ╰─│^ 100% of bullets open with '**Term:**' lead-ins
-   │   ╰' help: Uniform **bold lead-in:** bullets are listicle scaffolding; vary or convert to flowing sentences (# TODO tune)
+   │   ╰' help: Uniform **bold lead-in:** bullets are listicle scaffolding; vary or convert to flowing sentences
    │    
    = see: Wikipedia:Signs of AI writing § Style - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style
 
 error[AISIGNS#oaicite]: 
-   ┌─ /tmp/gallery.md:24:29
+   ┌─ tests/gallery/gallery.md:24:29
    │
 24 │ and a placeholder artifact: contentReference[oaicite:2]{index=2}.
    │                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -35,7 +35,7 @@ error[AISIGNS#oaicite]:
    = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup
 
 error[AISIGNS#oaicite]: 
-   ┌─ /tmp/gallery.md:24:45
+   ┌─ tests/gallery/gallery.md:24:45
    │
 24 │ and a placeholder artifact: contentReference[oaicite:2]{index=2}.
    │                                             ^^^^^^^^^^^
@@ -45,17 +45,36 @@ error[AISIGNS#oaicite]:
    │
    = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup
 
+note[CLUSTER]: 8 distinct watch-list words cluster in the paragraph starting "We will leverage the team's synergy to delve into the testament of"
+   ┌─ tests/gallery/gallery.md:28:1
+   │
+28 │ We will leverage the team's synergy to delve into the testament of our
+29 │ robust framework. The plan is crucial and it is important to note that we
+   │ …
+   │
+   = help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
+   = Clustered terms:
+   =   leverage
+   =   synergy
+   =   delve
+   =   testament
+   =   robust
+   =   crucial
+   =   utilise
+   =   holistic
+   = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
 warning[AATELL#leverage]: 
-   ┌─ /tmp/gallery.md:28:9
+   ┌─ tests/gallery/gallery.md:28:9
    │
 28 │ We will leverage the team's synergy to delve into the testament of our
    │         ^^^^^^^^
    │         │
    │         AI-tell vocabulary
-   │         help: Replace "leverage" with its plain verb ("use") - nominalized business-speak is a top frequency signal in Kobak 2025
+   │         help: Replace "leverage" with its plain verb ("use")
 
 warning[SLOP#delve-into]: 
-   ┌─ /tmp/gallery.md:28:40
+   ┌─ tests/gallery/gallery.md:28:40
    │
 28 │ We will leverage the team's synergy to delve into the testament of our
    │                                        ^^^^^^^^^^
@@ -64,7 +83,7 @@ warning[SLOP#delve-into]:
    │                                        help: AI-tell vocabulary; state the idea in your own plain words
 
 warning[AATELL#testament]: 
-   ┌─ /tmp/gallery.md:28:55
+   ┌─ tests/gallery/gallery.md:28:55
    │
 28 │ We will leverage the team's synergy to delve into the testament of our
    │                                                       ^^^^^^^^^
@@ -73,7 +92,7 @@ warning[AATELL#testament]:
    │                                                       help: Admiration formula ("a testament to"); state what it demonstrates
 
 warning[SLOP#it-is-important-to-note-that]: 
-   ┌─ /tmp/gallery.md:29:43
+   ┌─ tests/gallery/gallery.md:29:43
    │
 29 │ robust framework. The plan is crucial and it is important to note that we
    │                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -81,20 +100,8 @@ warning[SLOP#it-is-important-to-note-that]:
    │                                           AI-tell vocabulary
    │                                           help: AI-tell vocabulary; state the idea in your own plain words
 
-note[CLUSTER]: 
-   ┌─ /tmp/gallery.md:30:16
-   │
-30 │ must utilise a holistic approach going forward.
-   │                ^^^^^^^^
-   │                │
-   │                8 distinct watch-list words cluster in one paragraph
-   │                help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
-   │
-   = We...will...the...leverage...synergy...delve...testament...robust...crucial...utilise...holistic...
-   = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
-
 warning[WSC-PAT-NEGATIVE-PARALLELISM#main]: 
-   ┌─ /tmp/gallery.md:34:7
+   ┌─ tests/gallery/gallery.md:34:7
    │
 34 │ It is not merely a preference; it is a discipline.
    │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -103,58 +110,86 @@ warning[WSC-PAT-NEGATIVE-PARALLELISM#main]:
    │       help: Drop the negation scaffold and state it positively: roughly "it is a discipline"
 
 note[AISIGNS-METRIC-CURLY-DOUBLE-RATIO]: 
-   ┌─ /tmp/gallery.md:39:5
+   ┌─ tests/gallery/gallery.md:39:5
    │
 39 │ The “quoted” ratio here is deliberately “heavy”: “curly” quotes appear
    │     ^
    │     │
    │     100% of double quotes are curly
-   │     help: Curly-quote share 100% - chat exports carry typographic quotes; normalize to straight ASCII (# TODO tune)
+   │     help: Curly-quote share 100% - chat exports carry typographic quotes; normalize to straight ASCII
    │
    = see: Wikipedia:Signs of AI writing § Style - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style
 
-note[CLUSTER]: 
-   ┌─ /tmp/gallery.md:50:29
+note[CLUSTER]: 11 distinct watch-list words cluster in the paragraph starting "Paragraph window: the team felt also aptly adept aims align across crucial"
+   ┌─ tests/gallery/gallery.md:49:1
    │
+49 │ Paragraph window: the team felt also aptly adept aims align across
 50 │ crucial robust notably deep tapestry efforts, and the whole pitch read
-   │                             ^^^^^^^^
-   │                             │
-   │                             11 distinct watch-list words cluster in one paragraph
-   │                             help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
+   │ …
    │
-   = Paragraph...window:...the...team...also...aptly...adept...aims...align...across...crucial...robust...notably...deep...tapestry...
+   = help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
+   = Clustered terms:
+   =   also
+   =   aptly
+   =   adept
+   =   aims
+   =   align
+   =   across
+   =   crucial
+   =   robust
+   =   notably
+   =   deep
+   =   tapestry
+   = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
+note[CLUSTER]: 13 distinct watch-list words cluster in the paragraph starting "Second dense paragraph so you can see two independent cluster notes in"
+   ┌─ tests/gallery/gallery.md:53:1
+   │
+53 │ Second dense paragraph so you can see two independent cluster notes in
+54 │ one document: delve crucial robust notably adept aims align tapestry
+   │ …
+   │
+   = help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
+   = Clustered terms:
+   =   delve
+   =   crucial
+   =   robust
+   =   notably
+   =   adept
+   =   aims
+   =   align
+   =   tapestry
+   =   additionally
+   =   leveraging
+   =   comprehensive
+   =   pivotal
+   =   landscape
    = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
 
 warning[AATELL#leverage]: 
-   ┌─ /tmp/gallery.md:55:21
+   ┌─ tests/gallery/gallery.md:55:21
    │
 55 │ whilst additionally leveraging comprehensive pivotal landscape.
    │                     ^^^^^^^^^^
    │                     │
    │                     AI-tell vocabulary
-   │                     help: Replace "leveraging" with its plain verb ("use") - nominalized business-speak is a top frequency signal in Kobak 2025
+   │                     help: Replace "leveraging" with its plain verb ("use")
 
-note[CLUSTER]: 
-   ┌─ /tmp/gallery.md:55:54
+note[CLUSTER]: 7 distinct watch-list words cluster in the paragraph starting "Sentence window next: crucial robust notably adept. Adept crucial robust notably aims."
+   ┌─ tests/gallery/gallery.md:57:1
    │
-55 │ whilst additionally leveraging comprehensive pivotal landscape.
-   │                                                      ^^^^^^^^^
-   │                                                      │
-   │                                                      13 distinct watch-list words cluster in one paragraph
-   │                                                      help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
-   │
-   = Second...dense...paragraph...so...delve...crucial...robust...notably...adept...aims...align...tapestry...additionally...leveraging...comprehensive...pivotal...landscape...
-   = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
-
-note[CLUSTER]: 
-   ┌─ /tmp/gallery.md:58:66
-   │
+57 │ Sentence window next: crucial robust notably adept. Adept crucial
 58 │ robust notably aims. Tapestry delve crucial robust notably adept aims.
-   │                                                                  ^^^^
-   │                                                                  │
-   │                                                                  7 distinct watch-list words cluster in one paragraph
-   │                                                                  help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
+   │ …
    │
-   = Sentence...window...next:...crucial...robust...notably...adept...aims...Tapestry...delve...
+   = help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
+   = Clustered terms:
+   =   crucial
+   =   robust
+   =   notably
+   =   adept
+   =   aims
+   =   Tapestry
+   =   delve
    = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
 
