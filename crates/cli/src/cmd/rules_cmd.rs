@@ -95,13 +95,28 @@ pub fn load_for_lint(cfg: &deslop_core::config::Config) -> deslop_core::rule::lo
 }
 
 /// Where the builtin packs live, resolved once per run:
-/// 1. `$DESLOP_RULES_DIR` when set,
+/// 1. `~/.config/deslop/rules` (via the `dirs` crate) when it exists —
+///    user-installed packs,
 /// 2. `./rules` when present (repo development layout, incl. tests),
-/// 3. alongside the executable (`<exe_dir>/rules` — installed layout).
+/// 3. alongside the executable (`<exe_dir>/rules` — installed layout),
+/// 4. Cargo target fallback (`target/debug` ancestor with a `rules/`),
+/// 5. `.` as the last resort.
 fn rules_root() -> camino::Utf8PathBuf {
-    if let Some(dir) = std::env::var_os("DESLOP_RULES_DIR") {
-        return camino::Utf8PathBuf::from_path_buf(std::path::PathBuf::from(dir))
-            .unwrap_or_else(|_| camino::Utf8PathBuf::from("."));
+    if let Some(config_dir) = dirs::config_dir() {
+        let user_rules = config_dir.join("deslop").join("rules");
+        if user_rules.is_dir() {
+            // The user dir IS a rules root: its packs sit directly in it
+            // (<user_rules>/<stem>.toml), so hand back its PARENT with the
+            // same "root + rules/" join the loader performs everywhere else.
+            if let Ok(utf8) = camino::Utf8PathBuf::from_path_buf(
+                user_rules
+                    .parent()
+                    .map(std::path::Path::to_path_buf)
+                    .unwrap_or_else(|| config_dir.join("deslop")),
+            ) {
+                return utf8;
+            }
+        }
     }
     if camino::Utf8Path::new("rules").is_dir() {
         return camino::Utf8PathBuf::from(".");

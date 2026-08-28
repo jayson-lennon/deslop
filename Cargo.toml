@@ -35,6 +35,7 @@ error-stack = "0.6"
 # fs / paths
 walkdir = "2"
 camino = "1"
+dirs = "6"
 
 # dev
 assert_cmd = "2"
