@@ -29,6 +29,11 @@ struct Cli {
     #[arg(long, value_name = "DIR")]
     rules_dir: Option<camino::Utf8PathBuf>,
 
+    /// Additional rule file(s) to load on top of the resolved packs.
+    /// Repeatable; id-bases and ids must not collide with existing groups.
+    #[arg(long = "rule-file", value_name = "FILE")]
+    rule_files: Vec<camino::Utf8PathBuf>,
+
     #[command(subcommand)]
     command: Option<Command>,
 }
@@ -154,6 +159,26 @@ fn run(cli: Cli) -> i32 {
             .and_then(|p| camino::Utf8PathBuf::from_path_buf(p).ok()),
         None => None,
     };
+
+    // --rule-file entries must exist; canonicalize so downstream joins and
+    // diagnostics print stable absolute paths regardless of the caller's cwd.
+    let rule_files = {
+        let mut files = Vec::new();
+        for f in &cli.rule_files {
+            let Some(p) = f
+                .canonicalize()
+                .ok()
+                .and_then(|p| camino::Utf8PathBuf::from_path_buf(p).ok())
+            else {
+                eprintln!("deslop: --rule-file does not exist: {f}");
+                return ExitCode::LoadFailure as i32;
+            };
+            files.push(p);
+        }
+        files
+    };
+    let mut cfg = cfg;
+    cfg.packs.extra_paths.extend(rule_files);
 
     match cli.command {
         Some(Command::Rules { json }) => {
