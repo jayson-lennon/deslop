@@ -23,11 +23,11 @@
 
 use std::sync::Mutex;
 
-use deslop_plugin_protocol::{PluginFinding, PluginInput, PluginManifest, PROTOCOL_ABI};
+use deslop_plugin_protocol::{PROTOCOL_ABI, PluginFinding, PluginInput, PluginManifest};
 
 use super::{
-    fuel_for, validate_finding_slug, validate_manifest, PluginError, PluginRuntime, MAX_FINDINGS,
-    MAX_MEMORY_BYTES,
+    MAX_FINDINGS, MAX_MEMORY_BYTES, PluginError, PluginRuntime, fuel_for, validate_finding_slug,
+    validate_manifest,
 };
 
 /// A plugin executed by the embedded wasmi interpreter.
@@ -158,9 +158,10 @@ impl super::LintPlugin for WasmiPlugin {
             return Err(protocol("document input too large".into()));
         }
         let fuel = fuel_for(Some(&self.fuel_override), input_bytes.len());
-        let mut guard = self.ctx.lock().map_err(|_| {
-            protocol("plugin store lock poisoned by a previous panic".into())
-        })?;
+        let mut guard = self
+            .ctx
+            .lock()
+            .map_err(|_| protocol("plugin store lock poisoned by a previous panic".into()))?;
         // Destructure so Rust sees disjoint borrows of the fields.
         let GuestCtx {
             store,
@@ -208,16 +209,17 @@ impl super::LintPlugin for WasmiPlugin {
 
 /// Validate that `ptr..ptr+len` lies inside the given guest memory image.
 fn bounds(id: &str, data: &[u8], ptr: usize, len: usize) -> Result<(), PluginError> {
-    let end = ptr
-        .checked_add(len)
-        .ok_or_else(|| PluginError::Protocol {
-            id: id.to_owned(),
-            detail: "buffer pointer overflows usize".into(),
-        })?;
+    let end = ptr.checked_add(len).ok_or_else(|| PluginError::Protocol {
+        id: id.to_owned(),
+        detail: "buffer pointer overflows usize".into(),
+    })?;
     if end > data.len() {
         return Err(PluginError::Protocol {
             id: id.to_owned(),
-            detail: format!("buffer [{ptr}..{end}) exceeds guest memory of {} bytes", data.len()),
+            detail: format!(
+                "buffer [{ptr}..{end}) exceeds guest memory of {} bytes",
+                data.len()
+            ),
         });
     }
     Ok(())
@@ -225,10 +227,11 @@ fn bounds(id: &str, data: &[u8], ptr: usize, len: usize) -> Result<(), PluginErr
 
 /// Slice a previously validated range of guest memory.
 fn slice<'a>(id: &str, data: &'a [u8], ptr: usize, len: usize) -> Result<&'a [u8], PluginError> {
-    data.get(ptr..ptr + len).ok_or_else(|| PluginError::Protocol {
-        id: id.to_owned(),
-        detail: format!("buffer [{ptr}..{}) out of bounds", ptr + len),
-    })
+    data.get(ptr..ptr + len)
+        .ok_or_else(|| PluginError::Protocol {
+            id: id.to_owned(),
+            detail: format!("buffer [{ptr}..{}) out of bounds", ptr + len),
+        })
 }
 
 /// Read a 4-byte LE length prefix followed by that many bytes at `ptr`,
@@ -244,9 +247,12 @@ fn read_length_prefixed<'a>(
     };
     let ptr = (ptr as u32) as usize;
     let data = memory.data(store);
-    let head = data
-        .get(ptr..ptr + 4)
-        .ok_or_else(|| protocol(format!("metadata header [{ptr}..{}] out of bounds", ptr + 4)))?;
+    let head = data.get(ptr..ptr + 4).ok_or_else(|| {
+        protocol(format!(
+            "metadata header [{ptr}..{}] out of bounds",
+            ptr + 4
+        ))
+    })?;
     let len = u32::from_le_bytes([head[0], head[1], head[2], head[3]]) as usize;
     data.get(ptr + 4..ptr + 4 + len).ok_or_else(|| {
         protocol(format!(
@@ -273,12 +279,13 @@ fn unpack_ptr_len(packed: i64, id: &str) -> Result<(usize, usize), PluginError> 
 
 /// Translate a wasmi call error into the right [`PluginError`], separating
 /// fuel exhaustion from other traps.
-fn map_call_error<'a>(id: &'a str, what: &'static str) -> impl Fn(wasmi::Error) -> PluginError + 'a {
+fn map_call_error<'a>(
+    id: &'a str,
+    what: &'static str,
+) -> impl Fn(wasmi::Error) -> PluginError + 'a {
     move |error| {
         if matches!(error.as_trap_code(), Some(wasmi::TrapCode::OutOfFuel)) {
-            PluginError::Fuel {
-                id: id.to_owned(),
-            }
+            PluginError::Fuel { id: id.to_owned() }
         } else {
             PluginError::Trap {
                 id: id.to_owned(),
@@ -319,7 +326,10 @@ mod tests {
         // When unpacking.
         // Then both halves are recovered.
         let packed = ((4096u64) << 32) | 65;
-        assert_eq!(unpack_ptr_len(packed as i64, "X").expect("unpack"), (4096, 65));
+        assert_eq!(
+            unpack_ptr_len(packed as i64, "X").expect("unpack"),
+            (4096, 65)
+        );
     }
 
     #[test]
@@ -344,9 +354,12 @@ mod tests {
         )
         .expect("wat");
         let module = wasmi::Module::new(&engine, &wasm).expect("module");
-        let mut store = wasmi::Store::new(&engine, StoreState {
-            limits: wasmi::StoreLimitsBuilder::new().build(),
-        });
+        let mut store = wasmi::Store::new(
+            &engine,
+            StoreState {
+                limits: wasmi::StoreLimitsBuilder::new().build(),
+            },
+        );
         let instance = wasmi::Linker::new(&engine)
             .instantiate_and_start(&mut store, &module)
             .expect("instantiate");

@@ -80,9 +80,8 @@ fn plugin_findings_render_in_json_with_plugin_kind() {
 #[test]
 fn missing_plugin_file_warns_and_does_not_change_exit_code() {
     // Given a project whose plugin path does not exist.
-    let project = Project::with_config(
-        "[plugins]\npaths = [\"/nonexistent/really-not-here.wasm\"]\n",
-    );
+    let project =
+        Project::with_config("[plugins]\npaths = [\"/nonexistent/really-not-here.wasm\"]\n");
 
     // When linting.
     let (_stdout, stderr, code) = project.run(&["doc.md"]);
@@ -104,7 +103,10 @@ fn trapping_plugin_warns_per_document_and_exit_stays_clean() {
 
     // Then the trap is a warning, not a crash.
     assert!(stderr.contains("FIXTURE"), "{stderr}");
-    assert!(stderr.contains("trapped") || stderr.contains("failed"), "{stderr}");
+    assert!(
+        stderr.contains("trapped") || stderr.contains("failed"),
+        "{stderr}"
+    );
     assert_eq!(code, 0);
 }
 

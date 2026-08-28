@@ -7,9 +7,9 @@
 use deslop_core::finding::Tier;
 use deslop_core::plugin::fake::FakePlugin;
 use deslop_core::plugin::{PluginFinding, PluginInput, PluginManifest};
-use deslop_plugin_protocol::PROTOCOL_ABI;
-use deslop_core::scanner::{scan_with_plugins, LintSettings};
 use deslop_core::rule::RuleSet;
+use deslop_core::scanner::{LintSettings, scan_with_plugins};
+use deslop_plugin_protocol::PROTOCOL_ABI;
 
 fn manifest(id: &str, tier: u8) -> PluginManifest {
     PluginManifest {
@@ -145,8 +145,7 @@ fn max_tier_filter_skips_higher_tier_plugins() {
     // Given tier-2 and tier-3 plugins.
     let a = fake("TWO", 2, vec![finding("x", (0, 1))]);
     let b = fake("THREE", 3, vec![finding("y", (0, 1))]);
-    let plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>> =
-        vec![Box::new(a), Box::new(b)];
+    let plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>> = vec![Box::new(a), Box::new(b)];
     let settings = LintSettings {
         max_tier: Some(2),
         levels: Default::default(),
@@ -243,15 +242,22 @@ fn crlf_document_offsets_remap_to_original() {
     let outcome = scan_with_plugins(src, &RuleSet::default(), &settings_with(&[]), &plugins);
 
     // Then the span points at the original text (shifted by the CR bytes).
-    assert_eq!(outcome.findings[0].span, deslop_core::finding::Span::new(10, 15));
+    assert_eq!(
+        outcome.findings[0].span,
+        deslop_core::finding::Span::new(10, 15)
+    );
     assert_eq!(outcome.findings[0].excerpt, "three");
 }
 
 #[test]
 fn empty_plugin_list_matches_plain_scan() {
     // Given a document with a native vocab-style scan and no plugins.
-    let outcome =
-        scan_with_plugins("ordinary words here", &RuleSet::default(), &settings_with(&[]), &[]);
+    let outcome = scan_with_plugins(
+        "ordinary words here",
+        &RuleSet::default(),
+        &settings_with(&[]),
+        &[],
+    );
 
     // Then no findings and no warnings.
     assert!(outcome.findings.is_empty());
@@ -277,7 +283,10 @@ impl deslop_core::plugin::LintPlugin for InspectPlugin {
         serde_json::json!({"threshold_gt": 2.5, "words": ["a", "b"]})
     }
 
-    fn scan(&self, input: &PluginInput) -> Result<Vec<PluginFinding>, deslop_core::plugin::PluginError> {
+    fn scan(
+        &self,
+        input: &PluginInput,
+    ) -> Result<Vec<PluginFinding>, deslop_core::plugin::PluginError> {
         *self.0.lock().expect("lock") = Some(input.clone());
         Ok(vec![])
     }

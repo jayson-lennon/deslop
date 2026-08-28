@@ -274,10 +274,7 @@ fn plugin_findings(
     // plugin (each gets its own `config` in phase 4 wiring).
     let envelope = PluginInput {
         text: masked.to_string(),
-        heading_ranges: ranges_u64(metrics::scope_ranges(
-            _map,
-            regions::Scope::is_heading_like,
-        )),
+        heading_ranges: ranges_u64(metrics::scope_ranges(_map, regions::Scope::is_heading_like)),
         bold_spans: ranges_u64(metrics::bold_ranges(_map)),
         list_items: ranges_u64(metrics::list_item_ranges(_map)),
         config: serde_json::json!({}),
@@ -355,10 +352,7 @@ fn plugin_findings(
 
 /// Keep the first finding per slug; a plugin repeating a slug is a bug and
 /// would produce colliding entry ids.
-fn dedupe_by_slug(
-    produced: Vec<PluginFinding>,
-    id: &str,
-) -> impl Iterator<Item = PluginFinding> {
+fn dedupe_by_slug(produced: Vec<PluginFinding>, id: &str) -> impl Iterator<Item = PluginFinding> {
     let mut seen = std::collections::HashSet::new();
     produced.into_iter().filter(move |pf| {
         let fresh = pf.slug.is_empty() || seen.insert(pf.slug.clone());

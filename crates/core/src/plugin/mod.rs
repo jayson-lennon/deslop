@@ -16,7 +16,6 @@
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
-
 pub mod fake;
 pub mod wasmi_host;
 
@@ -207,9 +206,11 @@ pub fn load_plugins(cfg: &PluginConfig) -> (Vec<Box<dyn LintPlugin>>, Vec<String
                 if let Some(runtime) = cfg.runtime.get(&key) {
                     plugin.set_fuel_override(runtime.fuel);
                 }
-                let params = cfg.params.get(&key).cloned().unwrap_or_else(|| {
-                    serde_json::json!({})
-                });
+                let params = cfg
+                    .params
+                    .get(&key)
+                    .cloned()
+                    .unwrap_or_else(|| serde_json::json!({}));
                 if seen.insert(key) {
                     loaded.push(Box::new(WithParams::new(plugin, params)));
                 } else {
@@ -245,7 +246,10 @@ mod tests {
         // Given a manifest matching the host's ABI and a legal tier.
         // When validating.
         // Then no problems are reported.
-        assert_eq!(validate_manifest(&manifest("EXCLAIM", 3, PROTOCOL_ABI)), Ok(()));
+        assert_eq!(
+            validate_manifest(&manifest("EXCLAIM", 3, PROTOCOL_ABI)),
+            Ok(())
+        );
     }
 
     #[test]
@@ -308,9 +312,7 @@ mod tests {
         // Given an explicit fuel override.
         // When computing fuel.
         // Then the override is used verbatim, not added to the formula.
-        let rt = PluginRuntime {
-            fuel: Some(1234),
-        };
+        let rt = PluginRuntime { fuel: Some(1234) };
         assert_eq!(fuel_for(Some(&rt), 10_000), 1234);
     }
 

@@ -3,7 +3,7 @@
 //! The fixtures under `tests/fixtures/plugins` are hand-written WAT modules
 //! compiled in-process by the `wat` crate, so no wasm32 toolchain is needed.
 
-use deslop_core::plugin::{load_plugins, LintPlugin, PluginConfig, PluginError, PluginInput};
+use deslop_core::plugin::{LintPlugin, PluginConfig, PluginError, PluginInput, load_plugins};
 
 /// Compile a WAT fixture from `tests/fixtures/plugins` to wasm bytes.
 fn fixture(name: &str) -> Vec<u8> {

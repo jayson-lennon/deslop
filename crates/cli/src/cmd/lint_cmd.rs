@@ -131,12 +131,8 @@ impl ScanRun<'_> {
         // borrow views at render time so lifetimes stay simple.
         let mut all: Vec<(Finding, usize)> = Vec::new();
         for (idx, doc) in corpus.docs.iter().enumerate() {
-            let outcome = scanner::scan_with_plugins(
-                &doc.src,
-                &loaded.rule_set,
-                &settings,
-                &self.plugins,
-            );
+            let outcome =
+                scanner::scan_with_plugins(&doc.src, &loaded.rule_set, &settings, &self.plugins);
             for warning in &outcome.warnings {
                 eprintln!("{warning}");
             }

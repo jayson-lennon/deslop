@@ -49,7 +49,8 @@ impl super::LintPlugin for FakePlugin {
     }
 
     fn scan(&self, _input: &PluginInput) -> Result<Vec<PluginFinding>, PluginError> {
-        self.calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.calls
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         if let Some(failure) = &self.failure {
             return Err(failure.clone());
         }
@@ -102,9 +103,7 @@ mod tests {
             message: "m".into(),
             advice: None,
         });
-        plugin.failure = Some(PluginError::Fuel {
-            id: "FAKE".into(),
-        });
+        plugin.failure = Some(PluginError::Fuel { id: "FAKE".into() });
 
         // When scanning.
         let result = super::super::LintPlugin::scan(&plugin, &PluginInput::default());

@@ -37,3 +37,16 @@
 
 - Metric/vocab `advice` strings follow a problem-plus-resolution model,
   cite no papers, and never carry TODO markers (loader-tested).
+
+- deslop plugins are in-memory WASM modules run by the embedded wasmi
+  interpreter, declared under `[plugins]` in `.deslop.toml`; identity
+  (id_base, tier, category, ABI version) comes from the module's own
+  `plugin_meta()` export, `[plugins.<id>]` params pass to the plugin
+  verbatim (host never interprets them), and `[plugins.<id>.runtime]`
+  holds host-owned knobs (fuel, defaulting to a size-scaled high limit).
+
+- Plugin findings use the same pipeline as TOML rules (`GROUP#slug` ids,
+  `[lints]` overrides, tier-driven exit codes) but are report-only; the
+  host calls each plugin once per document and a plugin that traps,
+  exhausts fuel, or returns invalid spans is skipped with a stderr
+  warning and never changes the exit code.

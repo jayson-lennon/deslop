@@ -386,10 +386,7 @@ impl RawConfig {
 
     /// Like [`Self::into_config`] but anchors relative plugin paths at
     /// `config_dir` when provided.
-    fn into_config_in_dir(
-        self,
-        config_dir: Option<&camino::Utf8Path>,
-    ) -> Result<Config, String> {
+    fn into_config_in_dir(self, config_dir: Option<&camino::Utf8Path>) -> Result<Config, String> {
         let mut lint = std::collections::BTreeMap::new();
         for (key, level) in self.lints {
             let level = level.into_level().map_err(|e| format!("{key}: {e}"))?;

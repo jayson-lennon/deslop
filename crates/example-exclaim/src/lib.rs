@@ -22,7 +22,7 @@
 //! threshold_gt = 1.0   # findings per 1000 words; omit for the default
 //! ```
 
-use deslop_plugin_sdk::{export, Doc, Finding, Plugin};
+use deslop_plugin_sdk::{Doc, Finding, Plugin, export};
 
 /// `[plugins.<id>]` table. All fields default, so the section is optional.
 #[derive(serde::Deserialize, Default)]
@@ -62,12 +62,14 @@ impl Plugin for Exclaim {
             return Vec::new();
         }
         let at = doc.text.find('!').expect("nonzero above");
-        vec![Finding::new(
-            "exclamania",
-            (at, at + 1),
-            format!("exclamation rate {rate:.1} per 1000 words"),
-        )
-        .with_advice("cut most of these; one reads confident, ten reads shaky")]
+        vec![
+            Finding::new(
+                "exclamania",
+                (at, at + 1),
+                format!("exclamation rate {rate:.1} per 1000 words"),
+            )
+            .with_advice("cut most of these; one reads confident, ten reads shaky"),
+        ]
     }
 }
 

@@ -46,7 +46,7 @@
 //! are dropped with a warning. Panics are plugin bugs, not a control-flow
 //! mechanism.
 
-use deslop_plugin_protocol::{PluginFinding, PluginInput, PROTOCOL_ABI};
+use deslop_plugin_protocol::{PROTOCOL_ABI, PluginFinding, PluginInput};
 
 /// The document envelope a plugin analyzes. Coordinates are byte offsets
 /// into `text`; masked (use-mention suppressed) bytes appear as `'\0'`.
@@ -220,9 +220,7 @@ macro_rules! export {
                 // followed by the manifest JSON.
                 let manifest = manifest_bytes();
                 let n = manifest.len() as u32;
-                let memory = unsafe {
-                    $crate::memory_slice_mut(META_PTR, META_MAX)
-                };
+                let memory = unsafe { $crate::memory_slice_mut(META_PTR, META_MAX) };
                 memory[0..4].copy_from_slice(&n.to_le_bytes());
                 memory[4..4 + manifest.len()].copy_from_slice(manifest.as_bytes());
                 META_PTR as i32
@@ -230,9 +228,7 @@ macro_rules! export {
 
             #[unsafe(no_mangle)]
             pub extern "C" fn scan(ptr: i32, len: i32) -> i64 {
-                let input_bytes = unsafe {
-                    $crate::memory_slice(ptr as u32, len as u32)
-                };
+                let input_bytes = unsafe { $crate::memory_slice(ptr as u32, len as u32) };
                 let doc: $crate::Doc = match serde_json::from_slice(input_bytes) {
                     Ok(doc) => doc,
                     Err(_) => return 0,
@@ -241,8 +237,7 @@ macro_rules! export {
                     Ok(params) => params,
                     Err(_) => return 0,
                 };
-                let findings: Vec<$crate::Finding> =
-                    <$ty as $crate::Plugin>::scan(&doc, &params);
+                let findings: Vec<$crate::Finding> = <$ty as $crate::Plugin>::scan(&doc, &params);
                 let wire: Vec<$crate::RepackFinding> =
                     findings.into_iter().map(Into::into).collect();
                 let out = match serde_json::to_vec(&wire) {
@@ -259,8 +254,7 @@ macro_rules! export {
                     top
                 };
                 unsafe {
-                    $crate::memory_slice_mut(out_ptr, out.len() as u32)
-                        .copy_from_slice(&out);
+                    $crate::memory_slice_mut(out_ptr, out.len() as u32).copy_from_slice(&out);
                 }
                 ((out_ptr as i64) << 32) | (out.len() as i64)
             }
