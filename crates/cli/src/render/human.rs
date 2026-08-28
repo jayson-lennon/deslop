@@ -111,11 +111,93 @@ pub fn render_human(
                 id
             }
         };
+        // Window-spanned (anchorless) findings bypass codespan: a snippet
+        // cannot be emitted without a mark, and a caret across a whole
+        // window reads as noise. Hand-rolled gutter block instead.
+        if finding.finding.anchorless {
+            render_anchorless(finding.finding, finding.path, finding.src, &mut buffer)?;
+            continue;
+        }
         let d = diagnostic(finding.finding, file_id);
         emit(&mut buffer, &config, &files, &d).map_err(|e| std::io::Error::other(e.to_string()))?;
     }
 
     out.write_all(buffer.as_slice())
+}
+
+/// Render one window-spanned (anchorless) finding: the same shapes codespan
+/// uses (severity header, `┌─ path:line:col`, `│` gutter, numbered source
+/// lines, ` = ` notes) but NO caret/underline marks - the span covers a
+/// whole window and a mark that wide is noise.
+///
+/// # Errors
+///
+/// Fails when writing fails.
+fn render_anchorless(
+    f: &deslop_core::finding::Finding,
+    path: &str,
+    src: &str,
+    out: &mut dyn Write,
+) -> std::io::Result<()> {
+    let sev = match f.tier {
+        Tier::Artifact => "error",
+        Tier::Tell => "warning",
+        Tier::Density => "note",
+    };
+    let (line, col) = super::line_col(src, f.span.start);
+    let width = {
+        // Gutter width fits the last line number actually printed (or the
+        // window's end line, whichever is wider).
+        let end_line = super::line_col(src, f.span.end.saturating_sub(1).max(f.span.start)).0;
+        let shown = src[f.span.start..f.span.end].lines().count().min(2);
+        (line + shown.saturating_sub(1)).max(end_line)
+    };
+    let width = width.to_string().len();
+
+    writeln!(out, "{sev}[{}]: {}", f.entry_id, f.message)?;
+    writeln!(out, "   ┌─ {path}:{line}:{col}")?;
+    writeln!(out, "   │")?;
+    // Numbered source lines; a window spanning more than two lines prints
+    // its first two, then an ellipsis continuation (never the whole doc).
+    let total_lines = src[f.span.start..f.span.end].lines().count();
+    let mut printed = 0usize;
+    for (i, text) in src[f.span.start..f.span.end].lines().enumerate() {
+        if i >= 2 {
+            break;
+        }
+        writeln!(out, "{:>width$} │ {text}", line + i)?;
+        printed += 1;
+    }
+    if printed < total_lines {
+        writeln!(out, "   │ …")?;
+    }
+    writeln!(out, "   │")?;
+    write_anchorless_notes(f, out)
+}
+
+/// Trailing ` = ` notes for an anchorless finding: help, the context list
+/// (one note per line, so `Clustered terms:` renders its indented terms
+/// under the header), then the reference link.
+///
+/// # Errors
+///
+/// Fails when writing fails.
+fn write_anchorless_notes(
+    f: &deslop_core::finding::Finding,
+    out: &mut dyn Write,
+) -> std::io::Result<()> {
+    if let Some(advice) = &f.advice {
+        writeln!(out, "   = help: {advice}")?;
+    }
+    if let Some(context) = &f.context {
+        for note in context.split('\n') {
+            writeln!(out, "   = {note}")?;
+        }
+    }
+    if let Some((text, href)) = &f.url {
+        writeln!(out, "   = see: {text} - {href}")?;
+    }
+    writeln!(out)
 }
 
 /// Render rule-load errors against their TOML sources with the same
@@ -204,6 +286,7 @@ fn line_starts(src: &str) -> Vec<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use deslop_core::finding::{Finding, KindTag, Span};
 
     #[test]
     fn line_starts_indexes_every_line() {
@@ -215,5 +298,143 @@ mod tests {
 
         // Then lines begin at their byte offsets, including the empty tail.
         assert_eq!(starts, vec![0, 2, 5, 9]);
+    }
+
+    fn sample_finding(span: Span, src: &str) -> Finding {
+        Finding {
+            entry_id: "CLUSTER".to_owned(),
+            kind: KindTag::Metric,
+            tier: Tier::Density,
+            category: "vocabulary-density".to_owned(),
+            message: "3 distinct watch-list words cluster".to_owned(),
+            advice: Some("vary the vocabulary".to_owned()),
+            span,
+            excerpt: src[span.start..span.end].to_owned(),
+            url: Some(("Wiki".to_owned(), "https://example.com/wiki".to_owned())),
+            context: Some("Clustered terms:\n  also\n  adept".to_owned()),
+            replacement: None,
+            anchorless: false,
+        }
+    }
+
+    fn render_one(f: &Finding, src: &str) -> String {
+        let filed = vec![FiledFinding {
+            path: "doc.md",
+            src,
+            finding: f,
+        }];
+        let mut out = Vec::new();
+        render_human(&filed, ColorChoice::Never, &mut out).expect("render");
+        String::from_utf8(out).expect("utf8")
+    }
+
+    #[test]
+    fn anchorless_finding_renders_gutter_block_without_carets() {
+        // Given a paragraph-window finding flagged anchorless.
+        let src = "First line.\n\nWe felt also aptly adept here.\n";
+        let span = Span::new(13, src.len() - 1);
+        let mut f = sample_finding(span, src);
+        f.anchorless = true;
+
+        // When rendering.
+        let text = render_one(&f, src);
+
+        // Then the gutter block names line and column with the source text,
+        // and NO caret or underline mark is drawn anywhere.
+        assert!(text.contains("┌─ doc.md:3:1"), "{text}");
+        assert!(
+            text.contains("3 │ We felt also aptly adept here."),
+            "{text}"
+        );
+        assert!(!text.contains('^'), "{text}");
+    }
+
+    #[test]
+    fn anchorless_notes_render_help_context_list_and_url() {
+        // Given an anchorless finding with advice, a context list, and a url.
+        let src = "also adept aims align across\n";
+        let mut f = sample_finding(Span::new(0, src.len() - 1), src);
+        f.anchorless = true;
+
+        // When rendering.
+        let text = render_one(&f, src);
+
+        // Then notes follow the codespan ` = ` style: help first, one note
+        // per context line (terms indented under the header), then the link.
+        assert!(text.contains("   = help: vary the vocabulary"), "{text}");
+        assert!(text.contains("   = Clustered terms:"), "{text}");
+        assert!(text.contains("   =   also"), "{text}");
+        assert!(text.contains("   =   adept"), "{text}");
+        assert!(
+            text.contains("   = see: Wiki - https://example.com/wiki"),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn spanned_finding_still_renders_carets() {
+        // Given a normal word-spanned finding (anchorless false).
+        let src = "one delve two\n";
+        let f = sample_finding(Span::new(4, 9), src);
+
+        // When rendering.
+        let text = render_one(&f, src);
+
+        // Then codespan draws the caret underline as before.
+        assert!(text.contains('^'), "{text}");
+        assert!(text.contains("┌─ doc.md:1:5"), "{text}");
+    }
+
+    #[test]
+    fn document_level_zero_span_keeps_message_only_path() {
+        // Given a (0,0) document-level finding.
+        let src = "just words\n";
+        let f = sample_finding(Span::new(0, 0), src);
+        let mut f = f;
+        f.message = "doc-level signal".to_owned();
+
+        // When rendering.
+        let text = render_one(&f, src);
+
+        // Then codespan emits the bare note header - no gutter, no carets.
+        assert!(text.contains("note[CLUSTER]: doc-level signal"), "{text}");
+        assert!(!text.contains('│'), "{text}");
+        assert!(!text.contains('^'), "{text}");
+    }
+
+    #[test]
+    fn anchorless_multiline_window_numbers_each_line() {
+        // Given a two-line window starting on line 4 (byte 9).
+        let src = "l1\nl2\nl3\nwindow line a\nwindow line b\n";
+        let span = Span::new(9, src.len() - 1);
+        let mut f = sample_finding(span, src);
+        f.anchorless = true;
+
+        // When rendering.
+        let text = render_one(&f, src);
+
+        // Then each source line carries its own number in the gutter.
+        assert!(text.contains("4 │ window line a"), "{text}");
+        assert!(text.contains("5 │ window line b"), "{text}");
+        assert!(!text.contains('^'), "{text}");
+    }
+
+    #[test]
+    fn anchorless_three_line_window_caps_with_ellipsis() {
+        // Given a window spanning four lines (document-window scale).
+        let src = "a1\nb2\nc3\nd4\n";
+        let mut f = sample_finding(Span::new(0, src.len() - 1), src);
+        f.anchorless = true;
+
+        // When rendering.
+        let text = render_one(&f, src);
+
+        // Then only the first two lines print, followed by an ellipsis
+        // continuation line - never the whole document.
+        assert!(text.contains("1 │ a1"), "{text}");
+        assert!(text.contains("2 │ b2"), "{text}");
+        assert!(text.contains("   │ …"), "{text}");
+        assert!(!text.contains("c3"), "{text}");
+        assert!(!text.contains("d4"), "{text}");
     }
 }
