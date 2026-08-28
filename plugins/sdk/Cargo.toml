@@ -7,6 +7,6 @@ rust-version.workspace = true
 description = "Guest-side SDK for writing deslop WASM lint plugins"
 
 [dependencies]
-deslop-plugin-protocol = { path = "../plugin-protocol" }
+deslop-plugin-protocol = { path = "../protocol" }
 serde = { workspace = true }
 serde_json = { workspace = true }

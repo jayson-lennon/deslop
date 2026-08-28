@@ -11,6 +11,6 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-deslop-plugin-sdk = { path = "../plugin-sdk" }
+deslop-plugin-sdk = { path = "../sdk" }
 serde = { workspace = true }
 serde_json = { workspace = true }
