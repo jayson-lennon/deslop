@@ -13,6 +13,7 @@ use std::io::Write;
 use codespan_reporting::diagnostic::{Diagnostic, Label, LabelStyle, Severity};
 use codespan_reporting::files::SimpleFiles;
 use codespan_reporting::term::emit;
+use codespan_reporting::term::termcolor::{Buffer, Color, ColorSpec, WriteColor};
 
 use super::FiledFinding;
 use deslop_core::config::ColorChoice;
@@ -111,9 +112,10 @@ pub fn render_human(
                 id
             }
         };
-        // Window-spanned (anchorless) findings bypass codespan: a snippet
-        // cannot be emitted without a mark, and a caret across a whole
-        // window reads as noise. Hand-rolled gutter block instead.
+        // Window-spanned (anchorless) findings bypass codespan's diagnostic
+        // emitter: a snippet cannot be emitted without a mark, and a caret
+        // across a whole window reads as noise. Hand-rolled gutter block
+        // instead, styled through the same color-aware buffer.
         if finding.finding.anchorless {
             render_anchorless(finding.finding, finding.path, finding.src, &mut buffer)?;
             continue;
@@ -125,10 +127,33 @@ pub fn render_human(
     out.write_all(buffer.as_slice())
 }
 
+/// Severity header style: bold intense severity color, as codespan.
+fn header_style(fg: Color) -> ColorSpec {
+    let mut style = ColorSpec::new();
+    style.set_bold(true).set_intense(true).set_fg(Some(fg));
+    style
+}
+
+/// Gutter/line-number/note-bullet style: plain blue, as codespan.
+fn blue_style() -> ColorSpec {
+    let mut style = ColorSpec::new();
+    style.set_fg(Some(Color::Blue));
+    style
+}
+
+/// Message-tail style on the severity header line: plain bold.
+fn bold_style() -> ColorSpec {
+    let mut style = ColorSpec::new();
+    style.set_bold(true);
+    style
+}
+
 /// Render one window-spanned (anchorless) finding: the same shapes codespan
 /// uses (severity header, `┌─ path:line:col`, `│` gutter, numbered source
 /// lines, ` = ` notes) but NO caret/underline marks - the span covers a
-/// whole window and a mark that wide is noise.
+/// whole window and a mark that wide is noise. Styled with the same palette
+/// codespan uses (bold intense severity header, blue gutter/line numbers/
+/// note bullets); the no-color buffer simply drops the escapes.
 ///
 /// # Errors
 ///
@@ -137,13 +162,14 @@ fn render_anchorless(
     f: &deslop_core::finding::Finding,
     path: &str,
     src: &str,
-    out: &mut dyn Write,
+    out: &mut Buffer,
 ) -> std::io::Result<()> {
-    let sev = match f.tier {
-        Tier::Artifact => "error",
-        Tier::Tell => "warning",
-        Tier::Density => "note",
+    let header = match f.tier {
+        Tier::Artifact => header_style(Color::Red),
+        Tier::Tell => header_style(Color::Yellow),
+        Tier::Density => header_style(Color::Green),
     };
+    let gutter = blue_style();
     let (line, col) = super::line_col(src, f.span.start);
     // Gutter width fits the last line number actually printed. Never derive
     // it from span.end: subtracting one from a byte offset that sits at a
@@ -152,9 +178,20 @@ fn render_anchorless(
     let shown_lines = src[f.span.start..f.span.end].lines().count().min(2);
     let width = (line + shown_lines.saturating_sub(1)).to_string().len();
 
-    writeln!(out, "{sev}[{}]: {}", f.entry_id, f.message)?;
-    writeln!(out, "   ┌─ {path}:{line}:{col}")?;
-    writeln!(out, "   │")?;
+    // Header: bold intense severity color on `severity[CODE]`, bold on the
+    // `: message` tail - the codespan header shape.
+    out.set_color(&header)?;
+    write!(out, "{}[{}]", sev_name(f.tier), f.entry_id)?;
+    out.set_color(&bold_style())?;
+    writeln!(out, ": {}", f.message)?;
+    out.reset()?;
+
+    // Gutter: blue `┌─` then plain `path:line:col`; blue `│` continuations.
+    out.set_color(&gutter)?;
+    write!(out, "   ┌─ ")?;
+    out.reset()?;
+    writeln!(out, "{path}:{line}:{col}")?;
+    gutter_line(out)?;
     // Numbered source lines; a window spanning more than two lines prints
     // its first two, then an ellipsis continuation (never the whole doc).
     let total_lines = src[f.span.start..f.span.end].lines().count();
@@ -163,14 +200,44 @@ fn render_anchorless(
         if i >= 2 {
             break;
         }
-        writeln!(out, "{:>width$} │ {text}", line + i)?;
+        out.set_color(&gutter)?;
+        write!(out, "{:>width$} │ ", line + i)?;
+        out.reset()?;
+        writeln!(out, "{text}")?;
         printed += 1;
     }
     if printed < total_lines {
+        out.set_color(&gutter)?;
         writeln!(out, "   │ …")?;
+        out.reset()?;
     }
-    writeln!(out, "   │")?;
+    gutter_line(out)?;
     write_anchorless_notes(f, out)
+}
+
+/// Severity name as printed in the header (`error`/`warning`/`note`).
+fn sev_name(tier: Tier) -> &'static str {
+    match tier {
+        Tier::Artifact => "error",
+        Tier::Tell => "warning",
+        Tier::Density => "note",
+    }
+}
+
+/// One blue `│` gutter line (no source text).
+fn gutter_line(out: &mut Buffer) -> std::io::Result<()> {
+    out.set_color(&blue_style())?;
+    write!(out, "   │")?;
+    out.reset()?;
+    writeln!(out)
+}
+
+/// One blue-bulleted `   = ` note line, matching codespan's note style.
+fn note_line(text: &str, out: &mut Buffer) -> std::io::Result<()> {
+    out.set_color(&blue_style())?;
+    write!(out, "   =")?;
+    out.reset()?;
+    writeln!(out, " {text}")
 }
 
 /// Trailing ` = ` notes for an anchorless finding: help, the context list
@@ -182,18 +249,18 @@ fn render_anchorless(
 /// Fails when writing fails.
 fn write_anchorless_notes(
     f: &deslop_core::finding::Finding,
-    out: &mut dyn Write,
+    out: &mut Buffer,
 ) -> std::io::Result<()> {
     if let Some(advice) = &f.advice {
-        writeln!(out, "   = help: {advice}")?;
+        note_line(&format!("help: {advice}"), out)?;
     }
     if let Some(context) = &f.context {
         for note in context.split('\n') {
-            writeln!(out, "   = {note}")?;
+            note_line(note, out)?;
         }
     }
     if let Some((text, href)) = &f.url {
-        writeln!(out, "   = see: {text} - {href}")?;
+        note_line(&format!("see: {text} - {href}"), out)?;
     }
     writeln!(out)
 }
