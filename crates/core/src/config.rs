@@ -150,6 +150,7 @@ pub enum ConfigError {
 pub fn discover(
     start: &camino::Utf8Path,
     data_dir: Option<&camino::Utf8Path>,
+    user_config: Option<&camino::Utf8Path>,
 ) -> Result<Config, error_stack::Report<ConfigError>> {
     if start.is_file() {
         return parse_config_file(start, data_dir);
@@ -162,7 +163,14 @@ pub fn discover(
 
     match found {
         Some(path) => parse_config_file(&path, data_dir),
-        None => Ok(Config::default()),
+        // No project config anywhere up the tree: fall back to the
+        // user-global config (~/.config/deslop/deslop.toml), mirroring how
+        // rule packs honor ~/.config/deslop/rules. A project config, when
+        // present, always wins; `--config` beats both.
+        None => match user_config.filter(|path| path.is_file()) {
+            Some(path) => parse_config_file(path, data_dir),
+            None => Ok(Config::default()),
+        },
     }
 }
 
@@ -581,6 +589,7 @@ color = "never"
         let cfg = discover(
             camino::Utf8Path::from_path(root.join("b").as_path()).expect("utf8"),
             None,
+            None,
         )
         .expect("discover");
 
@@ -594,10 +603,72 @@ color = "never"
         let dir = tempfile::tempdir().expect("tempdir");
 
         // When discovering from inside it.
-        let cfg = discover(camino::Utf8Path::from_path(dir.path()).expect("utf8"), None)
-            .expect("discover");
+        let cfg = discover(
+            camino::Utf8Path::from_path(dir.path()).expect("utf8"),
+            None,
+            None,
+        )
+        .expect("discover");
 
         // Then defaults apply (all five builtin packs).
+        assert_eq!(cfg.packs.builtin.len(), 5);
+    }
+
+    #[test]
+    fn discover_falls_back_to_the_user_global_config() {
+        // Given no project config and a user-global file with a marker value.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let user_dir = tempfile::tempdir().expect("tempdir");
+        let user_config = user_dir.path().join("deslop.toml");
+        std::fs::write(&user_config, "[scan]\ntiers = [1]\n").expect("write");
+
+        // When discovering from inside the empty tree.
+        let cfg = discover(
+            camino::Utf8Path::from_path(dir.path()).expect("utf8"),
+            None,
+            Some(camino::Utf8Path::from_path(&user_config).expect("utf8")),
+        )
+        .expect("discover");
+
+        // Then the user-global config applies.
+        assert_eq!(cfg.scan.tiers, vec![1]);
+    }
+
+    #[test]
+    fn project_config_wins_over_the_user_global_config() {
+        // Given both a project config and a user-global config.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let user_dir = tempfile::tempdir().expect("tempdir");
+        let user_config = user_dir.path().join("deslop.toml");
+        std::fs::write(&user_config, "[scan]\ntiers = [1]\n").expect("write");
+        std::fs::write(dir.path().join(".deslop.toml"), "[scan]\ntiers = [2]\n").expect("write");
+
+        // When discovering from the project dir.
+        let cfg = discover(
+            camino::Utf8Path::from_path(dir.path()).expect("utf8"),
+            None,
+            Some(camino::Utf8Path::from_path(&user_config).expect("utf8")),
+        )
+        .expect("discover");
+
+        // Then the project config wins.
+        assert_eq!(cfg.scan.tiers, vec![2]);
+    }
+
+    #[test]
+    fn a_missing_user_global_config_still_falls_back_to_defaults() {
+        // Given no project config and a user config path that does not exist.
+        let dir = tempfile::tempdir().expect("tempdir");
+
+        // When discovering.
+        let cfg = discover(
+            camino::Utf8Path::from_path(dir.path()).expect("utf8"),
+            None,
+            Some(camino::Utf8Path::new("/nonexistent/deslop.toml")),
+        )
+        .expect("discover");
+
+        // Then defaults apply.
         assert_eq!(cfg.packs.builtin.len(), 5);
     }
 

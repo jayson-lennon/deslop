@@ -409,6 +409,12 @@ The `wasm` path resolves by form (must always end in `.wasm`):
 | `./rel.wasm`, `../up/rel.wasm` | the `.deslop.toml`'s directory | repo-committed plugins |
 | `name.wasm` | `~/.local/share/deslop/plugins/` | personally installed plugins |
 
+Plugins can also be declared in the user-global config,
+`~/.config/deslop/deslop.toml` — the same file layout the rules dir uses.
+Config discovery is: `--config` flag, then a `.deslop.toml` walking up from
+the working directory, then that user-global file, then defaults. A
+project config always wins over the user-global one.
+
 Add `enabled = false` to switch a plugin off at load level — the module is
 never read and it disappears from `deslop rules` (whereas `[lints] ID =
 "allow"` keeps it loaded and listed but silent during scans).

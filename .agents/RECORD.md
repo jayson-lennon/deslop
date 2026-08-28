@@ -55,3 +55,5 @@
   host calls each plugin once per document and a plugin that traps,
   exhausts fuel, or returns invalid spans is skipped with a stderr
   warning and never changes the exit code.
+
+- Config discovery order is: `--config` flag, then `.deslop.toml` walking up from the working directory, then the user-global `~/.config/deslop/deslop.toml` (mirroring the user rules dir), then defaults. A project config always wins; plugins can be declared in either config, and bare `wasm` names resolve against the user plugin install dir `~/.local/share/deslop/plugins` (the XDG data dir — a convention only, never scanned; `deslop plugin install <builtin>` writes there).

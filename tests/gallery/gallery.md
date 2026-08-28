@@ -1,6 +1,6 @@
 # deslop output gallery
 
-One document designed to trip every *output shape* the linter can render —
+One document designed to trip every _output shape_ the linter can render —
 severities, spanned vs document-level, help lines, context chains, urls,
 fixable rewrites — without aiming to fire every rule.
 
@@ -65,3 +65,7 @@ sprawling, meandering sentence that pads across half the page with clause
 after clause after clause, none of which earns its keep, until the reader
 has completely lost the thread of what was even being said or why it
 mattered in the first place.
+
+## Section: exclaim-example
+
+It's awesome! It's spectacular! It's stupendous! It's in a text file! It's an exclamation point!

@@ -4,7 +4,8 @@ use std::io::Write;
 
 /// Annotated template with a comment for every knob (spec: cmd/init_cmd.rs).
 pub const TEMPLATE: &str = r#"# deslop configuration. Place at project root; the CLI walks up to find it.
-# Delete this file to fall back to full defaults.
+# Delete this file to fall back to full defaults (or to the user-global
+# config at ~/.config/deslop/deslop.toml, if you have one).
 
 [packs]
 # Which builtin packs load, in load order. A pack is ONE TOML file in

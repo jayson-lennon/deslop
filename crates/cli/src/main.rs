@@ -165,21 +165,26 @@ fn run(cli: Cli) -> i32 {
         return ExitCode::LoadFailure as i32;
     }
 
-    // Config resolution: explicit path wins; else walk up from cwd.
-    // Bare `wasm` names resolve against the user plugin install dir under
-    // the platform data dir (~/.local/share/deslop/plugins on Linux).
+    // Config resolution: explicit path wins; else walk up from cwd; else
+    // the user-global config. Bare `wasm` names resolve against the user
+    // plugin install dir under the platform data dir
+    // (~/.local/share/deslop/plugins on Linux).
     let start = cli
         .config
         .clone()
         .unwrap_or_else(|| camino::Utf8PathBuf::from("."));
     let data_dir = dirs::data_dir().and_then(|p| camino::Utf8PathBuf::from_path_buf(p).ok());
-    let cfg = match deslop_core::config::discover(&start, data_dir.as_deref()) {
-        Ok(cfg) => cfg,
-        Err(report) => {
-            eprintln!("deslop: {report:?}");
-            return ExitCode::LoadFailure as i32;
-        }
-    };
+    let user_config = dirs::config_dir()
+        .map(|dir| dir.join("deslop").join("deslop.toml"))
+        .and_then(|path| camino::Utf8PathBuf::from_path_buf(path).ok());
+    let cfg =
+        match deslop_core::config::discover(&start, data_dir.as_deref(), user_config.as_deref()) {
+            Ok(cfg) => cfg,
+            Err(report) => {
+                eprintln!("deslop: {report:?}");
+                return ExitCode::LoadFailure as i32;
+            }
+        };
     let _ = &cfg;
 
     // --rules-dir must point at a real directory when given; it replaces the
