@@ -27,7 +27,6 @@ fn emoji_count(prose: &str, inputs: &Inputs<'_>) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scanner::metrics::testutil;
 
     #[test]
     fn counts_emoji_in_structural_positions() {

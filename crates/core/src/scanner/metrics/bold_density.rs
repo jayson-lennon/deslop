@@ -14,15 +14,16 @@ pub fn measure(inputs: &Inputs<'_>, stats: &mut DocStats) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scanner::metrics::testutil;
 
     #[test]
     fn spans_scale_per_hundred_words() {
         // Given 100 words and 4 bold spans -> 4.0 per 100 words.
         let prose = "word ".repeat(100);
         let bold: Vec<(usize, usize)> = vec![(0, 2), (10, 12), (20, 22), (30, 32)];
-        let mut stats = DocStats::default();
-        stats.word_count = crate::scanner::metrics::testutil::word_count(&prose);
+        let mut stats = DocStats {
+            word_count: crate::scanner::metrics::testutil::word_count(&prose),
+            ..Default::default()
+        };
 
         // When measuring with those spans.
         measure(
@@ -43,8 +44,10 @@ mod tests {
     fn no_spans_read_zero() {
         // Given any prose without bold spans.
         let prose = "word ".repeat(50);
-        let mut stats = DocStats::default();
-        stats.word_count = crate::scanner::metrics::testutil::word_count(&prose);
+        let mut stats = DocStats {
+            word_count: crate::scanner::metrics::testutil::word_count(&prose),
+            ..Default::default()
+        };
 
         // When measuring.
         measure(

@@ -44,7 +44,6 @@ fn opening_bigram_max_repeat(prose: &str, sents: &[(usize, usize)]) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::scanner::metrics::{compute, testutil};
 
     #[test]

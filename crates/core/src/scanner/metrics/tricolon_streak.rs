@@ -30,7 +30,6 @@ fn tricolon_streak(prose: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::scanner::metrics::{compute, testutil};
 
     #[test]

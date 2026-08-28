@@ -33,7 +33,6 @@ fn bold_lead_at(bold_spans: &[(usize, usize)], item_start: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scanner::metrics::testutil;
 
     #[test]
     fn bold_leads_fraction_over_four_bullets() {

@@ -50,7 +50,6 @@ fn is_titlecase(text: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scanner::metrics::testutil;
 
     #[test]
     fn fully_titlecased_heading_scores_one() {

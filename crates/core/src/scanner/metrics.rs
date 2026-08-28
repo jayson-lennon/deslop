@@ -143,8 +143,10 @@ pub struct Inputs<'a> {
 
 /// Compute every stat. Deterministic; one pass, each stat in its submodule.
 pub fn compute(inputs: &Inputs<'_>) -> DocStats {
-    let mut stats = DocStats::default();
-    stats.word_count = words_count(inputs.prose);
+    let mut stats = DocStats {
+        word_count: words_count(inputs.prose),
+        ..Default::default()
+    };
 
     em_dash_rate::measure(inputs.prose, &mut stats);
     curly_double_ratio::measure(inputs.prose, &mut stats);
