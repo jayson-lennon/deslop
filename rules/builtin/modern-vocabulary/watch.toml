@@ -13,83 +13,152 @@ terms = [
   "align",
   "aligned",
   "aligns",
+  "also",
+  "because",
+  "behind",
+  "crucially",
+  "deep",
+  "deeply",
   "exhibited",
+  "figure",
   "findings",
+  "form",
+  "fundamentally",
+  "genuinely",
   "highlighting",
+  "hold",
+  "honestly",
+  "inevitably",
+  "inherently",
   "insights",
+  "interestingly",
+  "just",
+  "literally",
   "potential",
+  "really",
   "significantly",
+  "simply",
+  "since",
+  "while",
   "within",
 ]
 [[entries]]
-slug = "additionally-fix-1"
+slug = "actually-fix-1"
+advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
+terms = ["actually"]
+replacement = ""
+
+[[entries]]
+slug = "additionally-fix-2"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["additionally"]
 replacement = "also"
 
 [[entries]]
-slug = "comprehensive-fix-2"
+slug = "amongst-fix-3"
+advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
+terms = ["amongst"]
+replacement = "among"
+
+[[entries]]
+slug = "comprehensive-fix-4"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["comprehensive"]
 replacement = "full"
 
 [[entries]]
-slug = "crucial-fix-3"
+slug = "crucial-fix-5"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["crucial"]
 replacement = "key"
 
 [[entries]]
-slug = "emphasizing-fix-4"
+slug = "emphasizing-fix-6"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["emphasizing"]
 replacement = "showing"
 
 [[entries]]
-slug = "enhance-fix-5"
+slug = "enhance-fix-7"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["enhance"]
 replacement = "improve"
 
 [[entries]]
-slug = "enhancing-fix-6"
+slug = "enhancing-fix-8"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["enhancing"]
 replacement = "improving"
 
 [[entries]]
-slug = "furthermore-fix-7"
+slug = "furthermore-fix-9"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["furthermore"]
 replacement = ""
 
 [[entries]]
-slug = "moreover-fix-8"
+slug = "importantly-fix-10"
+advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
+terms = ["importantly"]
+replacement = ""
+
+[[entries]]
+slug = "indeed-fix-11"
+advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
+terms = ["indeed"]
+replacement = ""
+
+[[entries]]
+slug = "moreover-fix-12"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["moreover"]
 replacement = ""
 
 [[entries]]
-slug = "notably-fix-9"
+slug = "notably-fix-13"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["notably"]
 replacement = ""
 
 [[entries]]
-slug = "particularly-fix-10"
+slug = "particularly-fix-14"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["particularly"]
 replacement = ""
 
 [[entries]]
-slug = "robust-fix-11"
+slug = "robust-fix-15"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["robust"]
 replacement = "solid"
 
 [[entries]]
-slug = "significant-fix-12"
+slug = "shall-fix-16"
+advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
+terms = ["shall"]
+replacement = "will"
+
+[[entries]]
+slug = "significant-fix-17"
 advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
 terms = ["significant"]
 replacement = "real"
+
+[[entries]]
+slug = "thus-fix-18"
+advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
+terms = ["thus"]
+replacement = "so"
+
+[[entries]]
+slug = "towards-fix-19"
+advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
+terms = ["towards"]
+replacement = "toward"
+
+[[entries]]
+slug = "truly-fix-20"
+advice = "Common word with measured AI excess; fine alone, a cluster is a tell"
+terms = ["truly"]
+replacement = ""
 

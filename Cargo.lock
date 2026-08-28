@@ -185,21 +185,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "deslop-convert"
-version = "0.1.0"
-dependencies = [
- "camino",
- "deslop-core",
- "error-stack",
- "serde",
- "serde_json",
- "tempfile",
- "toml",
- "walkdir",
- "wherror",
-]
-
-[[package]]
 name = "deslop-core"
 version = "0.1.0"
 dependencies = [
