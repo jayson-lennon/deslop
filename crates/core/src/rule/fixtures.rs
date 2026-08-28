@@ -14,7 +14,7 @@ pub enum Matcher {
         word_boundary: bool,
     },
     /// Regex engine match.
-    Pattern(fancy_regex::Regex),
+    Pattern(regex::Regex),
     /// Plain case-insensitive substring hunt.
     Literal { needles: Vec<String> },
 }
@@ -30,9 +30,9 @@ impl Clone for Matcher {
                 word_boundary: *word_boundary,
             },
             Matcher::Pattern(re) => {
-                Matcher::Pattern(fancy_regex::Regex::new(re.as_str()).unwrap_or_else(|_| {
+                Matcher::Pattern(regex::Regex::new(re.as_str()).unwrap_or_else(|_| {
                     // Compiled once already; unreachable in practice.
-                    fancy_regex::Regex::new(r"(?!)").expect("never fails")
+                    regex::Regex::new(r"[^\x00-\x{10FFFF}]").expect("never fails")
                 }))
             }
             Matcher::Literal { needles } => Matcher::Literal {
@@ -80,7 +80,7 @@ impl Matcher {
                 // Rule authors write lowercase-intent patterns (wsc
                 // heritage); matching is case-insensitive like upstream's
                 // `gi` flags.
-                let re = fancy_regex::Regex::new(&format!(r"(?i){source}"))
+                let re = regex::Regex::new(&format!(r"(?i){source}"))
                     .map_err(|e| format!("regex `{source}`: {e}"))?;
                 Ok(Matcher::Pattern(re))
             }
@@ -122,7 +122,7 @@ impl Matcher {
     /// Does this matcher hit anywhere in `text`?
     pub fn matches(&self, text: &str) -> bool {
         match self {
-            Matcher::Pattern(re) => re.is_match(text).unwrap_or(false),
+            Matcher::Pattern(re) => re.is_match(text),
             Matcher::Literal { needles } => {
                 // Segment-aware: honors {N} digit runs; case-insensitive via
                 // find()'s internal lowercasing. Uncompilable terms were

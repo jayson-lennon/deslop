@@ -15,6 +15,6 @@ must_not_match = [
 [[entries]]
 slug = "main"
 regex = '''
-\b(?:experts|critics|observers|scholars|analysts|commentators|industry (?:reports|experts|leaders|insiders)) (?:have )?(?:widely )?(?:argued?s?|agreed?s?|suggests?|suggested|believed?s?|noted?s?|cited?s?|claims?|claimed|warns?|warned|say|pointed? out)\b|\bstudies (?:show|suggest|indicate|have shown)\b|\bresearch (?:shows|suggests|indicates|has shown)\b
+\b(?:(?:experts|critics|observers|scholars|analysts|commentators) (?:have )?(?:widely )?(?:agree(?:d|ment)?|argue[ds]?|suggest(?:s|ed)?|believe[ds]?|note[ds]?|cite[ds]?|claim(?:s|ed)?|warn(?:s|ed)?|say|said|pointed out))\b|\bindustry (?:reports?|experts?|leaders?|insiders?) (?:have )?(?:widely )?(?:agree[sd]?|argue[ds]?|suggest(?:s|ed)?|warn(?:s|ed)?)\b|\bstudies (?:show|suggest|indicate|have shown)\b|\bresearch (?:shows|suggests|indicates|has shown)\b
 '''
 advice = "Rewrite the construction plainly (wsc: Vague authority attribution (\"experts agree\", \"studies show\") without a named source is a documented AI weasel pattern (WP:AISIGNS))"

@@ -28,19 +28,26 @@ pub fn mask_quoted_terms(map: &RegionMap, dictionary: &[String]) -> RegionMap {
     if dictionary.is_empty() {
         return map.clone();
     }
+    // HashSet for O(1) dictionary probes (pre-lowercased, trimmed).
+    let dict: std::collections::HashSet<String> = dictionary
+        .iter()
+        .map(|t| t.trim().to_lowercase())
+        .collect();
     let mut masked = map.masked.clone();
     for opener_idx in 0..OPENERS.len() {
         let (open, close) = (OPENERS[opener_idx], CLOSERS[opener_idx]);
+        let open_s = open.encode_utf8(&mut [0u8; 4]).to_string();
+        let close_s = close.encode_utf8(&mut [0u8; 4]).to_string();
         let mut from = 0;
-        while let Some(rel) = map.masked[from..].find(open) {
+        while let Some(rel) = masked[from..].find(&open_s) {
             let open_at = from + rel;
             // Skip bytes already masked.
             if !map.is_masked(open_at) {
-                if let Some(close_rel) = map.masked[open_at + open.len_utf8()..].find(close) {
-                    let close_at = open_at + open.len_utf8() + close_rel;
-                    let inner = &map.masked[open_at + open.len_utf8()..close_at];
+                if let Some(close_rel) = masked[open_at + open_s.len()..].find(&close_s) {
+                    let close_at = open_at + open_s.len() + close_rel;
+                    let inner = &masked[open_at + open_s.len()..close_at];
                     let trimmed = inner.trim();
-                    if dictionary.iter().any(|t| t.eq_ignore_ascii_case(trimmed)) {
+                    if dict.contains(&trimmed.to_lowercase()) {
                         // Mask quotes + interior (byte-safe: region within
                         // this string is pure ASCII since both quote chars
                         // and the dict term matched ASCII case-insensitively;
@@ -55,7 +62,7 @@ pub fn mask_quoted_terms(map: &RegionMap, dictionary: &[String]) -> RegionMap {
                     }
                 }
             }
-            from = open_at + open.len_utf8();
+            from = open_at + open_s.len();
         }
     }
     RegionMap {

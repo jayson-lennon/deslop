@@ -229,7 +229,7 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
             entry
                 .regex
                 .as_deref()
-                .and_then(|src| fancy_regex::Regex::new(src).ok())
+                .and_then(|src| regex::Regex::new(src).ok())
                 .map(|re| re.capture_names().flatten().map(String::from).collect())
                 .unwrap_or_default()
         } else {
@@ -246,7 +246,7 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
                 if let Err(violation) = crate::rule::policy::check(src) {
                     push(None, format!("entry `{slug}` regex policy: {violation}"));
                 }
-                if let Err(e) = fancy_regex::Regex::new(src) {
+                if let Err(e) = regex::Regex::new(src) {
                     push(None, format!("entry `{slug}` invalid regex: {e}"));
                 }
             }

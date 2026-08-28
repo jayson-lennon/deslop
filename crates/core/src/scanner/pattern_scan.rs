@@ -1,10 +1,10 @@
-//! Pattern scanner: fancy-regex over VISIBLE runs of the masked text.
+//! Pattern scanner: `regex` (linear-time DFA/NFA) over VISIBLE runs of the masked text.
 //!
 //! Matches never span masked holes: we iterate visible character runs and
 //! run the engine per-run, so a regex can't accidentally bridge a code
 //! fence's NULs. Named captures flow out for message/advice interpolation.
 
-use fancy_regex::Regex;
+use regex::Regex;
 
 use super::regions::RegionMap;
 
@@ -41,9 +41,10 @@ fn visible_runs(map: &RegionMap) -> Vec<(usize, usize)> {
 pub fn scan(re: &Regex, src: &str, map: &RegionMap) -> Vec<PatternHit> {
     let mut hits = Vec::new();
     let names: Vec<Option<&str>> = re.capture_names().collect();
-    for (run_start, run_end) in visible_runs(map) {
+    let runs = visible_runs(map);
+    for (run_start, run_end) in runs {
         let hay = &src[run_start..run_end];
-        for m in re.captures_iter(hay).flatten() {
+        for m in re.captures_iter(hay) {
             let Some(whole) = m.get(0) else {
                 continue;
             };

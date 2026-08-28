@@ -221,24 +221,27 @@ fn sentences(prose: &str) -> Vec<(usize, usize)> {
             while j < prose.len() && matches!(bytes[j], b'.' | b'!' | b'?') {
                 j += 1;
             }
-            // Guard: abbreviation like "e.g." — check preceding word.
-            let before = &prose[start..i];
-            let words_before: Vec<&str> = before.rsplit(|c: char| !c.is_alphanumeric()).collect();
-            let mut is_guard = false;
-            if let Some(first) = words_before.first() {
-                // Dotted abbreviations leave the last fragment ("g" of e.g.);
-                // match either bare or with a preceding dotted component pair.
-                let bare = first.eq_ignore_ascii_case("g")
-                    || GUARDS.iter().any(|g| g.eq_ignore_ascii_case(first));
-                let paired = words_before.len() >= 2
-                    && format!("{}.{}", words_before[1], first).len() <= 5
-                    && GUARDS.iter().any(|g| {
-                        g.eq_ignore_ascii_case(&format!("{}.{}", words_before[1], first))
-                            || g.replace('.', "")
-                                .eq_ignore_ascii_case(&format!("{}{}", words_before[1], first))
-                    });
-                is_guard = bare || paired;
+            // Guard: abbreviation like "e.g." — inspect only the final
+            // word fragment before the dot (bounded, no allocation).
+            let mut win_start = i.saturating_sub(12).max(start);
+            while win_start < i && !prose.is_char_boundary(win_start) {
+                win_start -= 1;
             }
+            let last_word: String = prose[win_start..i]
+                .chars()
+                .rev()
+                .take_while(|c| c.is_alphanumeric() || *c == '.')
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect();
+            let is_guard = GUARDS.iter().any(|g| {
+                let g = g.trim_end_matches('.');
+                last_word.eq_ignore_ascii_case(g)
+                    || last_word
+                        .eq_ignore_ascii_case(&format!("{g}."))
+                    || last_word.to_lowercase().ends_with(&format!(".{g}"))
+            });
             if !is_guard
                 && bytes
                     .get(j)
@@ -492,14 +495,14 @@ fn emoji_count(prose: &str, inputs: &Inputs<'_>) -> usize {
 
 fn tricolon_streak(prose: &str) -> usize {
     const TRICOLON: &str = r"\b[a-z]+, [a-z]+, and [a-z]+\b";
-    let re = fancy_regex::Regex::new(TRICOLON).ok();
+    let re = regex::Regex::new(TRICOLON).ok();
     let sents = sentences(prose);
     let mut streak = 0;
     let mut best = 0;
     for (s, e) in &sents {
         let hit = re
             .as_ref()
-            .is_some_and(|re| re.is_match(&prose[*s..*e]).unwrap_or(false));
+            .is_some_and(|re| re.is_match(&prose[*s..*e]));
         if hit {
             streak += 1;
             best = best.max(streak);

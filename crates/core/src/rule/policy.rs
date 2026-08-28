@@ -1,17 +1,25 @@
 //! Regex policy: static analysis that keeps user-supplied patterns safe.
 //!
-//! fancy-regex is powerful but backtracking. We cap the risk at load time:
-//! - reject backreferences `\1` and recursion `(?R)` outright
-//! - reject variable-width lookbehind
-//! - require every `*` / `+` to be made safe by an enclosing bounded group,
-//!   a character-class membership (`[\w\s]` style), or a lookaround
+//! The engine is the `regex` crate: linear-time, no backtracking, so the
+//! catastrophic-backtracking class of failures cannot occur. What the
+//! engine cannot express is rejected here at load time with a pointing
+//! diagnostic instead of a compile error mid-scan:
+//! - lookarounds `(?=...)` `(?!...)` `(?<=...)` `(?<!...)`
+//! - backreferences `\1` and recursion `(?R)` / `(?&name)`
+//! - atomic groups `(?>...)` (backtracking-only construct)
+//!
+//! Unbounded `*`/`+` are legal for `regex` but remain policy-restricted:
+//! authored patterns must use `{m,n}` bounds or character classes so pack
+//! data stays intentionally matched.
 
 /// Why a pattern was rejected.
 #[derive(Debug, PartialEq)]
 pub enum PolicyViolation {
+    Lookahead { byte: usize },
+    Lookbehind { byte: usize },
     Backreference(usize),
     Recursion,
-    VariableLookbehind,
+    AtomicGroup { byte: usize },
     UnboundedStar { byte: usize },
     UnboundedPlus { byte: usize },
 }
@@ -23,8 +31,14 @@ impl std::fmt::Display for PolicyViolation {
                 write!(f, "backreference \\{n} is not allowed")
             }
             PolicyViolation::Recursion => write!(f, "recursion (?R) is not allowed"),
-            PolicyViolation::VariableLookbehind => {
-                write!(f, "variable-width lookbehind is not supported")
+            PolicyViolation::Lookahead { byte } => {
+                write!(f, "lookahead `(?=`/`(?!` at byte {byte} is not supported; the engine is linear-time `regex` — widen the match and use a named capture instead")
+            }
+            PolicyViolation::Lookbehind { byte } => {
+                write!(f, "lookbehind `(?<=`/`(?<!` at byte {byte} is not supported; the engine is linear-time `regex` — match the context and capture the tail instead")
+            }
+            PolicyViolation::AtomicGroup { byte } => {
+                write!(f, "atomic group `(?>` at byte {byte} is not supported (backtracking-only construct)")
             }
             PolicyViolation::UnboundedStar { byte } => {
                 write!(f, "unbounded `*` at byte {byte}; use {{m,n}} bounds")
@@ -126,8 +140,6 @@ fn star_allowed(pattern: &str, star: usize) -> bool {
 pub fn check(pattern: &str) -> Result<(), PolicyViolation> {
     let bytes = pattern.as_bytes();
     let mut i = 0;
-    // Track the most recent `(?<` group kind to allow bounded lookarounds.
-    let mut in_lookaround = false;
     while i < bytes.len() {
         match bytes[i] {
             b'\\' => {
@@ -141,14 +153,20 @@ pub fn check(pattern: &str) -> Result<(), PolicyViolation> {
                 if pattern[i..].starts_with("(?R)") || pattern[i..].starts_with("(?&") {
                     return Err(PolicyViolation::Recursion);
                 }
+                if pattern[i..].starts_with("(?>") {
+                    return Err(PolicyViolation::AtomicGroup { byte: i });
+                }
+                if pattern[i..].starts_with("(?=") || pattern[i..].starts_with("(?!") {
+                    return Err(PolicyViolation::Lookahead { byte: i });
+                }
                 if pattern[i..].starts_with("(?<=") || pattern[i..].starts_with("(?<!") {
-                    in_lookaround = true;
+                    return Err(PolicyViolation::Lookbehind { byte: i });
                 }
                 i += 1;
             }
             b'*' | b'+' => {
                 let prev_escaped = i > 0 && bytes[i - 1] == b'\\';
-                if !prev_escaped && !star_allowed(pattern, i) && !in_lookaround {
+                if !prev_escaped && !star_allowed(pattern, i) {
                     let v = if bytes[i] == b'*' {
                         PolicyViolation::UnboundedStar { byte: i }
                     } else {
@@ -161,62 +179,7 @@ pub fn check(pattern: &str) -> Result<(), PolicyViolation> {
             _ => i += 1,
         }
     }
-    // Variable-width lookbehind: a (?<= / (?<! whose body has unbounded
-    // quantifiers or alternates of differing widths is unsupported by
-    // fancy-regex; approximate here by looking for *, +, or {m,} inside.
-    let lower_start = find_lookbehind_bodies(pattern)?;
-    for body in lower_start {
-        for (idx, c) in body.char_indices() {
-            match c {
-                '*' | '+' => return Err(PolicyViolation::VariableLookbehind),
-                '{' => {
-                    if let Some(close) = body[idx..].find('}') {
-                        if !body[idx..close].contains(',') {
-                            continue;
-                        }
-                        let inner = &body[idx + 1..close];
-                        let parts: Vec<_> = inner.split(',').collect();
-                        if parts.len() == 2 && parts[1].trim().is_empty() {
-                            return Err(PolicyViolation::VariableLookbehind);
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
     Ok(())
-}
-
-/// Extract `(?<=...)` / `(?<!...)` bodies for width analysis.
-fn find_lookbehind_bodies(pattern: &str) -> Result<Vec<String>, PolicyViolation> {
-    let mut bodies = Vec::new();
-    for marker in ["(?<=", "(?<!"] {
-        let mut from = 0;
-        while let Some(rel) = pattern[from..].find(marker) {
-            let start = from + rel + marker.len();
-            let rest = &pattern[start..];
-            let mut depth = 1usize;
-            let mut end = rest.len();
-            for (idx, c) in rest.char_indices() {
-                match c {
-                    '(' => depth += 1,
-                    ')' => {
-                        depth -= 1;
-                        if depth == 0 {
-                            end = idx;
-                            break;
-                        }
-                    }
-                    '\\' => {}
-                    _ => {}
-                }
-            }
-            bodies.push(rest[..end].to_string());
-            from = start;
-        }
-    }
-    Ok(bodies)
 }
 
 #[cfg(test)]

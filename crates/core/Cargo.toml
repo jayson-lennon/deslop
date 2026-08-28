@@ -10,7 +10,6 @@ description = "Core engine for deslop: dynamic TOML rules, markdown-aware scanni
 serde = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
-fancy-regex = { workspace = true }
 regex = { workspace = true }
 pulldown-cmark = { workspace = true }
 wherror = { workspace = true }

@@ -60,7 +60,7 @@ fn all_wsc_structural_patterns_pass_policy_and_compile() {
     for (idx, pattern) in patterns.iter().enumerate() {
         let verdict = deslop_core::rule::policy::check(pattern);
         assert!(verdict.is_ok(), "pattern[{idx}] {pattern:?}: {verdict:?}");
-        let compiled = fancy_regex::Regex::new(pattern);
+        let compiled = regex::Regex::new(pattern);
         assert!(
             compiled.is_ok(),
             "pattern[{idx}] failed to compile: {compiled:?}"
