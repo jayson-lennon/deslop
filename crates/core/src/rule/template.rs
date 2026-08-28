@@ -41,31 +41,72 @@ pub fn placeholders(template: &str) -> Vec<String> {
 
 /// Extract placeholders WITH their format specs.
 fn extract(template: &str) -> Vec<Placeholder> {
-    let mut out = Vec::new();
-    let bytes = template.as_bytes();
-    let mut i = 0;
-    while i < bytes.len() {
-        match bytes[i] {
-            b'{' if bytes.get(i + 1) == Some(&b'{') => i += 2,
-            b'}' if bytes.get(i + 1) == Some(&b'}') => i += 2,
-            b'{' => {
-                if let Some(close) = template[i + 1..].find('}') {
-                    let body = &template[i + 1..i + 1 + close];
-                    let p = split_spec(body);
-                    if !p.name.is_empty()
-                        && p.name
-                            .chars()
-                            .all(|c| c.is_ascii_alphanumeric() || c == '_')
-                    {
-                        out.push(p);
-                    }
-                    i += close + 2;
-                } else {
-                    i += 1;
-                }
-            }
-            _ => i += 1,
+    segments(template)
+        .into_iter()
+        .filter_map(|segment| match segment {
+            Segment::Placeholder(placeholder) => Some(placeholder),
+            Segment::Text(_) => None,
+        })
+        .collect()
+}
+
+/// One piece of a scanned template: literal text or a placeholder reference.
+#[derive(Debug, PartialEq, Eq)]
+enum Segment<'t> {
+    /// Verbatim text — literal chars, escape pairs, or non-reference braces.
+    Text(&'t str),
+    /// A `{name:spec}` reference with a well-formed name.
+    Placeholder(Placeholder),
+}
+
+/// Walk a template once, splitting it into literal and placeholder segments.
+///
+/// All slicing happens at char boundaries: the cursor comes from
+/// `char_indices()` and placeholder extents come from `find('}')`, so
+/// multibyte text can never be cut mid-char.
+fn segments(template: &str) -> Vec<Segment<'_>> {
+    let mut out: Vec<Segment<'_>> = Vec::new();
+    let mut run_start = 0; // start of the pending literal run
+    let mut chars = template.char_indices().peekable();
+    while let Some((i, c)) = chars.next() {
+        if c != '{' && c != '}' {
+            continue; // still part of the pending literal run
         }
+        if run_start < i {
+            out.push(Segment::Text(&template[run_start..i]));
+        }
+        if chars.peek().is_some_and(|&(_, n)| n == c) {
+            // Doubled brace: escape pair rendering as a single literal brace.
+            chars.next();
+            out.push(Segment::Text(&template[i..i + 1]));
+            run_start = i + 2;
+        } else if c == '}' {
+            // Lone closing brace is literal.
+            out.push(Segment::Text(&template[i..i + 1]));
+            run_start = i + 1;
+        } else if let Some(close) = template[i + 1..].find('}') {
+            let placeholder = split_spec(&template[i + 1..i + 1 + close]);
+            if !placeholder.name.is_empty()
+                && placeholder
+                    .name
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_')
+            {
+                out.push(Segment::Placeholder(placeholder));
+            } else {
+                // Not a reference — keep the raw braces visible.
+                out.push(Segment::Text(&template[i..i + close + 2]));
+            }
+            chars.nth(close); // consume the body chars plus the closing brace
+            run_start = i + close + 2;
+        } else {
+            // Unterminated placeholder: literal.
+            out.push(Segment::Text(&template[i..i + 1]));
+            run_start = i + 1;
+        }
+    }
+    if run_start < template.len() {
+        out.push(Segment::Text(&template[run_start..]));
     }
     out
 }
@@ -142,50 +183,17 @@ pub fn validate(template: &str, allowed: &[&str]) -> Result<(), String> {
 /// Render a template now that all values exist; unmatched placeholders render
 /// as-is rather than vanishing (misconfiguration should be visible).
 pub fn render(template: &str, values: &dyn Fn(&str) -> Option<String>) -> String {
-    let bytes = template.as_bytes();
     let mut out = String::with_capacity(template.len());
-    let mut i = 0;
-    while i < bytes.len() {
-        match bytes[i] {
-            b'{' if bytes.get(i + 1) == Some(&b'{') => {
-                out.push('{');
-                i += 2;
-            }
-            b'}' if bytes.get(i + 1) == Some(&b'}') => {
-                out.push('}');
-                i += 2;
-            }
-            b'{' => {
-                if let Some(close) = template[i + 1..].find('}') {
-                    let p = split_spec(&template[i + 1..i + 1 + close]);
-                    match values(&p.name) {
-                        Some(v) => out.push_str(&apply_spec(&v, p.spec.as_deref())),
-                        None => out.push_str(&format!("{{{}}}", p.name)),
-                    }
-                    i += close + 2;
-                } else {
-                    out.push('{');
-                    i += 1;
-                }
-            }
-            b => {
-                // Advance by the full UTF-8 char width.
-                let width = utf8_width(b);
-                out.push_str(&template[i..i + width.min(template.len() - i)]);
-                i += width;
-            }
+    for segment in segments(template) {
+        match segment {
+            Segment::Text(text) => out.push_str(text),
+            Segment::Placeholder(p) => match values(&p.name) {
+                Some(v) => out.push_str(&apply_spec(&v, p.spec.as_deref())),
+                None => out.push_str(&format!("{{{}}}", p.name)),
+            },
         }
     }
     out
-}
-
-fn utf8_width(b: u8) -> usize {
-    match b {
-        0x00..=0x7F => 1,
-        0xC0..=0xDF => 2,
-        0xE0..=0xEF => 3,
-        _ => 4,
-    }
 }
 
 #[cfg(test)]
@@ -285,5 +293,26 @@ mod tests {
 
         // Then all pass.
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn render_keeps_multibyte_text_around_placeholders() {
+        // Given a template with CJK text and a curly quote around a placeholder.
+        let lookup = |name: &str| (name == "match").then(|| "delve".to_string());
+
+        // When rendering.
+        let out = render("「{match}」水平线 — “{match}”", &lookup);
+
+        // Then multibyte neighbors survive byte-for-byte around both hits.
+        assert_eq!(out, "「delve」水平线 — “delve”");
+    }
+
+    #[test]
+    fn placeholders_extract_after_multibyte_escape_pairs() {
+        // Given an escape pair preceded by multibyte text and emoji.
+        let names = placeholders("“引用”{{index}} 😀 {match}");
+
+        // Then the escape pair stays a pair and the real ref is still found.
+        assert_eq!(names, vec!["match"]);
     }
 }
