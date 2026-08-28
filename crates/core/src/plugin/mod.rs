@@ -56,6 +56,13 @@ pub trait LintPlugin: fmt::Debug + Send + Sync {
     /// ABI version). Validated at load time, then trusted hereafter.
     fn meta(&self) -> &PluginManifest;
 
+    /// The opaque `[plugins.<id>]` table this plugin was configured with,
+    /// passed verbatim as [`PluginInput::config`]. Empty by default; the
+    /// loader attaches the user's table when one is declared.
+    fn params(&self) -> serde_json::Value {
+        serde_json::json!({})
+    }
+
     /// Analyze one document.
     ///
     /// # Errors
@@ -65,6 +72,34 @@ pub trait LintPlugin: fmt::Debug + Send + Sync {
     /// from this plugin for this document" plus a warning — never as a fatal
     /// scan error.
     fn scan(&self, input: &PluginInput) -> Result<Vec<PluginFinding>, PluginError>;
+}
+
+/// Adapter attaching the user's `[plugins.<id>]` table to a loaded plugin,
+/// so the scanner can read params straight off the trait object.
+#[derive(Debug)]
+pub struct WithParams<P: LintPlugin> {
+    inner: P,
+    params: serde_json::Value,
+}
+
+impl<P: LintPlugin> WithParams<P> {
+    pub fn new(inner: P, params: serde_json::Value) -> Self {
+        WithParams { inner, params }
+    }
+}
+
+impl<P: LintPlugin> LintPlugin for WithParams<P> {
+    fn meta(&self) -> &PluginManifest {
+        self.inner.meta()
+    }
+
+    fn params(&self) -> serde_json::Value {
+        self.params.clone()
+    }
+
+    fn scan(&self, input: &PluginInput) -> Result<Vec<PluginFinding>, PluginError> {
+        self.inner.scan(input)
+    }
 }
 
 /// Failures a plugin can produce, each of which means "skip this plugin's

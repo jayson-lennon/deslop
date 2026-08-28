@@ -74,6 +74,9 @@ pub enum KindTag {
     Pattern,
     LiteralBan,
     Metric,
+    /// Findings from a `[plugins]` WASM module; identity comes from the
+    /// module's own manifest rather than the rule loader.
+    Plugin,
 }
 
 /// A single lint result, ready for rendering.

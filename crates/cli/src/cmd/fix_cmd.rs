@@ -60,7 +60,9 @@ impl FixCmd<'_> {
         let grand_total = {
             let mut total = FixSummary::default();
             for doc in &corpus.docs {
-                let findings = scanner::scan(&doc.src, &loaded.rule_set, &settings);
+                let outcome =
+                    scanner::scan_with_plugins(&doc.src, &loaded.rule_set, &settings, &[]);
+                let findings = outcome.findings;
                 let summary = fix_document(&findings);
                 if summary.applied == 0 {
                     total.unfixable += summary.unfixable;

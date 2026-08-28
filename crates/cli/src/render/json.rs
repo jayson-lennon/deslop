@@ -40,6 +40,7 @@ fn kind_name(kind: deslop_core::finding::KindTag) -> &'static str {
         K::Pattern => "pattern",
         K::LiteralBan => "literal-ban",
         K::Metric => "metric",
+        K::Plugin => "plugin",
     }
 }
 

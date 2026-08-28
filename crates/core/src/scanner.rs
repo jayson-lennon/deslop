@@ -14,6 +14,7 @@ pub mod vocab_scan;
 
 use crate::eol::normalize;
 use crate::finding::{Finding, KindTag, Span, Tier};
+use crate::plugin::{LintPlugin, PluginFinding, PluginInput};
 use crate::rule::{RuleSet, fixtures::Matcher};
 
 /// Options affecting scan behavior (subset of config; resolved by CLI).
@@ -37,7 +38,20 @@ impl LintSettings {
 }
 
 /// One document's lint result set, sorted deterministically.
+///
+/// Convenience wrapper with no plugins; see [`scan_with_plugins`].
 pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding> {
+    scan_with_plugins(src, rules, settings, &[]).findings
+}
+
+/// [`scan`] with a plugin pass appended. The only difference besides the
+/// extra findings is the warning list: one entry per plugin failure.
+pub fn scan_with_plugins(
+    src: &str,
+    rules: &RuleSet,
+    settings: &LintSettings,
+    plugins: &[Box<dyn LintPlugin>],
+) -> ScanWithPlugins {
     let norm = normalize(src);
     let text = &norm.text;
 
@@ -46,6 +60,7 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
     let map = use_mention::mask_quoted_terms(&map, &dict);
 
     let mut findings = Vec::new();
+    let mut warnings = Vec::new();
 
     // Pattern fan-out table: ONE scan per unique regex source string, one
     // finding per surviving owner per hit. Built per-document because the
@@ -204,7 +219,160 @@ pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding>
 
     metric_findings(src, text, &map, rules, settings, &norm, &mut findings);
 
-    sort_findings(findings)
+    plugin_findings(
+        src,
+        text,
+        &map,
+        &map.masked,
+        &norm,
+        plugins,
+        settings,
+        &mut findings,
+        &mut warnings,
+    );
+
+    ScanWithPlugins {
+        findings: sort_findings(findings),
+        warnings,
+    }
+}
+
+/// Result of a scan that includes plugins: findings plus non-fatal warnings.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ScanWithPlugins {
+    /// All findings, sorted deterministically.
+    pub findings: Vec<Finding>,
+    /// One warning per plugin failure (trap, fuel, protocol violation).
+    /// Rendered on stderr; they never affect the exit code.
+    pub warnings: Vec<String>,
+}
+
+/// Run every plugin over one document and assemble its findings.
+///
+/// Gating mirrors native groups: a plugin whose GROUP is `allow`ed or whose
+/// tier exceeds the max is not called at all. Per finding, the `GROUP#slug`
+/// key gets the same allow/note/warn/error treatment. A plugin failure drops
+/// that plugin's findings for this document and records a warning.
+#[allow(clippy::too_many_arguments)]
+fn plugin_findings(
+    src: &str,
+    _norm_text: &str,
+    _map: &regions::RegionMap,
+    masked: &str,
+    norm: &crate::eol::Normalized,
+    plugins: &[Box<dyn LintPlugin>],
+    settings: &LintSettings,
+    findings: &mut Vec<Finding>,
+    warnings: &mut Vec<String>,
+) {
+    if plugins.is_empty() {
+        return;
+    }
+    // Document envelope: the masked text plus the same range sources the
+    // metric scanner uses. Masking is byte-length-preserving, so all these
+    // coordinates are directly usable by the plugin. Built once, cloned per
+    // plugin (each gets its own `config` in phase 4 wiring).
+    let envelope = PluginInput {
+        text: masked.to_string(),
+        heading_ranges: ranges_u64(metrics::scope_ranges(
+            _map,
+            regions::Scope::is_heading_like,
+        )),
+        bold_spans: ranges_u64(metrics::bold_ranges(_map)),
+        list_items: ranges_u64(metrics::list_item_ranges(_map)),
+        config: serde_json::json!({}),
+    };
+
+    for plugin in plugins {
+        let manifest = plugin.meta();
+        let id = &manifest.id;
+        if settings.level_for(id, "") == Some(crate::config::LintLevel::Allow) {
+            continue;
+        }
+        if let Some(max) = settings.max_tier {
+            if manifest.tier > max {
+                continue;
+            }
+        }
+        let input = PluginInput {
+            config: plugin.params(),
+            ..envelope.clone()
+        };
+        let produced = match plugin.scan(&input) {
+            Ok(produced) => produced,
+            Err(error) => {
+                warnings.push(format!("deslop: plugin {id} failed: {error}"));
+                continue;
+            }
+        };
+        let tier = tier_of(manifest.tier);
+        for pf in dedupe_by_slug(produced, id) {
+            let entry_id = format!("{id}#{}", pf.slug);
+            // Per-finding gate: allow/note/warn/error by GROUP#slug, then GROUP.
+            let level = settings.level_for(id, &pf.slug);
+            if level == Some(crate::config::LintLevel::Allow) {
+                continue;
+            }
+            let effective = match level {
+                Some(crate::config::LintLevel::Error) => Tier::Artifact,
+                Some(crate::config::LintLevel::Warn) => Tier::Tell,
+                Some(crate::config::LintLevel::Note) => Tier::Density,
+                _ => tier,
+            };
+            // Validate: spans are guest-supplied, so never trust them.
+            let (start, end) = (pf.span.0 as usize, pf.span.1 as usize);
+            let valid = start < end
+                && end <= masked.len()
+                && masked.is_char_boundary(start)
+                && masked.is_char_boundary(end);
+            if !valid {
+                warnings.push(format!(
+                    "deslop: plugin {id} finding {} has invalid span [{start}..{end}); dropped",
+                    pf.slug
+                ));
+                continue;
+            }
+            let (o_start, o_end) = norm.span_to_orig(start, end);
+            findings.push(Finding {
+                entry_id,
+                kind: KindTag::Plugin,
+                tier: effective,
+                category: manifest.category.clone(),
+                message: pf.message,
+                advice: pf.advice,
+                span: Span::new(o_start, o_end),
+                excerpt: src[o_start..o_end].to_string(),
+                url: None,
+                context: None,
+                replacement: None,
+                anchorless: false,
+            });
+        }
+    }
+}
+
+/// Keep the first finding per slug; a plugin repeating a slug is a bug and
+/// would produce colliding entry ids.
+fn dedupe_by_slug(
+    produced: Vec<PluginFinding>,
+    id: &str,
+) -> impl Iterator<Item = PluginFinding> {
+    let mut seen = std::collections::HashSet::new();
+    produced.into_iter().filter(move |pf| {
+        let fresh = pf.slug.is_empty() || seen.insert(pf.slug.clone());
+        if !fresh {
+            eprintln!("deslop: plugin {id} repeated slug {}; dropped", pf.slug);
+        }
+        fresh
+    })
+}
+
+/// Widen native `(usize, usize)` ranges to the wire protocol's u64 pairs.
+fn ranges_u64(ranges: Vec<(usize, usize)>) -> Vec<(u64, u64)> {
+    ranges
+        .into_iter()
+        .map(|(s, e)| (s as u64, e as u64))
+        .collect()
 }
 
 /// Document-level stats -> one finding per crossed threshold (Tier 3).
@@ -455,6 +623,9 @@ fn default_message(kind: KindTag) -> String {
         KindTag::Pattern => "AI writing construction".into(),
         KindTag::LiteralBan => "chatbot markup artifact".into(),
         KindTag::Metric => "document-level signal".into(),
+        // Plugins always provide their own message; the host never renders
+        // templates on their behalf.
+        KindTag::Plugin => "plugin finding".into(),
     }
 }
 
