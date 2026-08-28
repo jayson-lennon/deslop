@@ -62,40 +62,55 @@ typo'd key refuses the pack at load rather than being silently ignored.
 
 ```toml
 [[group]]
-id-base = 'AATELL'              # required — ID prefix; findings and [lints] keys
-                                #   are '<id-base>#<slug>'. Must be unique across
-                                #   ALL loaded files (two groups with the same
-                                #   id-base refuse to load together).
-kind = 'vocab'                  # required — vocab | pattern | literal-ban | metric
-tier = 2                        # required — 1 = artifact -> error
-                                #            2 = tell      -> warning
-                                #            3 = density   -> hint
-                                #   Tier 1/2 findings make the run exit 1.
-category = 'ai-vocabulary'      # required — free-form label shown by `deslop rules`
-                                #   (entries may override per finding).
-message = '…{match}…'           # optional — finding headline template.
-                                #   Placeholders depend on kind (see below).
-advice = '…'                    # optional — fix guidance shown under the finding.
-enabled = true                  # optional — default true. false ships the group
-                                #   switched off (visible in `deslop rules`).
-scope = 'prose'                 # optional — where the scan looks:
-                                #   'prose'     visible prose outside code fences
-                                #               (default for vocab/pattern)
-                                #   'heading'   heading text only
-                                #   'list-item' list item text only
-                                #   'anywhere'  whole document
-                                #               (default for literal-ban)
+# required — ID prefix; findings and [lints] keys are '<id-base>#<slug>'.
+# Must be unique across ALL loaded files (two groups with the same id-base
+# refuse to load together).
+id-base = 'AATELL'
 
-[group.url]                     # optional — reference rendered with findings.
+# required — vocab | pattern | literal-ban | metric
+kind = 'vocab'
+
+# required — 1 = artifact -> error
+#            2 = tell      -> warning
+#            3 = density   -> hint
+# Tier 1/2 findings make the run exit 1.
+tier = 2
+
+# required — free-form label shown by `deslop rules`
+# (entries may override per finding).
+category = 'ai-vocabulary'
+
+# optional — finding headline template.
+# Placeholders depend on kind (see below).
+message = '…{match}…'
+
+# optional — fix guidance shown under the finding.
+advice = '…'
+
+# optional — default true. false ships the group switched off
+# (visible in `deslop rules`).
+enabled = true
+
+# optional — where the scan looks:
+#   'prose'     visible prose outside code fences
+#               (default for vocab/pattern)
+#   'heading'   heading text only
+#   'list-item' list item text only
+#   'anywhere'  whole document
+#               (default for literal-ban)
+scope = 'prose'
+
+[group.url]
+# optional — reference rendered with findings.
 text = 'WP:AISIGNS'
 href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing'
 
-[group.fixtures]                # optional but expected — self-test samples.
-must_match = ['...']            #   every enabled entry MUST hit every
-must_not_match = ['...']        #   must_match sample and miss every
-                                #   must_not_match sample, or the pack
-                                #   REFUSES TO LOAD. A rule that matches
-                                #   nothing is not a rule.
+[group.fixtures]
+# optional but expected — self-test samples. Every enabled entry MUST hit
+# every must_match sample and miss every must_not_match sample, or the
+# pack REFUSES TO LOAD. A rule that matches nothing is not a rule.
+must_match = ['...']
+must_not_match = ['...']
 ```
 
 ### Placeholders in `message` / `advice`
@@ -118,22 +133,30 @@ Case-insensitive.
 
 ```toml
 [[group.entries]]
-slug = 'leverage'               # required — ID suffix, unique within the FILE.
-                                #   Content-derived: 'leverage', not 'fix-14'.
-advice = 'Replace "{match}" with "use"'   # optional — overrides group advice
-terms = ['leverage']            # required — words or phrases. One entry per
-                                #   concept; list all spellings here, do not
-                                #   create near-duplicate entries.
-stems = true                    # optional — default false. Expands inflections
-                                #   mechanically (leverage -> leverages,
-                                #   leveraged, leveraging): one entry, one ID,
-                                #   all forms caught. Use for single words.
-word_boundary = true            # optional — default true. false = substring
-                                #   match (rarely what you want for words).
-replacement = 'use'             # optional — enables `deslop fix` to rewrite
-                                #   hits mechanically. Requires the entry to
-                                #   have EXACTLY ONE term so inflected forms
-                                #   rewrite consistently.
+# required — ID suffix, unique within the FILE.
+# Content-derived: 'leverage', not 'fix-14'.
+slug = 'leverage'
+
+# optional — overrides group advice.
+advice = 'Replace "{match}" with "use"'
+
+# required — words or phrases. One entry per concept; list all spellings
+# here, do not create near-duplicate entries.
+terms = ['leverage']
+
+# optional — default false. Expands inflections mechanically
+# (leverage -> leverages, leveraged, leveraging): one entry, one ID,
+# all forms caught. Use for single words.
+stems = true
+
+# optional — default true. false = substring match
+# (rarely what you want for words).
+word_boundary = true
+
+# optional — enables `deslop fix` to rewrite hits mechanically. Requires
+# the entry to have EXACTLY ONE term so inflected forms rewrite
+# consistently.
+replacement = 'use'
 ```
 
 ### kind = "literal-ban"
@@ -148,9 +171,13 @@ fences, or link targets — those regions are masked out before scanning.
 [[group.entries]]
 slug = 'gemini-cite'
 advice = 'Replace the rendered citation scaffold with a real reference'
-terms = [                       # required — literal markers.
-  '[cite: {N}, {N}, {N}]',      #   {N} = wildcard for a run of digits
-  'utm_source=chatgpt.com',     #   {{ and }} escape literal braces
+
+# required — literal markers.
+#   {N} = wildcard for a run of digits
+#   {{ and }} escape literal braces
+terms = [
+  '[cite: {N}, {N}, {N}]',
+  'utm_source=chatgpt.com',
 ]
 ```
 
@@ -168,13 +195,15 @@ category = 'audience-hedge'
 
 [[group.entries]]
 slug = 'main'
-regex = "(?P<hedge>\\bwhether you[''’]re ...\\bor\\b)"   # required.
-                                #   Name your interesting parts:
-                                #   (?P<name>...) — they become {name}
-                                #   placeholders in message/advice.
+
+# required. Name your interesting parts: (?P<name>...) — they become
+# {name} placeholders in message/advice.
+regex = "(?P<hedge>\\bwhether you[''’]re ...\\bor\\b)"
+
 advice = '"{hedge}" flattens the audience; address THIS reader'
 
-[group.fixtures]                # patterns especially want fixtures —
+[group.fixtures]
+# patterns especially want fixtures —
 must_match = ["Whether you're a beginner or an expert, this guide helps."]
 must_not_match = ['She could not decide whether the coat or the jacket suited the weather.']
 ```
@@ -198,21 +227,26 @@ tier = 3
 category = 'document-signals'
 message = 'Bold spans at {value} per {per_words} words'
 advice = 'Bold only genuinely pivotal terms'
-stat = 'bold_density'           # required — one of the closed registry:
-                                #   em_dash_rate                  em dashes / 1000 words
-                                #   curly_double_ratio            curly share of " quotes
-                                #   bold_density                  **bold** spans / 100 words
-                                #   heading_titlecase_fraction    Title Case heading share
-                                #   emoji_decoration_count        emoji in headings/bullets
-                                #   bullet_boldlead_fraction      bullets opening with bold
-                                #   tricolon_max_streak           longest "x, y, and z" run
-                                #   sent_len_cv                   sentence-length variation
-                                #   opening_ngram_repeat          repeated sentence openers
-                                #   term_cluster_max              distinct watch words in one window
-threshold-gt = 3.0              # required — fire when the value EXCEEDS this
-                                #   (strictly greater; equal does not fire).
-per-words = 100                 # optional — default 1000. Scale factor for
-                                #   {value} in the message.
+
+# required — one of the closed registry:
+#   em_dash_rate                  em dashes / 1000 words
+#   curly_double_ratio            curly share of " quotes
+#   bold_density                  **bold** spans / 100 words
+#   heading_titlecase_fraction    Title Case heading share
+#   emoji_decoration_count        emoji in headings/bullets
+#   bullet_boldlead_fraction      bullets opening with bold
+#   tricolon_max_streak           longest "x, y, and z" run
+#   sent_len_cv                   sentence-length variation
+#   opening_ngram_repeat          repeated sentence openers
+#   term_cluster_max              distinct watch words in one window
+stat = 'bold_density'
+
+# required — fire when the value EXCEEDS this
+# (strictly greater; equal does not fire).
+threshold-gt = 3.0
+
+# optional — default 1000. Scale factor for {value} in the message.
+per-words = 100
 ```
 
 Short docs are exempt by design — density stats stay silent below floor
@@ -229,15 +263,23 @@ id-base = 'CLUSTER'
 kind = 'metric'
 tier = 3
 stat = 'term_cluster_max'
-threshold-gt = 4                # fires at 5+ distinct watch words...
-window = 'paragraph'            # ...within one window:
-                                #   'paragraph' (default) blank-line separated
-                                #   'sentence'            one sentence
-                                #   'document'            whole text pools
-terms = [                       # required for term_cluster_max — the watch
-  'crucial', 'robust',          #   list. Inflections are auto-expanded and
-  'notably',                    #   count as ONE distinct word (lemma
-]                               #   identity): delve + delves = 1.
+
+# fires at 5+ distinct watch words...
+threshold-gt = 4
+
+# ...within one window:
+#   'paragraph' (default) blank-line separated
+#   'sentence'            one sentence
+#   'document'            whole text pools
+window = 'paragraph'
+
+# required for term_cluster_max — the watch list. Inflections are
+# auto-expanded and count as ONE distinct word (lemma identity):
+# delve + delves = 1.
+terms = [
+  'crucial', 'robust',
+  'notably',
+]
 ```
 
 Metric groups skip string fixtures — their input is a whole document, not a
@@ -249,14 +291,15 @@ sample string.
 
 ```toml
 [lints]
-AATELL = "allow"                # whole group off
-WSC-PAT-AUDIENCE-HEDGE = "allow"# one pattern group off
-AATELL#delve = "allow"          # one entry off
+AATELL = "allow"                 # whole group off
+WSC-PAT-AUDIENCE-HEDGE = "allow" # one pattern group off
+"SLOP#delve-into" = "allow"      # one entry off (quote keys containing #)
 ```
 
 Because vocab terms deduplicate to a single owner, allowing the owner
 (`AATELL`) fully silences the word — there is no shadow copy in another
-pack.
+pack. Entry keys match the full ID exactly (`SLOP#delve-into`, not
+`SLOP#delve`): run `deslop rules` to see the IDs you can silence.
 
 ## Testing a pack
 
