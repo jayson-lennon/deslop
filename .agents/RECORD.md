@@ -29,3 +29,11 @@
 - Single common words lint only via the cluster metric in
   `cluster-terms.toml` (`term_cluster_max`, paragraph window, fires above 4
   distinct terms), never per-instance.
+
+- Cluster findings anchor at the start of their window (not the last hit
+  word): the message carries the window kind and a 12-word preview, the
+  evidence lists distinct terms indented under `Clustered terms:`, and the
+  excerpt block renders without a caret.
+
+- Metric/vocab `advice` strings follow a problem-plus-resolution model,
+  cite no papers, and never carry TODO markers (loader-tested).
