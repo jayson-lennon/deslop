@@ -341,7 +341,7 @@ id-base = "TEST-CLUSTER"
 kind = "metric"
 tier = 3
 category = "vocabulary-density"
-message = '{value:.0} distinct in the {window} starting "{preview}"'
+message = '{value:.0} distinct in the {window}'
 advice = 'vary the vocabulary'
 stat = 'term_cluster_max'
 window = 'paragraph'
@@ -367,15 +367,9 @@ fn cluster_emits_one_finding_per_offending_window() {
     // Then BOTH dense paragraphs report independently.
     assert_eq!(cluster.len(), 2);
     // And each finding's value is its own window's distinct count, with the
-    // window kind and opening preview in the message.
-    assert_eq!(
-        cluster[0].message,
-        "3 distinct in the paragraph starting \"crucial robust notably here.\""
-    );
-    assert_eq!(
-        cluster[1].message,
-        "3 distinct in the paragraph starting \"adept crucial robust there\""
-    );
+    // window kind named in the message.
+    assert_eq!(cluster[0].message, "3 distinct in the paragraph");
+    assert_eq!(cluster[1].message, "3 distinct in the paragraph");
     // And each finding spans its whole WINDOW, anchored at its first word.
     assert_eq!(
         &src[cluster[0].span.start..cluster[0].span.start + "crucial".len()],
@@ -409,7 +403,7 @@ fn cluster_context_lists_distinct_terms_indented_under_header() {
 }
 
 #[test]
-fn cluster_document_window_message_previews_and_spans_document() {
+fn cluster_document_window_message_names_window_and_spans_document() {
     // Given a document-window rule and a document longer than the preview.
     let doc_rule = CLUSTER_RULE.replace("window = 'paragraph'", "window = 'document'");
     let rules = load_with(&[("cluster.toml", &doc_rule)]);
@@ -418,11 +412,8 @@ fn cluster_document_window_message_previews_and_spans_document() {
     // When scanning.
     let findings = scan(src, &rules, &LintSettings::default());
 
-    // Then the message names the window kind and previews the FIRST 12 words.
-    assert_eq!(
-        findings[0].message,
-        "4 distinct in the document starting \"one two three four five six seven eight nine ten eleven twelve\""
-    );
+    // Then the message names the window kind.
+    assert_eq!(findings[0].message, "4 distinct in the document");
     // And the finding spans the whole document (minus the trailing newline).
     assert_eq!(findings[0].span.start, 0);
     assert_eq!(

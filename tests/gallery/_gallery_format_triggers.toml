@@ -1,0 +1,40 @@
+# Gallery format-triggers pack. Loaded alongside the builtin packs with
+# `deslop <doc> --rule-file tests/gallery/_gallery_format_triggers.toml`.
+# Every group exists to force a RENDER SHAPE the builtin packs never show;
+# the gallery document holds matching trigger text (see the sections named
+# "gallery-format:"). Starter-packs lookup is by stem, so the underscore
+# prefix keeps this fixture out of normal resolution; it loads only via an
+# explicit `--rule-file`.
+
+# A tier-1 ERROR cluster over a document window: the anchorless gutter
+# block in error red, the document-window excerpt capped at two lines with
+# a `│ …` continuation, and the `Clustered terms:` list.
+[[group]]
+id-base = 'GALLERY-FMT-DOCWINDOW'
+kind = 'metric'
+tier = 1
+category = 'vocabulary-density'
+message = '{value:.0} distinct trigger words cluster across the document'
+advice = 'Vary the vocabulary; a document leaning on the same intensity words throughout reads as machine-generated emphasis'
+stat = 'term_cluster_max'
+window = 'document'
+threshold-gt = 9
+terms = ['delve', 'tapestry', 'whilst', 'additionally', 'comprehensive', 'pivotal', 'landscape', 'second', 'dense', 'paragraph']
+
+# A tier-2 WARNING cluster over the paragraph window: the anchorless
+# gutter block in warning yellow. (A sentence-window group was tried here,
+# but `sentences()` does not split on a terminator followed by a newline,
+# so a trailing sentence swallows the rest of the document into one window;
+# the builtin pack already shows the sentence window at note severity on
+# text that splits cleanly.)
+[[group]]
+id-base = 'GALLERY-FMT-PARAGRAPH'
+kind = 'metric'
+tier = 2
+category = 'vocabulary-density'
+message = '{value:.0} distinct trigger words cluster in one paragraph'
+advice = 'Split and vary; a paragraph leaning on the same intensity words reads as machine-generated emphasis'
+stat = 'term_cluster_max'
+window = 'paragraph'
+threshold-gt = 4
+terms = ['also', 'aptly', 'adept', 'aims', 'align', 'across']

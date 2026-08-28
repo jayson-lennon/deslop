@@ -266,7 +266,6 @@ fn metric_findings(
                 let bounds = trim_window_bounds(norm_text, w.bounds);
                 let (o_start, o_end) = norm.span_to_orig(bounds.0, bounds.1);
                 let context = cluster_context(&w);
-                let preview = metrics::first_words(norm_text, w.bounds, 12).join(" ");
                 findings.push(metric_finding(
                     group,
                     spec,
@@ -275,7 +274,6 @@ fn metric_findings(
                     orig_src,
                     settings,
                     Some(context),
-                    Some(preview),
                     true,
                 ));
             }
@@ -308,7 +306,6 @@ fn metric_findings(
             orig_src,
             settings,
             None,
-            None,
             false,
         ));
     }
@@ -316,9 +313,8 @@ fn metric_findings(
 
 /// Build one metric Finding. `context` carries the cluster metric's
 /// evidence (which words fired, indented under a header); `None` for
-/// whole-doc stats. `preview` is the window's opening words for the
-/// `{preview}` message var (cluster only). `anchorless` marks window-spanned
-/// cluster findings for caret-free human rendering. The window's own count
+/// whole-doc stats. `anchorless` marks window-spanned cluster findings for
+/// caret-free human rendering. The window's own count
 /// drives `{value}` so a per-window finding reports ITS number, not the
 /// document maximum.
 #[allow(clippy::too_many_arguments)]
@@ -330,7 +326,6 @@ fn metric_finding(
     orig_src: &str,
     settings: &LintSettings,
     context: Option<String>,
-    preview: Option<String>,
     anchorless: bool,
 ) -> Finding {
     let (o_start, o_end) = span;
@@ -341,7 +336,6 @@ fn metric_finding(
         "per_words" => Some(per_words.to_string()),
         "stat" => Some(spec.stat.name().to_string()),
         "window" => Some(spec.window.name().to_string()),
-        "preview" => preview.clone(),
         _ => None,
     };
     let message = group

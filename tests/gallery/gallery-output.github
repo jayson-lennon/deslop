@@ -8,7 +8,7 @@ help: Uniform **bold lead-in:** bullets are listicle scaffolding; vary or conver
 help: Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) - paste-converted markup that never belonged in prose; re-cite properly or drop the claim
 ::error file=tests/gallery/gallery.md,line=24,col=45,endLine=24,endColumn=56,title=AISIGNS#oaicite::Chatbot markup artifact
 help: Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) - paste-converted markup that never belonged in prose; re-cite properly or drop the claim
-::notice file=tests/gallery/gallery.md,line=28,col=1,endLine=30,endColumn=48,title=CLUSTER::8 distinct watch-list words cluster in the paragraph starting "We will leverage the team's synergy to delve into the testament of"
+::notice file=tests/gallery/gallery.md,line=28,col=1,endLine=30,endColumn=48,title=CLUSTER::8 distinct watch-list words cluster in paragraph
 help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
 ::warning file=tests/gallery/gallery.md,line=28,col=9,endLine=28,endColumn=17,title=AATELL#leverage::AI-tell vocabulary
 help: Replace "leverage" with its plain verb ("use")
@@ -22,11 +22,11 @@ help: AI-tell vocabulary; state the idea in your own plain words
 help: Drop the negation scaffold and state it positively: roughly "it is a discipline"
 ::notice file=tests/gallery/gallery.md,line=39,col=5,endLine=39,endColumn=6,title=AISIGNS-METRIC-CURLY-DOUBLE-RATIO::100%25 of double quotes are curly
 help: Curly-quote share 100% - chat exports carry typographic quotes; normalize to straight ASCII
-::notice file=tests/gallery/gallery.md,line=49,col=1,endLine=51,endColumn=69,title=CLUSTER::11 distinct watch-list words cluster in the paragraph starting "Paragraph window: the team felt also aptly adept aims align across crucial"
+::notice file=tests/gallery/gallery.md,line=49,col=1,endLine=51,endColumn=69,title=CLUSTER::11 distinct watch-list words cluster in paragraph
 help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
-::notice file=tests/gallery/gallery.md,line=53,col=1,endLine=55,endColumn=64,title=CLUSTER::13 distinct watch-list words cluster in the paragraph starting "Second dense paragraph so you can see two independent cluster notes in"
+::notice file=tests/gallery/gallery.md,line=53,col=1,endLine=55,endColumn=64,title=CLUSTER::13 distinct watch-list words cluster in paragraph
 help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
 ::warning file=tests/gallery/gallery.md,line=55,col=21,endLine=55,endColumn=31,title=AATELL#leverage::AI-tell vocabulary
 help: Replace "leveraging" with its plain verb ("use")
-::notice file=tests/gallery/gallery.md,line=57,col=1,endLine=59,endColumn=58,title=CLUSTER::7 distinct watch-list words cluster in the paragraph starting "Sentence window next: crucial robust notably adept. Adept crucial robust notably aims."
+::notice file=tests/gallery/gallery.md,line=57,col=1,endLine=59,endColumn=58,title=CLUSTER::7 distinct watch-list words cluster in paragraph
 help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis

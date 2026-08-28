@@ -45,7 +45,7 @@ error[AISIGNS#oaicite]:
    │
    = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup
 
-note[CLUSTER]: 8 distinct watch-list words cluster in the paragraph starting "We will leverage the team's synergy to delve into the testament of"
+note[CLUSTER]: 8 distinct watch-list words cluster in paragraph
    ┌─ tests/gallery/gallery.md:28:1
    │
 28 │ We will leverage the team's synergy to delve into the testament of our
@@ -120,7 +120,7 @@ note[AISIGNS-METRIC-CURLY-DOUBLE-RATIO]:
    │
    = see: Wikipedia:Signs of AI writing § Style - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style
 
-note[CLUSTER]: 11 distinct watch-list words cluster in the paragraph starting "Paragraph window: the team felt also aptly adept aims align across crucial"
+note[CLUSTER]: 11 distinct watch-list words cluster in paragraph
    ┌─ tests/gallery/gallery.md:49:1
    │
 49 │ Paragraph window: the team felt also aptly adept aims align across
@@ -142,7 +142,7 @@ note[CLUSTER]: 11 distinct watch-list words cluster in the paragraph starting "P
    =   tapestry
    = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
 
-note[CLUSTER]: 13 distinct watch-list words cluster in the paragraph starting "Second dense paragraph so you can see two independent cluster notes in"
+note[CLUSTER]: 13 distinct watch-list words cluster in paragraph
    ┌─ tests/gallery/gallery.md:53:1
    │
 53 │ Second dense paragraph so you can see two independent cluster notes in
@@ -175,7 +175,7 @@ warning[AATELL#leverage]:
    │                     AI-tell vocabulary
    │                     help: Replace "leveraging" with its plain verb ("use")
 
-note[CLUSTER]: 7 distinct watch-list words cluster in the paragraph starting "Sentence window next: crucial robust notably adept. Adept crucial robust notably aims."
+note[CLUSTER]: 7 distinct watch-list words cluster in paragraph
    ┌─ tests/gallery/gallery.md:57:1
    │
 57 │ Sentence window next: crucial robust notably adept. Adept crucial
