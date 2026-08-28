@@ -15,31 +15,57 @@ href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Markup'
 [[group.entries]]
 slug = 'chatgpt-referral'
 advice = 'Delete the ChatGPT/Copilot referral query — the URL was copied from an LLM share/citation flow, not typed by a human'
-terms = ['utm_source=chatgpt.com', 'utm_source=chat.openai.com', 'utm_source=copilot.microsoft.com', '?referrer=grok.com', '&referrer=grok.com', '?output=1&prof=1']
+terms = [
+    'utm_source=chatgpt.com',
+    'utm_source=chat.openai.com',
+    'utm_source=copilot.microsoft.com',
+    '?referrer=grok.com',
+    '&referrer=grok.com',
+    '?output=1&prof=1',
+]
 category = 'referral-urls'
 
 [[group.entries]]
 slug = 'didactic-disclaimer'
 advice = "Drop the chatbot's didactic sign-off (consult a professional for…) or convert it to a genuine editorial note addressed to the reader"
-terms = ['always consult with a qualified', 'it is important to note that i am not']
+terms = [
+    'always consult with a qualified',
+    'it is important to note that i am not',
+]
 category = 'assistant-disclaimer'
 
 [[group.entries]]
 slug = 'gemini-cite'
 advice = "Replace Gemini's rendered `[cite: N]` / `[cite_start]` scaffold with a proper reference or remove it"
-terms = ['[cite: {N}, {N}, {N}, {N}]', '[cite: {N}, {N}, {N}]', '[cite: {N}, {N}]', '[cite: {N}]', '[cite_start]', '[cite_end]']
+terms = [
+    '[cite: {N}, {N}, {N}, {N}]',
+    '[cite: {N}, {N}, {N}]',
+    '[cite: {N}, {N}]',
+    '[cite: {N}]',
+    '[cite_start]',
+    '[cite_end]',
+]
 category = 'gemini-artifacts'
 
 [[group.entries]]
 slug = 'grok-cards'
 advice = 'Remove the raw Grok render callout (`grok_render_citation_card_json`) — internal UI instructions leaked into output text'
-terms = ['grok_render_citation_card_json', "{{\"citation_cards\"", "\"render_citation_card\""]
+terms = [
+    'grok_render_citation_card_json',
+    "{{\"citation_cards\"",
+    "\"render_citation_card\"",
+]
 category = 'grok-artifacts'
 
 [[group.entries]]
 slug = 'knowledge-cutoff'
 advice = 'Delete the assistant preamble about my knowledge cutoff / not having real-time data — a chat-transcript opener that leaked into the document'
-terms = ['my knowledge cutoff', 'as of my last update', 'as an ai language model, i', 'i cannot browse the internet in real time']
+terms = [
+    'my knowledge cutoff',
+    'as of my last update',
+    'as an ai language model, i',
+    'i cannot browse the internet in real time',
+]
 category = 'assistant-preamble'
 
 [[group.entries]]
@@ -51,7 +77,11 @@ category = 'deepseek-daggers'
 [[group.entries]]
 slug = 'oaicite'
 advice = 'Delete the raw ChatGPT citation wrapper (`contentReference[oaicite:N]{index=N}`) — paste-converted markup that never belonged in prose; re-cite properly or drop the claim'
-terms = ['contentReference[oaicite:{N}]{{index={N}}}', '[oaicite:{N}]', 'attributableIndex']
+terms = [
+    'contentReference[oaicite:{N}]{{index={N}}}',
+    '[oaicite:{N}]',
+    'attributableIndex',
+]
 category = 'chatgpt-artifacts'
 
 [[group.entries]]
@@ -63,13 +93,33 @@ category = 'perplexity-artifacts'
 [[group.entries]]
 slug = 'leaked-search-pointer'
 advice = 'Delete the `turn0searchN` web-search pointer — leaked ChatGPT tool state, not content; replace with a real citation or nothing'
-terms = ['turn0search{N}', 'turn0view{N}', 'turn0news{N}', 'turn0image{N}', 'tool_uses_remaining:', '_processed_image_ids', '|^12^|']
+terms = [
+    'turn0search{N}',
+    'turn0view{N}',
+    'turn0news{N}',
+    'turn0image{N}',
+    'tool_uses_remaining:',
+    '_processed_image_ids',
+    '|^12^|',
+]
 category = 'chatgpt-artifacts'
 
 [[group.entries]]
 slug = 'unfilled-placeholder'
 advice = "This template placeholder was never filled in ('[Your Name]', 'url=URL', 'PASTE_X_HERE', 'INSERT_X') — complete the value or delete the scaffolding line"
-terms = ['[your name]', '[client name]', '[company name]', '[insert {N} words]', 'url=url ', 'url=paste_spotify_track_url_here', 'title=title goes here', 'paste_{N}_word_description_here', 'insert_meta_description_here', '<insert here>', 'lorem ipsum dolor sit amet, consectetur adipiscing elit']
+terms = [
+    '[your name]',
+    '[client name]',
+    '[company name]',
+    '[insert {N} words]',
+    'url=url ',
+    'url=paste_spotify_track_url_here',
+    'title=title goes here',
+    'paste_{N}_word_description_here',
+    'insert_meta_description_here',
+    '<insert here>',
+    'lorem ipsum dolor sit amet, consectetur adipiscing elit',
+]
 category = 'placeholder-scaffolding'
 
 [[group]]
@@ -134,7 +184,11 @@ terms = ['garnered significant attention', 'garnered significant interest']
 [[group.entries]]
 slug = 'unleash-the-power-of'
 advice = 'Marketing-register collocation; name what is actually done'
-terms = ['unleash the power of', 'unleash the full potential of', 'unleash your potential']
+terms = [
+    'unleash the power of',
+    'unleash the full potential of',
+    'unleash your potential',
+]
 
 [[group.entries]]
 slug = 'harnessing-the-power-of'
@@ -179,7 +233,11 @@ terms = ['the importance of x cannot be overstated', 'cannot be overstated']
 [[group.entries]]
 slug = 'take-x-to-the-next-level'
 advice = 'Marketing formula; state the concrete improvement'
-terms = ['take it to the next level', 'take this to the next level', 'to the next level']
+terms = [
+    'take it to the next level',
+    'take this to the next level',
+    'to the next level',
+]
 
 [[group.entries]]
 slug = 'embrace-the-future'
@@ -433,10 +491,6 @@ threshold-gt = 2.0
 text = 'Wikipedia:Signs of AI writing § Style'
 href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
 
-[group.fixtures]
-must_match = []
-must_not_match = []
-
 [[group]]
 id-base = 'AISIGNS-METRIC-BOLD-DENSITY'
 kind = 'metric'
@@ -452,10 +506,6 @@ threshold-gt = 3.0
 [group.url]
 text = 'Wikipedia:Signs of AI writing § Style'
 href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
-
-[group.fixtures]
-must_match = []
-must_not_match = []
 
 [[group]]
 id-base = 'AISIGNS-METRIC-BULLET-BOLDLEAD'
@@ -473,10 +523,6 @@ threshold-gt = 0.6
 text = 'Wikipedia:Signs of AI writing § Style'
 href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
 
-[group.fixtures]
-must_match = []
-must_not_match = []
-
 [[group]]
 id-base = 'AISIGNS-METRIC-CURLY-DOUBLE-RATIO'
 kind = 'metric'
@@ -492,10 +538,6 @@ threshold-gt = 0.3
 [group.url]
 text = 'Wikipedia:Signs of AI writing § Style'
 href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
-
-[group.fixtures]
-must_match = []
-must_not_match = []
 
 [[group]]
 id-base = 'AISIGNS-METRIC-EM-DASH-RATE'
@@ -513,10 +555,6 @@ threshold-gt = 6.0
 text = 'Wikipedia:Signs of AI writing § Style'
 href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
 
-[group.fixtures]
-must_match = []
-must_not_match = []
-
 [[group]]
 id-base = 'AISIGNS-METRIC-EMOJI-DECORATION'
 kind = 'metric'
@@ -532,10 +570,6 @@ threshold-gt = 3.0
 [group.url]
 text = 'Wikipedia:Signs of AI writing § Style'
 href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
-
-[group.fixtures]
-must_match = []
-must_not_match = []
 
 [[group]]
 id-base = 'AISIGNS-METRIC-SENTENCE-LENGTH-MONOTONY'
@@ -553,10 +587,6 @@ threshold-gt = 0.75
 text = 'Wikipedia:Signs of AI writing § Style'
 href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
 
-[group.fixtures]
-must_match = []
-must_not_match = []
-
 [[group]]
 id-base = 'AISIGNS-METRIC-TITLECASE-HEADINGS'
 kind = 'metric'
@@ -573,10 +603,6 @@ threshold-gt = 0.5
 text = 'Wikipedia:Signs of AI writing § Style'
 href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
 
-[group.fixtures]
-must_match = []
-must_not_match = []
-
 [[group]]
 id-base = 'AISIGNS-METRIC-TRICOLON-STREAK'
 kind = 'metric'
@@ -592,7 +618,3 @@ threshold-gt = 2.0
 [group.url]
 text = 'Wikipedia:Signs of AI writing § Style'
 href = 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style'
-
-[group.fixtures]
-must_match = []
-must_not_match = []
