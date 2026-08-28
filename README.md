@@ -45,9 +45,11 @@ Packs are read from disk at startup and **deduplicated during load**:
 
 Where packs live (first hit wins):
 
-1. `~/.config/deslop/rules/` (user packs — drop TOML files here)
-2. `./rules/` (repo development layout)
-3. `<exe_dir>/rules/` (installed layout)
+1. `--rules-dir DIR` (CLI flag — DIR itself is the pack directory; skips
+   everything below, for CI and tests)
+2. `~/.config/deslop/rules/` (user packs — drop TOML files here)
+3. `./rules/` (repo development layout)
+4. `<exe_dir>/rules/` (installed layout)
 
 ---
 

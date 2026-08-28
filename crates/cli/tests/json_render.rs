@@ -1,6 +1,8 @@
 //! JSON serializer contract: valid JSON, frozen field order, char-safe
 //! columns (spec tuhu).
 
+mod common;
+
 use std::process::Command;
 
 fn run_json(doc: &str) -> (String, i32) {
@@ -8,7 +10,10 @@ fn run_json(doc: &str) -> (String, i32) {
     let path = tmp.path().join("doc.md");
     std::fs::write(&path, doc).expect("write");
     let bin = env!("CARGO_BIN_EXE_deslop");
-    let out = Command::new(bin)
+    let hermetic = common::HermeticRules::provision();
+    let mut cmd = Command::new(bin);
+    hermetic.apply(&mut cmd);
+    let out = cmd
         .args([path.to_str().expect("utf8"), "--format", "json"])
         .output()
         .expect("runs");

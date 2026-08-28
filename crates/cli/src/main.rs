@@ -24,6 +24,11 @@ struct Cli {
     #[arg(long, value_enum, default_value_t = ArgColor::Auto)]
     color: ArgColor,
 
+    /// Directory containing rule pack TOMLs (aatell.toml, slop.toml, ...).
+    /// Overrides the usual resolution (~/.config/deslop/rules, ./rules, ...).
+    #[arg(long, value_name = "DIR")]
+    rules_dir: Option<camino::Utf8PathBuf>,
+
     #[command(subcommand)]
     command: Option<Command>,
 }
@@ -134,9 +139,29 @@ fn run(cli: Cli) -> i32 {
     };
     let _ = &cfg;
 
+    // --rules-dir must point at a real directory when given; it replaces the
+    // whole pack-resolution chain so runs are hermetic to installed packs.
+    let rules_dir = match &cli.rules_dir {
+        Some(dir) if !dir.is_dir() => {
+            eprintln!("deslop: --rules-dir directory does not exist: {dir}");
+            return ExitCode::LoadFailure as i32;
+        }
+        // Canonicalize so the loader's parent-join is unambiguous even for
+        // relative flags (`--rules-dir packs` from a nested cwd).
+        Some(dir) => dir
+            .canonicalize()
+            .ok()
+            .and_then(|p| camino::Utf8PathBuf::from_path_buf(p).ok()),
+        None => None,
+    };
+
     match cli.command {
         Some(Command::Rules { json }) => {
-            let mut cmd = cmd::rules_cmd::RulesCmd { cfg: &cfg, json };
+            let mut cmd = cmd::rules_cmd::RulesCmd {
+                cfg: &cfg,
+                json,
+                rules_dir: rules_dir.clone(),
+            };
             match cmd.run() {
                 Ok(code) => code,
                 Err(_) => ExitCode::LoadFailure as i32,
@@ -152,6 +177,7 @@ fn run(cli: Cli) -> i32 {
                 write,
                 color_override: Some(color.into()),
                 format_override: Some(format.into()),
+                rules_dir: rules_dir.clone(),
             };
             match cmd.run() {
                 Ok(code) => code,
@@ -162,7 +188,7 @@ fn run(cli: Cli) -> i32 {
         None => {
             // Lint: load rules first; any load failure aborts with exit 2
             // before a single document is scanned (spec exit precedence).
-            let loaded = cmd::rules_cmd::load_for_lint(&cfg);
+            let loaded = cmd::rules_cmd::load_for_lint(&cfg, rules_dir.clone());
             if !loaded.errors.is_empty() {
                 let stderr = std::io::stderr();
                 let mut lock = stderr.lock();

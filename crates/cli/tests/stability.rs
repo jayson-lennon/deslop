@@ -1,12 +1,17 @@
 //! Determinism: identical input runs must produce byte-identical output
 //! (spec tw6j; golden stability depends on it).
 
+mod common;
+
 use std::process::Command;
 
 /// Lint one doc twice; assert both human and JSON output are stable.
 fn run_twice(doc: &str, format: &str) -> (String, String) {
+    let hermetic = common::HermeticRules::provision();
     let run = || {
-        let out = Command::new(env!("CARGO_BIN_EXE_deslop"))
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
+        hermetic.apply(&mut cmd);
+        let out = cmd
             .arg(doc)
             .args(["--color", "never", "--format", format])
             .current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))

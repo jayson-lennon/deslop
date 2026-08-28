@@ -1,10 +1,14 @@
 //! Color plumbing: `--color always` emits ANSI codes, `never` emits none,
 //! and `auto` respects `NO_COLOR` even when piped output would suppress it.
 
+mod common;
+
 use std::process::Command;
 
 fn lint(doc: &str, color: &str, env: &[(&str, &str)]) -> String {
+    let hermetic = common::HermeticRules::provision();
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
+    hermetic.apply(&mut cmd);
     cmd.arg(doc)
         .args(["--color", color, "--format", "human"])
         .current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."));

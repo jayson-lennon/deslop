@@ -2,6 +2,8 @@
 //! slug > group > tier default. Unknown levels are config errors (exit 2);
 //! unknown lint ids are tolerated (renames happen).
 
+mod common;
+
 use std::process::Command;
 
 /// Run deslop over the seed doc with the given config text. `tag` keeps
@@ -17,7 +19,10 @@ fn lint_with_config(tag: &str, cfg: &str) -> (i32, String) {
         dir.join("doc.md"),
     )
     .expect("seed doc");
-    let out = Command::new(env!("CARGO_BIN_EXE_deslop"))
+    let hermetic = common::HermeticRules::provision();
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
+    hermetic.apply(&mut cmd);
+    let out = cmd
         .arg("doc.md")
         .args(["--color", "never"])
         .current_dir(&dir)
@@ -115,12 +120,11 @@ fn rules_listing_shows_effective_levels() {
     std::fs::create_dir_all(&dir).expect("tmpdir");
     std::fs::write(dir.join(".deslop.toml"), cfg).expect("write cfg");
 
-    // When listing rules.
-    let out = Command::new(env!("CARGO_BIN_EXE_deslop"))
-        .arg("rules")
-        .current_dir(&dir)
-        .output()
-        .expect("runs");
+    // When listing rules (against hermetic packs).
+    let hermetic = common::HermeticRules::provision();
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
+    hermetic.apply(&mut cmd);
+    let out = cmd.arg("rules").current_dir(&dir).output().expect("runs");
     let text = String::from_utf8_lossy(&out.stdout).into_owned();
 
     // Then the listing shows allow for that group's entries and warn

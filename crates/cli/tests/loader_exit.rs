@@ -3,8 +3,13 @@
 
 use assert_cmd::Command;
 
-fn deslop() -> Command {
-    Command::cargo_bin("deslop").expect("binary builds")
+/// Command bound to this test's own pack dir via --rules-dir: the run
+/// loads ONLY the packs the test wrote, immune to user-installed packs.
+fn deslop(tmp: &std::path::Path) -> Command {
+    let mut cmd = Command::cargo_bin("deslop").expect("binary builds");
+    cmd.arg("--rules-dir")
+        .arg(tmp.join("rules").to_str().expect("utf8"));
+    cmd
 }
 
 fn write(dir: &std::path::Path, rel: &str, text: &str) {
@@ -70,7 +75,7 @@ regex = '([unclosed'
     let cfg = cfg_for(tmp.path(), "pack");
 
     // When linting any existing path.
-    let output = deslop()
+    let output = deslop(tmp.path())
         .arg("--config")
         .arg(&cfg)
         .arg(".")
@@ -110,7 +115,7 @@ terms = ["delve"]
     let cfg = cfg_for_two(tmp.path(), "ok", "lying");
 
     // When linting.
-    let output = deslop()
+    let output = deslop(tmp.path())
         .arg("--config")
         .arg(&cfg)
         .arg(".")
@@ -133,7 +138,7 @@ fn duplicate_group_ids_across_packs_exit_two() {
     let cfg = cfg_for_two(tmp.path(), "pack-a", "pack-b");
 
     // When linting.
-    let output = deslop()
+    let output = deslop(tmp.path())
         .arg("--config")
         .arg(&cfg)
         .arg(".")
@@ -176,7 +181,7 @@ terms = ["delved"]
     let cfg = cfg_for(tmp.path(), "pack");
 
     // When linting.
-    let output = deslop()
+    let output = deslop(tmp.path())
         .arg("--config")
         .arg(&cfg)
         .arg(".")
@@ -231,7 +236,7 @@ must_match = []
     let cfg = cfg_for_two(tmp.path(), "badstat", "nothresh");
 
     // When linting.
-    let output = deslop()
+    let output = deslop(tmp.path())
         .arg("--config")
         .arg(&cfg)
         .arg(".")

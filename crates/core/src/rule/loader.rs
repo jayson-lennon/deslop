@@ -211,18 +211,26 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
 ///
 /// Builtin pack stems resolve to `<rules_root>/rules/<stem>.toml` - one
 /// flat file per pack, any number of `[[group]]` tables inside. `extra_paths`
-/// name files or directories, used as-is.
+/// name files or directories, relative to `rules_root`, used as-is.
 ///
 /// Never panics on bad data: problems land in [`Loaded::errors`].
 pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
+    load_split(cfg, rules_root.join("rules").as_path(), rules_root)
+}
+
+/// Like [`load`], but the pack directory and the extras root are given
+/// separately. `packs_dir` holds `<stem>.toml` files; `extras_root` anchors
+/// config `extra_paths`. The CLI's `--rules-dir` uses this so an explicitly
+/// named pack directory works regardless of its name.
+pub fn load_split(cfg: &Config, packs_dir: &Utf8Path, extras_root: &Utf8Path) -> Loaded {
     let mut loaded = Loaded::default();
 
     let mut pack_files = Vec::new();
     for name in &cfg.packs.builtin {
-        pack_files.push(rules_root.join("rules").join(format!("{name}.toml")));
+        pack_files.push(packs_dir.join(format!("{name}.toml")));
     }
     for extra in &cfg.packs.extra_paths {
-        let path = rules_root.join(extra);
+        let path = extras_root.join(extra);
         if path.is_dir() {
             pack_files.extend(crate::sorted_toml_files(&path));
         } else {

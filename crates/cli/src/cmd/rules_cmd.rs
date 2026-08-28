@@ -62,6 +62,8 @@ use std::io::Write as _;
 pub struct RulesCmd<'a> {
     pub cfg: &'a deslop_core::config::Config,
     pub json: bool,
+    /// `--rules-dir` override: the directory containing pack TOMLs.
+    pub rules_dir: Option<camino::Utf8PathBuf>,
 }
 
 impl RulesCmd<'_> {
@@ -69,7 +71,7 @@ impl RulesCmd<'_> {
     ///
     /// Fails when packs cannot be located on disk.
     pub fn run(&mut self) -> Result<i32, error_stack::Report<super::CmdError>> {
-        let loaded = load_rules(self.cfg);
+        let loaded = load_rules(self.cfg, self.rules_dir.clone());
         if !loaded.errors.is_empty() {
             for err in &loaded.errors {
                 eprintln!("deslop: {err}");
@@ -90,60 +92,90 @@ impl RulesCmd<'_> {
 }
 
 /// Loader access for other commands; pub(crate) within the binary.
-pub fn load_for_lint(cfg: &deslop_core::config::Config) -> deslop_core::rule::loader::Loaded {
-    load_rules(cfg)
+pub fn load_for_lint(
+    cfg: &deslop_core::config::Config,
+    rules_dir: Option<camino::Utf8PathBuf>,
+) -> deslop_core::rule::loader::Loaded {
+    load_rules(cfg, rules_dir)
 }
 
 /// Where the builtin packs live, resolved once per run:
+/// 0. `--rules-dir DIR` when given - DIR itself is the pack directory and
+///    the chain below is skipped (hermetic runs: CI, integration tests),
 /// 1. `~/.config/deslop/rules` (via the `dirs` crate) when it exists -
 ///    user-installed packs,
 /// 2. `./rules` when present (repo development layout, incl. tests),
 /// 3. alongside the executable (`<exe_dir>/rules` - installed layout),
 /// 4. Cargo target fallback (`target/debug` ancestor with a `rules/`),
 /// 5. `.` as the last resort.
-fn rules_root() -> camino::Utf8PathBuf {
+///
+/// Returns `(packs_dir, extras_root)`: where `<stem>.toml` packs live and
+/// where config `extra_paths` anchor, respectively.
+fn rules_root(
+    override_dir: Option<&camino::Utf8Path>,
+) -> (camino::Utf8PathBuf, camino::Utf8PathBuf) {
+    if let Some(dir) = override_dir {
+        // The flag IS the pack directory; extras anchor at its parent so a
+        // config's relative extra_paths keep working from the project root.
+        let extras = dir
+            .parent()
+            .map(camino::Utf8Path::to_path_buf)
+            .unwrap_or_else(|| camino::Utf8PathBuf::from("."));
+        return (dir.to_path_buf(), extras);
+    }
     if let Some(config_dir) = dirs::config_dir() {
         let user_rules = config_dir.join("deslop").join("rules");
         if user_rules.is_dir() {
             // The user dir IS a rules root: its packs sit directly in it
             // (<user_rules>/<stem>.toml), so hand back its PARENT with the
             // same "root + rules/" join the loader performs everywhere else.
-            if let Ok(utf8) = camino::Utf8PathBuf::from_path_buf(
-                user_rules
-                    .parent()
-                    .map(std::path::Path::to_path_buf)
-                    .unwrap_or_else(|| config_dir.join("deslop")),
-            ) {
-                return utf8;
+            if let Some(root) = user_rules
+                .parent()
+                .and_then(|p| camino::Utf8PathBuf::from_path_buf(p.to_path_buf()).ok())
+            {
+                let packs = root.join("rules");
+                return (packs, root);
             }
         }
     }
     if camino::Utf8Path::new("rules").is_dir() {
-        return camino::Utf8PathBuf::from(".");
+        return (
+            camino::Utf8PathBuf::from("rules"),
+            camino::Utf8PathBuf::from("."),
+        );
     }
     let exe_dir = std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(std::path::Path::to_path_buf));
     if let Some(dir) = exe_dir {
-        if let Ok(utf8) = camino::Utf8PathBuf::from_path_buf(dir.clone()) {
-            if utf8.join("rules").is_dir() {
-                return utf8;
+        if let Ok(exe) = camino::Utf8PathBuf::from_path_buf(dir.clone()) {
+            if exe.join("rules").is_dir() {
+                return (exe.join("rules"), exe);
             }
         }
         // Cargo target layout: target/debug -> crate root two levels up.
         for ancestor in dir.ancestors().skip(1) {
             let candidate = ancestor.join("rules");
             if candidate.is_dir() {
-                return camino::Utf8PathBuf::from_path_buf(ancestor.to_path_buf())
-                    .unwrap_or_else(|_| camino::Utf8PathBuf::from("."));
+                if let Ok(root) = camino::Utf8PathBuf::from_path_buf(ancestor.to_path_buf()) {
+                    return (root.join("rules"), root);
+                }
             }
         }
     }
-    camino::Utf8PathBuf::from(".")
+    (
+        camino::Utf8PathBuf::from("rules"),
+        camino::Utf8PathBuf::from("."),
+    )
 }
 
-fn load_rules(cfg: &deslop_core::config::Config) -> deslop_core::rule::loader::Loaded {
-    let loaded = deslop_core::rule::loader::load(cfg, &rules_root());
+fn load_rules(
+    cfg: &deslop_core::config::Config,
+    rules_dir: Option<camino::Utf8PathBuf>,
+) -> deslop_core::rule::loader::Loaded {
+    let (packs_dir, extras_root) = rules_root(rules_dir.as_deref());
+    let loaded =
+        deslop_core::rule::loader::load_split(cfg, packs_dir.as_path(), extras_root.as_path());
     if std::env::var_os("DESLOP_DEBUG_LOAD").is_some() {
         eprintln!(
             "debug: errors={:?} groups={}",

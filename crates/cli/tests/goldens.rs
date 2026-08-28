@@ -5,6 +5,8 @@
 //! files and re-present them for user approval before proceeding to bulk
 //! advice work (spec gate tivs).
 
+mod common;
+
 use std::process::Command;
 
 const DOCS: [&str; 6] = [
@@ -24,8 +26,13 @@ fn golden_path(doc: &str, ext: &str) -> std::path::PathBuf {
 
 fn run_format(doc: &str, format: &str) -> String {
     // Relative doc path from the repo root keeps outputs machine-stable.
+    // Hermetic packs: the golden must not depend on the invoking user's
+    // installed rule packs.
+    let hermetic = common::HermeticRules::provision();
     let doc_rel = format!("tests/fixtures/docs/{doc}.md");
-    let out = Command::new(env!("CARGO_BIN_EXE_deslop"))
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
+    hermetic.apply(&mut cmd);
+    let out = cmd
         .arg(&doc_rel)
         .args(["--color", "never", "--format", format])
         .env_remove("NO_COLOR")

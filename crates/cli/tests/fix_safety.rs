@@ -1,10 +1,13 @@
 //! `deslop fix` safety: dry-run default, CRLF preservation, overlap
 //! suppression, idempotence (spec t8hg / AC7).
 
+mod common;
+
 use std::process::Command;
 
 struct FixRun {
     dir: std::path::PathBuf,
+    hermetic: common::HermeticRules,
 }
 
 impl FixRun {
@@ -13,11 +16,16 @@ impl FixRun {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("tmpdir");
         std::fs::write(dir.join("doc.md"), body).expect("write doc");
-        Self { dir }
+        Self {
+            dir,
+            hermetic: common::HermeticRules::provision(),
+        }
     }
 
     fn run_fix(&self, extra: &[&str]) -> (i32, String) {
-        let out = Command::new(env!("CARGO_BIN_EXE_deslop"))
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
+        self.hermetic.apply(&mut cmd);
+        let out = cmd
             .arg("fix")
             .args(extra)
             .args(["--color", "never"])

@@ -24,6 +24,8 @@ pub struct FixSummary {
 /// Context for one fix invocation.
 pub struct FixCmd<'a> {
     pub cfg: &'a Config,
+    /// `--rules-dir` override: the directory containing pack TOMLs.
+    pub rules_dir: Option<camino::Utf8PathBuf>,
     pub write: bool,
     pub color_override: Option<deslop_core::config::ColorChoice>,
     pub format_override: Option<deslop_core::config::FormatName>,
@@ -36,7 +38,7 @@ impl FixCmd<'_> {
     ///
     /// Fails when pack loading fails or a document cannot be read/written.
     pub fn run(&mut self) -> Result<i32, error_stack::Report<super::CmdError>> {
-        let loaded = crate::cmd::rules_cmd::load_for_lint(self.cfg);
+        let loaded = crate::cmd::rules_cmd::load_for_lint(self.cfg, self.rules_dir.clone());
         if !loaded.errors.is_empty() {
             let stderr = std::io::stderr();
             let mut lock = stderr.lock();
