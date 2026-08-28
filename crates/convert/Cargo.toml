@@ -17,5 +17,4 @@ camino = { workspace = true }
 wherror = { workspace = true }
 error-stack = { workspace = true }
 
-[dev-dependencies]
 tempfile = { workspace = true }

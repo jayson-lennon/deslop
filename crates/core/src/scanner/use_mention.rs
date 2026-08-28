@@ -29,10 +29,8 @@ pub fn mask_quoted_terms(map: &RegionMap, dictionary: &[String]) -> RegionMap {
         return map.clone();
     }
     // HashSet for O(1) dictionary probes (pre-lowercased, trimmed).
-    let dict: std::collections::HashSet<String> = dictionary
-        .iter()
-        .map(|t| t.trim().to_lowercase())
-        .collect();
+    let dict: std::collections::HashSet<String> =
+        dictionary.iter().map(|t| t.trim().to_lowercase()).collect();
     let mut masked = map.masked.clone();
     for opener_idx in 0..OPENERS.len() {
         let (open, close) = (OPENERS[opener_idx], CLOSERS[opener_idx]);

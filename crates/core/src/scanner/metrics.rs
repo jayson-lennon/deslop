@@ -238,8 +238,7 @@ fn sentences(prose: &str) -> Vec<(usize, usize)> {
             let is_guard = GUARDS.iter().any(|g| {
                 let g = g.trim_end_matches('.');
                 last_word.eq_ignore_ascii_case(g)
-                    || last_word
-                        .eq_ignore_ascii_case(&format!("{g}."))
+                    || last_word.eq_ignore_ascii_case(&format!("{g}."))
                     || last_word.to_lowercase().ends_with(&format!(".{g}"))
             });
             if !is_guard
@@ -500,9 +499,7 @@ fn tricolon_streak(prose: &str) -> usize {
     let mut streak = 0;
     let mut best = 0;
     for (s, e) in &sents {
-        let hit = re
-            .as_ref()
-            .is_some_and(|re| re.is_match(&prose[*s..*e]));
+        let hit = re.as_ref().is_some_and(|re| re.is_match(&prose[*s..*e]));
         if hit {
             streak += 1;
             best = best.max(streak);

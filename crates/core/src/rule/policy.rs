@@ -32,13 +32,22 @@ impl std::fmt::Display for PolicyViolation {
             }
             PolicyViolation::Recursion => write!(f, "recursion (?R) is not allowed"),
             PolicyViolation::Lookahead { byte } => {
-                write!(f, "lookahead `(?=`/`(?!` at byte {byte} is not supported; the engine is linear-time `regex` — widen the match and use a named capture instead")
+                write!(
+                    f,
+                    "lookahead `(?=`/`(?!` at byte {byte} is not supported; the engine is linear-time `regex` — widen the match and use a named capture instead"
+                )
             }
             PolicyViolation::Lookbehind { byte } => {
-                write!(f, "lookbehind `(?<=`/`(?<!` at byte {byte} is not supported; the engine is linear-time `regex` — match the context and capture the tail instead")
+                write!(
+                    f,
+                    "lookbehind `(?<=`/`(?<!` at byte {byte} is not supported; the engine is linear-time `regex` — match the context and capture the tail instead"
+                )
             }
             PolicyViolation::AtomicGroup { byte } => {
-                write!(f, "atomic group `(?>` at byte {byte} is not supported (backtracking-only construct)")
+                write!(
+                    f,
+                    "atomic group `(?>` at byte {byte} is not supported (backtracking-only construct)"
+                )
             }
             PolicyViolation::UnboundedStar { byte } => {
                 write!(f, "unbounded `*` at byte {byte}; use {{m,n}} bounds")
