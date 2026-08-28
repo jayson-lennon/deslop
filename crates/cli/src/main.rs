@@ -1,5 +1,7 @@
 //! deslop CLI: argument surface, dispatch, exit codes.
 
+use std::io::Write;
+
 use clap::{Parser, Subcommand};
 
 pub mod cmd;
@@ -197,12 +199,22 @@ fn run(cli: Cli) -> i32 {
             color,
             format,
         }) => {
+            // Plugins load before the run; load failures warn, never abort.
+            let (plugins, plugin_warnings) = deslop_core::plugin::load_plugins(&cfg.plugins);
+            let stderr = std::io::stderr();
+            {
+                let mut lock = stderr.lock();
+                for warning in &plugin_warnings {
+                    let _ = writeln!(lock, "{warning}");
+                }
+            }
             let mut cmd = cmd::fix_cmd::FixCmd {
                 cfg: &cfg,
                 write,
                 color_override: Some(color.into()),
                 format_override: Some(format.into()),
                 rules_dir: rules_dir.clone(),
+                plugins,
             };
             match cmd.run() {
                 Ok(code) => code,
@@ -220,11 +232,22 @@ fn run(cli: Cli) -> i32 {
                 let _ = render::human::render_load_errors(&loaded.errors, &mut lock);
                 return ExitCode::LoadFailure as i32;
             }
+            // Plugins load after rule loading so rule failures keep their
+            // precedence; plugin load failures only warn.
+            let (plugins, plugin_warnings) = deslop_core::plugin::load_plugins(&cfg.plugins);
+            let stderr = std::io::stderr();
+            {
+                let mut lock = stderr.lock();
+                for warning in &plugin_warnings {
+                    let _ = writeln!(lock, "{warning}");
+                }
+            }
             let run = cmd::lint_cmd::ScanRun {
                 cfg: &cfg,
                 paths: cli.paths.clone(),
                 format_override: Some(cli.format.into()),
                 color_override: Some(cli.color.into()),
+                plugins,
             };
             run.run(loaded)
         }

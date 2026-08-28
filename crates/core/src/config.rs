@@ -13,6 +13,8 @@ pub struct Config {
     pub output: OutputFormatSection,
     /// Per-entry / per-group level overrides: `[lints] ID = "level"`.
     pub lint: BTreeMap<String, LintLevel>,
+    /// WASM plugin declarations: `[plugins]`.
+    pub plugins: crate::plugin::PluginConfig,
 }
 
 /// Pack selection: which builtin packs load, plus extra user packs.
@@ -112,6 +114,7 @@ impl Default for Config {
             },
             output: OutputFormatSection::default(),
             lint: BTreeMap::new(),
+            plugins: crate::plugin::PluginConfig::default(),
         }
     }
 }
@@ -163,12 +166,31 @@ fn parse_config_file(path: &camino::Utf8Path) -> Result<Config, error_stack::Rep
         })
     })?;
     // Position-free until phase 2 introduces spanned pack diagnostics.
-    parse_config_str(&text).map_err(|report| {
-        report.change_context(ConfigError::Read {
-            path: path.to_owned(),
-            source: std::io::Error::other("invalid config syntax"),
+    parse_config_str(&text)
+        .map_err(|report| {
+            report.change_context(ConfigError::Read {
+                path: path.to_owned(),
+                source: std::io::Error::other("invalid config syntax"),
+            })
         })
-    })
+        .and_then(|cfg| resolve_plugin_paths(cfg, path))
+}
+
+/// Re-anchor relative `plugins.paths` entries against the config file's
+/// directory. Done post-parse so `parse_config_str` stays text-only (the
+/// test path leaves paths cwd-relative).
+fn resolve_plugin_paths(
+    mut cfg: Config,
+    config_path: &camino::Utf8Path,
+) -> Result<Config, error_stack::Report<ConfigError>> {
+    if let Some(dir) = config_path.parent() {
+        for path in &mut cfg.plugins.paths {
+            if path.is_relative() {
+                *path = dir.join(&*path);
+            }
+        }
+    }
+    Ok(cfg)
 }
 
 /// Parse configuration text (exposed for tests).
@@ -199,6 +221,8 @@ struct RawConfig {
     output: RawOutput,
     #[serde(default)]
     lints: BTreeMap<String, RawLintLevel>,
+    #[serde(default)]
+    plugins: RawPlugins,
 }
 
 /// String-newtype enabling validation of level values at parse time.
@@ -239,16 +263,145 @@ struct RawOutput {
     color: Option<String>,
 }
 
+/// Raw `[plugins]` section: a list of files plus opaque per-plugin tables.
+///
+/// Decoded as a raw `toml::Table` (not serde-flattened structs) because the
+/// table keys are plugin ids we must pass through untouched, and one of
+/// them (`runtime`) is host-owned. Hand-rolling keeps the "everything under
+/// `[plugins.<id>]` except `.runtime` is opaque" rule explicit.
+#[derive(Debug, Default, serde::Deserialize)]
+struct RawPlugins(toml::Table);
+
+impl RawPlugins {
+    /// Resolve into the typed plugin config.
+    ///
+    /// `config_dir` anchors relative `paths` entries; `None` leaves them
+    /// as-given (the `parse_config_str` test path).
+    fn into_plugin_config(
+        self,
+        config_dir: Option<&camino::Utf8Path>,
+    ) -> Result<crate::plugin::PluginConfig, String> {
+        let mut out = crate::plugin::PluginConfig::default();
+        for (key, value) in &self.0 {
+            match key.as_str() {
+                "paths" => {
+                    let items = value
+                        .as_array()
+                        .ok_or_else(|| "plugins.paths must be an array of strings".to_string())?;
+                    for item in items {
+                        let raw = item
+                            .as_str()
+                            .ok_or_else(|| "plugins.paths entries must be strings".to_string())?;
+                        let path = camino::Utf8PathBuf::from(raw);
+                        out.paths.push(match config_dir {
+                            Some(dir) if path.is_relative() => dir.join(path),
+                            _ => path,
+                        });
+                    }
+                }
+                "lints" | "packs" | "scan" | "output" => {
+                    return Err(format!(
+                        "unexpected key [plugins.{key}] (this belongs at the top level)"
+                    ));
+                }
+                other => {
+                    let table = value
+                        .as_table()
+                        .ok_or_else(|| format!("plugins.{other} must be a table"))?;
+                    // `.runtime` is host-owned; everything else is opaque params.
+                    let mut runtime = crate::plugin::PluginRuntime::default();
+                    let mut params = table.clone();
+                    if let Some(rt) = params.remove("runtime") {
+                        let rt = rt
+                            .as_table()
+                            .ok_or_else(|| format!("plugins.{other}.runtime must be a table"))?;
+                        for (rk, rv) in rt {
+                            match rk.as_str() {
+                                "fuel" => {
+                                    let fuel = rv.as_integer().ok_or_else(|| {
+                                        format!("plugins.{other}.runtime.fuel must be an integer")
+                                    })?;
+                                    if fuel < 0 {
+                                        return Err(format!(
+                                            "plugins.{other}.runtime.fuel must be >= 0"
+                                        ));
+                                    }
+                                    runtime.fuel = Some(fuel as u64);
+                                }
+                                unknown => {
+                                    return Err(format!(
+                                        "unknown plugins.{other}.runtime key {unknown:?} \
+                                         (known: fuel)"
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    let id = other.to_uppercase();
+                    if runtime != crate::plugin::PluginRuntime::default() {
+                        out.runtime.insert(id.clone(), runtime);
+                    }
+                    // An empty params table is left unregistered: the plugin
+                    // then receives `{}`, matching "nothing declared".
+                    if !params.is_empty() {
+                        let json = toml_to_json(&toml::Value::Table(params));
+                        out.params.insert(id, json);
+                    }
+                }
+            }
+        }
+        Ok(out)
+    }
+}
+
+/// Convert a toml value to JSON, preserving table contents verbatim.
+///
+/// Numbers become integers or floats; datetimes stringify (a plugin asking
+/// for a TOML datetime as a config value is far outside normal use).
+fn toml_to_json(value: &toml::Value) -> serde_json::Value {
+    match value {
+        toml::Value::String(s) => serde_json::Value::String(s.clone()),
+        toml::Value::Integer(i) => serde_json::Value::Number((*i).into()),
+        toml::Value::Float(f) => serde_json::Number::from_f64(*f)
+            .map(serde_json::Value::Number)
+            .unwrap_or(serde_json::Value::Null),
+        toml::Value::Boolean(b) => serde_json::Value::Bool(*b),
+        toml::Value::Datetime(dt) => serde_json::Value::String(dt.to_string()),
+        toml::Value::Array(items) => {
+            serde_json::Value::Array(items.iter().map(toml_to_json).collect())
+        }
+        toml::Value::Table(map) => serde_json::Value::Object(
+            map.iter()
+                .map(|(k, v)| (k.clone(), toml_to_json(v)))
+                .collect(),
+        ),
+    }
+}
+
 impl RawConfig {
     /// Convert with level validation; `Err` carries the offending key+level.
     fn into_config(self) -> Result<Config, String> {
+        self.into_config_in_dir(None)
+    }
+
+    /// Like [`Self::into_config`] but anchors relative plugin paths at
+    /// `config_dir` when provided.
+    fn into_config_in_dir(
+        self,
+        config_dir: Option<&camino::Utf8Path>,
+    ) -> Result<Config, String> {
         let mut lint = std::collections::BTreeMap::new();
         for (key, level) in self.lints {
             let level = level.into_level().map_err(|e| format!("{key}: {e}"))?;
             lint.insert(key, level);
         }
+        let plugins = self
+            .plugins
+            .into_plugin_config(config_dir)
+            .map_err(|e| format!("[plugins] {e}"))?;
         let mut cfg = Config {
             lint,
+            plugins,
             ..Config::default()
         };
         if let Some(builtin) = self.packs.builtin {
@@ -414,5 +567,104 @@ color = "never"
 
         // Then defaults apply (all five builtin packs).
         assert_eq!(cfg.packs.builtin.len(), 5);
+    }
+
+    #[test]
+    fn plugins_section_parses_paths_and_params() {
+        // Given a config declaring one plugin file and one params table.
+        let text = r#"
+[plugins]
+paths = ["plug.wasm"]
+
+[plugins.exclaim]
+threshold_gt = 2.5
+
+[plugins.exclaim.runtime]
+fuel = 123456
+"#;
+
+        // When parsing.
+        let cfg = parse_config_str(text).expect("parse");
+
+        // Then paths stay relative (text mode) and params are opaque JSON.
+        assert_eq!(
+            cfg.plugins.paths,
+            vec![camino::Utf8PathBuf::from("plug.wasm")]
+        );
+        let params = cfg.plugins.params.get("EXCLAIM").expect("params");
+        assert_eq!(params["threshold_gt"], serde_json::json!(2.5));
+        // And the runtime table never leaks into params.
+        assert!(params.get("runtime").is_none());
+        // And the runtime knob landed in its own map.
+        assert_eq!(cfg.plugins.runtime["EXCLAIM"].fuel, Some(123_456));
+    }
+
+    #[test]
+    fn plugin_table_keys_become_uppercase_ids() {
+        // Given a config using lowercase plugin ids.
+        let text = r#"
+[plugins.myplug]
+flag = true
+"#;
+
+        // When parsing.
+        let cfg = parse_config_str(text).expect("parse");
+
+        // Then the params key is upper-cased to match manifest ids.
+        assert!(cfg.plugins.params.contains_key("MYPLUG"));
+    }
+
+    #[test]
+    fn plugins_section_absent_yields_default() {
+        // Given a config without [plugins].
+        let cfg = parse_config_str("[lints]\nFOO = \"allow\"\n").expect("parse");
+
+        // Then the plugin config is empty.
+        assert!(cfg.plugins.paths.is_empty());
+        assert!(cfg.plugins.params.is_empty());
+        assert!(cfg.plugins.runtime.is_empty());
+    }
+
+    #[test]
+    fn plugins_unknown_runtime_key_is_a_config_error() {
+        // Given a runtime table with an unrecognized knob.
+        let text = r#"
+[plugins.p.runtime]
+fual = 10
+"#;
+
+        // When parsing.
+        let result = parse_config_str(text);
+
+        // Then it fails naming the bad key.
+        let err = result.expect_err("must fail");
+        assert!(format!("{err}").contains("fual"));
+    }
+
+    #[test]
+    fn plugins_negative_fuel_is_a_config_error() {
+        // Given a negative fuel value.
+        let text = r#"
+[plugins.p.runtime]
+fuel = -5
+"#;
+
+        // When parsing.
+        let result = parse_config_str(text);
+
+        // Then it fails.
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn plugins_scalar_entry_is_a_config_error() {
+        // Given a plugin entry that is not a table.
+        let text = "[plugins]\np = 3\n";
+
+        // When parsing.
+        let result = parse_config_str(text);
+
+        // Then it fails with a type error.
+        assert!(result.is_err());
     }
 }

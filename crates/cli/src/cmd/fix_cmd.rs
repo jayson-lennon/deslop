@@ -29,6 +29,9 @@ pub struct FixCmd<'a> {
     pub write: bool,
     pub color_override: Option<deslop_core::config::ColorChoice>,
     pub format_override: Option<deslop_core::config::FormatName>,
+    /// Loaded `[plugins]` modules; empty when none configured. Plugins are
+    /// report-only: their findings never participate in fixes.
+    pub plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>>,
 }
 
 impl FixCmd<'_> {
@@ -60,9 +63,19 @@ impl FixCmd<'_> {
         let grand_total = {
             let mut total = FixSummary::default();
             for doc in &corpus.docs {
-                let outcome =
-                    scanner::scan_with_plugins(&doc.src, &loaded.rule_set, &settings, &[]);
+                // Fix remains plugin-free by design: findings from plugins
+                // would only pollute overlap accounting, so no plugin pass
+                // is appended here.
+                let outcome = scanner::scan_with_plugins(
+                    &doc.src,
+                    &loaded.rule_set,
+                    &settings,
+                    &self.plugins,
+                );
                 let findings = outcome.findings;
+                for warning in &outcome.warnings {
+                    eprintln!("{warning}");
+                }
                 let summary = fix_document(&findings);
                 if summary.applied == 0 {
                     total.unfixable += summary.unfixable;

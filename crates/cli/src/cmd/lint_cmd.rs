@@ -100,6 +100,8 @@ pub struct ScanRun<'a> {
     pub paths: Vec<camino::Utf8PathBuf>,
     pub format_override: Option<FormatName>,
     pub color_override: Option<ColorChoice>,
+    /// Loaded `[plugins]` modules; empty when none configured.
+    pub plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>>,
 }
 
 impl ScanRun<'_> {
@@ -129,7 +131,16 @@ impl ScanRun<'_> {
         // borrow views at render time so lifetimes stay simple.
         let mut all: Vec<(Finding, usize)> = Vec::new();
         for (idx, doc) in corpus.docs.iter().enumerate() {
-            for finding in scanner::scan(&doc.src, &loaded.rule_set, &settings) {
+            let outcome = scanner::scan_with_plugins(
+                &doc.src,
+                &loaded.rule_set,
+                &settings,
+                &self.plugins,
+            );
+            for warning in &outcome.warnings {
+                eprintln!("{warning}");
+            }
+            for finding in outcome.findings {
                 all.push((finding, idx));
             }
         }

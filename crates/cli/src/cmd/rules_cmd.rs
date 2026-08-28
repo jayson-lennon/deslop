@@ -11,6 +11,38 @@ pub struct RuleRow {
     pub has_advice: bool,
 }
 
+/// One row per loaded plugin: id, tier, kind, category, effective level.
+///
+/// Loaded separately from packs (plugins warn-and-skip on failure), so a
+/// broken plugin file shows zero rows here rather than failing the listing.
+fn plugin_rows(cfg: &deslop_core::config::Config) -> Vec<RuleRow> {
+    let settings = deslop_core::scanner::LintSettings {
+        max_tier: None,
+        levels: cfg.lint.clone(),
+    };
+    let (plugins, warnings) = deslop_core::plugin::load_plugins(&cfg.plugins);
+    for warning in &warnings {
+        eprintln!("{warning}");
+    }
+    let mut rows = Vec::new();
+    for plugin in &plugins {
+        let meta = plugin.meta();
+        let level = settings
+            .level_for(&meta.id, "")
+            .map(|l| l.name())
+            .unwrap_or_else(|| tier_level(meta.tier));
+        rows.push(RuleRow {
+            id: meta.id.clone(),
+            tier: meta.tier,
+            kind: "plugin".into(),
+            category: meta.category.clone(),
+            level,
+            has_advice: false,
+        });
+    }
+    rows
+}
+
 /// Tier number -> default level name.
 fn tier_level(tier: u8) -> &'static str {
     match tier {
@@ -79,7 +111,11 @@ impl RulesCmd<'_> {
             return Err(super::fail("rules listing failed"));
         }
 
-        let rows = flatten(&loaded.rule_set, self.cfg);
+        let rows = {
+            let mut rows = flatten(&loaded.rule_set, self.cfg);
+            rows.extend(plugin_rows(self.cfg));
+            rows
+        };
         let stdout = std::io::stdout();
         let mut out = stdout.lock();
         if self.json {

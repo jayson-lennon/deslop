@@ -207,8 +207,11 @@ pub fn load_plugins(cfg: &PluginConfig) -> (Vec<Box<dyn LintPlugin>>, Vec<String
                 if let Some(runtime) = cfg.runtime.get(&key) {
                     plugin.set_fuel_override(runtime.fuel);
                 }
+                let params = cfg.params.get(&key).cloned().unwrap_or_else(|| {
+                    serde_json::json!({})
+                });
                 if seen.insert(key) {
-                    loaded.push(Box::new(plugin));
+                    loaded.push(Box::new(WithParams::new(plugin, params)));
                 } else {
                     warnings.push(format!(
                         "deslop: duplicate plugin id {id} at {path}; keeping the first"
