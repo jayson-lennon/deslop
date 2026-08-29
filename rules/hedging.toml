@@ -1,0 +1,153 @@
+# deslop pack: hedging - structural hedge formulas in LLM prose
+#
+# Rules lint the concession scaffolding ("In conclusion, while X, Y",
+# "In conclusion ... However", "While X, it is crucial to Y"), not
+# individual hedge words: the word forms are owned by other packs
+# (slop vocab, cluster-terms) and single common words belong to the
+# cluster metric. All entries are report-only (no `replacement`).
+# Corpus evidence: fastercapital AI-article samples; every fixture
+# screened against the human clean corpus (0 hits). Sentence-initial
+# formulas anchor on (?:^|[.!?\n]) so mid-sentence quoted mentions
+# ("asked in conclusion, while ...") stay silent.
+
+[[group]]
+id-base = 'HEDGE-PAT-CONCLUSIVE-CONCESSION'
+kind = 'pattern'
+tier = 2
+category = 'conclusive-concession'
+
+[[group.entries]]
+slug = 'main'
+regex = "(?:^|[.!?\\n]\\s*)in conclusion, while\\b[^.!?\\n]{10,200},\\s+\\w+"
+advice = "Conclusion opens by conceding (\"In conclusion, while X, ...\"); end by committing to the takeaway, not re-litigating the counterpoint"
+
+[group.fixtures]
+must_match = ['In conclusion, while AI-generated news has faced challenges, notable successes highlight its potential.']
+must_not_match = [
+    'In conclusion, the results are clear.',
+    'The report asked in conclusion, while everyone watched, whether the vote was valid.',
+]
+
+[[group]]
+id-base = 'HEDGE-PAT-CONCLUSIVE-PIVOT'
+kind = 'pattern'
+tier = 2
+category = 'conclusive-pivot'
+
+[[group.entries]]
+slug = 'main'
+regex = "(?:^|[.!?\\n]\\s*)in conclusion\\b[^!?\\n]{10,320}?\\bhowever\\b"
+advice = "Conclusion opens, then pivots on \"however\" within the same breath; end by committing to the takeaway, not re-litigating the counterpoint"
+
+[group.fixtures]
+must_match = ['In conclusion, AI saves teams time. However, oversight remains essential.']
+must_not_match = [
+    'In conclusion, the results are clear.',
+    'He said however much rain fell, the fair would go on.',
+]
+
+[[group]]
+id-base = 'HEDGE-PAT-CONCESSIVE-MORALIZER'
+kind = 'pattern'
+tier = 2
+category = 'concessive-moralizer'
+
+[[group.entries]]
+slug = 'main'
+regex = "(?:^|[.!?\\n]\\s*)while\\b[^.!?\\n]{10,160}, it (?:is|'s|was) (?:crucial|important|essential|vital|imperative) to\\b"
+advice = "Sentence defers to a counterargument (\"While X, it is crucial to Y\") before moralizing; state your claim directly and drop the obligatory concession"
+
+[group.fixtures]
+must_match = ["While AI can draft quickly, it is essential to review the output."]
+must_not_match = [
+    'While the family were in this confusion, Charlotte Lucas came to spend the day.',
+    'While she spoke, Wickham looked scarcely knowing whether to believe her.',
+]
+
+[[group]]
+id-base = 'HEDGE-PAT-MORALIZE-VERB'
+kind = 'pattern'
+tier = 2
+category = 'moralize-verb'
+
+[[group.entries]]
+slug = 'main'
+regex = "(?:^|[.!?\\n]\\s+|,\\s+|(?:(?:however|moreover|furthermore|additionally|ultimately|in conclusion),\\s+))it(?: (?:is|was)|'s) (?:crucial|important|essential|vital|imperative) to (?:strike|maintain|navigate|recognize|address|approach|understand|balance|ensure|consider|remember|review|train|monitor|curate)\\b"
+advice = "\"it is crucial/important to ...\" lectures the reader instead of arguing; make the point itself, not the importance of the point"
+
+[group.fixtures]
+must_match = ["It's crucial to strike a balance between speed and accuracy.",
+              "The data is noisy. However, it is important to consider the trend."]
+must_not_match = [
+    'The clerks filed what it is important to review first.',
+]
+
+[[group]]
+id-base = 'HEDGE-PAT-ROADMAP'
+kind = 'pattern'
+tier = 2
+category = 'roadmap'
+
+[[group.entries]]
+slug = 'main'
+regex = "(?:^|[.!?\\n]\\s*)(?:in|within) this (?:section|article|post|essay|guide), we(?: will|'ll)\\b"
+advice = "\"In this section, we will ...\" announces the itinerary like a syllabus; let the headings carry the structure instead"
+
+[group.fixtures]
+must_match = ['In this section, we will explore three real examples.']
+must_not_match = [
+    'In this guide, pruning keeps the tree healthy.',
+]
+
+[[group]]
+id-base = 'HEDGE-PAT-BALANCE-CLICHE'
+kind = 'pattern'
+tier = 2
+category = 'balance-cliche'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\bstrike a balance\\b(?:\\s+between\\b)?"
+advice = "\"strike a balance\" splits the difference without deciding; name the tradeoff and pick a side"
+
+[group.fixtures]
+must_match = ['The tooling must strike a balance between speed and control.']
+must_not_match = [
+    'She kept her balance on the beam.',
+    'A balance between work and rest matters.',
+]
+
+[[group]]
+id-base = 'HEDGE-PAT-POTENTIAL-TRANSFORM'
+kind = 'pattern'
+tier = 2
+category = 'potential-transform'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\bhas the potential to (?:revolutionize|transform|reshape|redefine)\\b"
+advice = "\"has the potential to revolutionize/transform ...\" hedges a hype claim; either show the evidence or state the outcome plainly"
+
+[group.fixtures]
+must_match = ['The tool has the potential to revolutionize the legal industry.']
+must_not_match = [
+    'The spa has the potential to relax guests.',
+]
+
+[[group]]
+id-base = 'HEDGE-PAT-PRESENT-BENEFITS'
+kind = 'pattern'
+tier = 2
+category = 'present-benefits'
+
+[[group.entries]]
+slug = 'main'
+regex = "\\bpresents?(?: the)? (?:numerous|both) (?:opportunities|benefits|successes|challenges)\\b"
+advice = "\"presents numerous/both ...\" gestures at content it never names; enumerate the specifics or cut the summary"
+
+[group.fixtures]
+must_match = ['The shift presents both successes and challenges.']
+must_not_match = [
+    'The committee presents the awards each spring.',
+    'She presents both sides fairly.',
+]

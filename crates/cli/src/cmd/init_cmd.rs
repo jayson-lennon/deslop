@@ -18,7 +18,8 @@ pub const TEMPLATE: &str = r#"# deslop configuration. Place at project root; the
 #   wsc            - Tier 2: vocabulary + structural prose patterns
 #   aisigns        - Tier 1/3: chatbot markup artifacts + document metrics
 #   cluster-terms  - Tier 3: single-word watch list (lints via cluster only)
-builtin = ["aatell", "slop", "wsc", "aisigns", "cluster-terms"]
+#   hedging        - Tier 2: structural hedge formulas (concession scaffolding)
+builtin = ["aatell", "slop", "wsc", "aisigns", "cluster-terms", "hedging"]
 # Extra rule packs by file or directory path.
 extra_paths = []
 

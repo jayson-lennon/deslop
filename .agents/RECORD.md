@@ -53,7 +53,8 @@ Entries are added or amended **only with human approval**.
 - (plugins) `deslop plugin install <builtin>` writes builtin plugin modules into the user plugin install dir.
 - (plugins) A plugin may document its params via the SDK's optional `PARAM_DOCS` const, exported as `plugin_params_schema` and rendered by install commands as commented defaults.
 - (plugins) The SDK verifies documented param defaults against the `Params` type's serde defaults at module build time.
-- (rules) Rule packs are single TOML files in `rules/` (aatell, slop, wsc, aisigns, cluster-terms); the file stem is the pack name.
+- (rules) Rule packs are single TOML files in `rules/` (aatell, slop, wsc, aisigns, cluster-terms, hedging); the file stem is the pack name.
+- (rules) The hedging pack lints structural hedge formulas as tier-2 report-only pattern rules; its conclusive-pivot regex is the only pattern that matches across sentence boundaries (bounded character window).
 - (rules) A rule pack contains any number of `[[group]]` tables.
 - (rules) Group `id-base`s are globally unique across all packs.
 - (rules) Entry slugs are unique within their group.

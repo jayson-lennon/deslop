@@ -101,10 +101,17 @@ impl Default for Config {
     fn default() -> Config {
         Config {
             packs: Packs {
-                builtin: ["aatell", "slop", "wsc", "aisigns", "cluster-terms"]
-                    .iter()
-                    .map(|s| (*s).to_owned())
-                    .collect(),
+                builtin: [
+                    "aatell",
+                    "slop",
+                    "wsc",
+                    "aisigns",
+                    "cluster-terms",
+                    "hedging",
+                ]
+                .iter()
+                .map(|s| (*s).to_owned())
+                .collect(),
                 extra_paths: Vec::new(),
             },
             scan: Scan {
@@ -610,8 +617,8 @@ color = "never"
         )
         .expect("discover");
 
-        // Then defaults apply (all five builtin packs).
-        assert_eq!(cfg.packs.builtin.len(), 5);
+        // Then defaults apply (all six builtin packs).
+        assert_eq!(cfg.packs.builtin.len(), 6);
     }
 
     #[test]
@@ -669,7 +676,7 @@ color = "never"
         .expect("discover");
 
         // Then defaults apply.
-        assert_eq!(cfg.packs.builtin.len(), 5);
+        assert_eq!(cfg.packs.builtin.len(), 6);
     }
 
     #[test]
