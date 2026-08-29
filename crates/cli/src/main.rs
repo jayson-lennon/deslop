@@ -26,6 +26,12 @@ struct Cli {
     #[arg(long, value_enum, default_value_t = ArgColor::Auto)]
     color: ArgColor,
 
+    /// Terminal width for human output; 0 disables truncation. Default:
+    /// the detected terminal width when stdout is a TTY, untruncated
+    /// otherwise.
+    #[arg(long, value_name = "N")]
+    width: Option<usize>,
+
     /// Directory containing rule pack TOMLs (aatell.toml, slop.toml, ...).
     /// Overrides the usual resolution (~/.config/deslop/rules, ./rules, ...).
     #[arg(long, value_name = "DIR")]
@@ -295,6 +301,7 @@ fn run(cli: Cli) -> i32 {
                 paths: cli.paths.clone(),
                 format_override: Some(cli.format.into()),
                 color_override: Some(cli.color.into()),
+                width_override: cli.width,
                 plugins,
             };
             run.run(loaded)

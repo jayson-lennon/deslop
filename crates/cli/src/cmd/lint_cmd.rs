@@ -24,6 +24,15 @@ fn resolve_color(color: ColorChoice) -> ColorChoice {
     }
 }
 
+/// Width auto-detection: the flag wins; else the TTY width probe; else 0
+/// (untruncated). The probe is injected so the resolution stays testable.
+fn resolve_width(flag: Option<usize>, tty_width: Option<usize>) -> usize {
+    match flag {
+        Some(width) => width,
+        None => tty_width.unwrap_or(0),
+    }
+}
+
 /// Documents gathered for one run, sorted by path for determinism.
 pub struct Corpus {
     pub docs: Vec<deslop_core::doc::Doc>,
@@ -94,12 +103,15 @@ fn is_lintable(path: &std::path::Path) -> bool {
     }
 }
 
-/// Files ignored for document scanning (build/lock metadata).
+/// One lint invocation: overrides and document paths.
 pub struct ScanRun<'a> {
     pub cfg: &'a Config,
     pub paths: Vec<camino::Utf8PathBuf>,
     pub format_override: Option<FormatName>,
     pub color_override: Option<ColorChoice>,
+    /// Explicit human-output width; `None` auto-detects the TTY, `Some(0)`
+    /// disables truncation.
+    pub width_override: Option<usize>,
     /// Loaded `[plugins]` modules; empty when none configured.
     pub plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>>,
 }
@@ -151,9 +163,17 @@ impl ScanRun<'_> {
 
         let format = self.format_override.unwrap_or(self.cfg.output.format);
         let color = resolve_color(self.color_override.unwrap_or(self.cfg.output.color));
+        let tty_width = {
+            use std::io::IsTerminal;
+            std::io::stdout()
+                .is_terminal()
+                .then(|| terminal_size::terminal_size().map(|(w, _)| usize::from(w.0)))
+                .flatten()
+        };
+        let width = resolve_width(self.width_override, tty_width);
         let stdout = std::io::stdout();
         let mut lock = stdout.lock();
-        if let Err(e) = crate::render::render(format, color, &filed, &mut lock) {
+        if let Err(e) = crate::render::render(format, color, width, &filed, &mut lock) {
             eprintln!("deslop: rendering failed: {e}");
             return crate::ExitCode::LoadFailure as i32;
         }

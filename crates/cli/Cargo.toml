@@ -17,6 +17,9 @@ clap = { workspace = true }
 serde_json = { workspace = true }
 codespan-reporting = { workspace = true }
 termcolor = { workspace = true }
+terminal_size = { workspace = true }
+unicode-width = { workspace = true }
+unicode-segmentation = { workspace = true }
 wherror = { workspace = true }
 error-stack = { workspace = true }
 camino = { workspace = true }

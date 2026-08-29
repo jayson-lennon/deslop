@@ -63,3 +63,5 @@ Entries are added or amended **only with human approval**.
 - (rules) Identical pattern regex strings compile once and fan findings out to every owning rule.
 - (rules) Metrics deduplicate on (stat, window, terms) with the strictest (smallest) threshold surviving.
 - (rules) Metric/vocab `advice` strings follow a problem-plus-resolution model, cite no papers, and never carry TODO markers (loader-tested).
+- (render) Human-format source lines are truncated to the terminal width only when stdout is a TTY or `--width` is explicit (`--width 0` disables); piped output stays untruncated.
+- (render) Truncation windows anchor on the finding's primary span with `…` on each cut side so caret marks stay visible; anchorless excerpt lines truncate from the line head.

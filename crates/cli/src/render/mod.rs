@@ -3,6 +3,7 @@
 pub mod github;
 pub mod human;
 pub mod json;
+mod truncate;
 
 use std::io::Write;
 
@@ -30,17 +31,20 @@ pub(crate) fn line_col(src: &str, offset: usize) -> (usize, usize) {
 
 /// Render findings in the configured format.
 ///
+/// `width` applies to the human format only (0 = untruncated).
+///
 /// # Errors
 ///
 /// Fails when writing to the destination fails.
 pub fn render(
     format: deslop_core::config::FormatName,
     color: deslop_core::config::ColorChoice,
+    width: usize,
     filed: &[FiledFinding<'_>],
     out: &mut dyn Write,
 ) -> std::io::Result<()> {
     match format {
-        deslop_core::config::FormatName::Human => human::render_human(filed, color, out),
+        deslop_core::config::FormatName::Human => human::render_human(filed, color, width, out),
         deslop_core::config::FormatName::Github => github::render_github(filed, out),
         deslop_core::config::FormatName::Json => json::render_json(filed, out),
     }

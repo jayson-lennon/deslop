@@ -1,9 +1,5 @@
 /target
 
-# Reference clones of MIT-licensed prior projects (read-only input material).
-# Retained on disk until manually removed by the user; NEVER deleted by tooling.
-/third-party/
-
 # Working plans / task specs
 /.plans/
 

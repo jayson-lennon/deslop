@@ -2,8 +2,6 @@
 
 This document defines the _coding conventions_, _patterns_, and _architecture_ for the `deslop` codebase.
 
-- IGNORE ALL CODE IN `third-party/` UNLESS IT'S SPECIFICALLY RELATED TO THE TASK. Those are read-only MIT-licensed reference clones used to bootstrap rule content. They are retained on disk until manually removed by the user — NEVER deleted by tooling.
-
 ## 1. Overview
 
 `deslop` is a prose linter for AI-generated text. Two properties shape everything in this guide:
