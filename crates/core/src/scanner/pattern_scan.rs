@@ -43,7 +43,11 @@ pub fn scan(re: &Regex, src: &str, map: &RegionMap) -> Vec<PatternHit> {
     let names: Vec<Option<&str>> = re.capture_names().collect();
     let runs = visible_runs(map);
     for (run_start, run_end) in runs {
-        let hay = &src[run_start..run_end];
+        // Run bounds come from the same buffer, so this is boundary-safe in
+        // practice; `get` keeps the proof local and skips instead of panicking.
+        let Some(hay) = src.get(run_start..run_end) else {
+            continue;
+        };
         for m in re.captures_iter(hay) {
             let Some(whole) = m.get(0) else {
                 continue;
@@ -134,5 +138,21 @@ mod tests {
 
         // Then non-overlapping greedy-left results only.
         assert_eq!(hits.len(), 2);
+    }
+
+    #[test]
+    fn multibyte_source_scan_yields_boundary_aligned_spans() {
+        // Given a pattern hitting after multibyte content.
+        let hits = scan1(r"delve", "汉字 delve 汉字");
+
+        // When reading the hit span back out of the source.
+        // Then the span is boundary-aligned and slices exactly the term.
+        assert_eq!(hits.len(), 1);
+        assert!(src_is_boundary("汉字 delve 汉字", hits[0].start));
+        assert_eq!(hits[0].start, 7);
+    }
+
+    fn src_is_boundary(src: &str, at: usize) -> bool {
+        src.is_char_boundary(at)
     }
 }

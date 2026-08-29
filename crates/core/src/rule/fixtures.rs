@@ -153,7 +153,10 @@ impl Matcher {
 /// Whole-word containment (ASCII letter/digit boundaries).
 fn word_boundary_contains(haystack_lower: &str, needle_lower: &str) -> bool {
     let mut start = 0;
-    while let Some(pos) = haystack_lower[start..].find(needle_lower) {
+    while let Some(pos) = haystack_lower
+        .get(start..)
+        .and_then(|s| s.find(needle_lower))
+    {
         let abs = start + pos;
         let end = abs + needle_lower.len();
         let before_ok = haystack_lower[..abs]
@@ -167,7 +170,12 @@ fn word_boundary_contains(haystack_lower: &str, needle_lower: &str) -> bool {
         if before_ok && after_ok {
             return true;
         }
+        // Retry from the next CHAR boundary: a raw +1 could land mid-char
+        // when the rejected candidate opens with a multibyte character.
         start = abs + 1;
+        while start < haystack_lower.len() && !haystack_lower.is_char_boundary(start) {
+            start += 1;
+        }
     }
     false
 }
@@ -238,4 +246,32 @@ pub fn evaluate(group: &GroupToml) -> Vec<FixtureFailure> {
         }
     }
     failures
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn word_boundary_search_finds_later_hits_after_multibyte_prefix() {
+        // Given a haystack whose rejected candidate is followed by multibyte
+        // text and a second whole-word occurrence.
+        let hay = "ß delve".to_lowercase();
+
+        // When searching for a whole word.
+        // Then the hit after the multibyte char is still found: the retry
+        // walks char boundaries, never byte steps into the ß.
+        assert!(word_boundary_contains(&hay, "delve"));
+    }
+
+    #[test]
+    fn word_boundary_multibyte_surroundings_do_not_break_hits() {
+        // Given a term surrounded by CJK text.
+        let hay = "汉字delve汉字".to_lowercase();
+
+        // When searching whole-word.
+        // Then the CJK neighbors are not alphanumeric-underscore, so the
+        // match counts as whole-word.
+        assert!(word_boundary_contains(&hay, "delve"));
+    }
 }

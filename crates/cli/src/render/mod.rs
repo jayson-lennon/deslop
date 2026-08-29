@@ -7,6 +7,8 @@ mod truncate;
 
 use std::io::Write;
 
+use deslop_core::boundary;
+
 /// A finding bound to its source file for rendering.
 #[derive(Debug, Clone)]
 pub struct FiledFinding<'a> {
@@ -17,8 +19,12 @@ pub struct FiledFinding<'a> {
 
 /// 1-based char column for a byte offset within its line (shared by the
 /// JSON and GitHub formatters so both count chars identically).
+///
+/// `offset` is floored to the enclosing char boundary first: caller
+/// arithmetic (e.g. a span-end minus one) can land mid-character on
+/// multibyte source, and a column is only defined for a whole character.
 pub(crate) fn line_col(src: &str, offset: usize) -> (usize, usize) {
-    let clamped = offset.min(src.len());
+    let clamped = boundary::floor(src, offset);
     let prefix = &src.as_bytes()[..clamped];
     let line_start = prefix
         .iter()

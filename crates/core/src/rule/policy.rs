@@ -89,7 +89,13 @@ fn safe_class_at(pattern: &str, start: usize) -> bool {
     // Classes with an internal range like \w \s are fine; we whitelist the
     // common escape families loosely by checking they contain a backslash
     // escape (cheap and conservative-ish but practical for authored packs).
-    closing && saw_content && pattern[start..i].contains(['\\', 'w', 's', 'd'])
+    // The class text is boundary-safe in practice (the walk stops at the
+    // ASCII `]`), but `get` keeps that proof local instead of load-bearing.
+    closing
+        && saw_content
+        && pattern
+            .get(start..i)
+            .is_some_and(|class| class.contains(['\\', 'w', 's', 'd']))
 }
 
 /// Is `*`/`+` at `star` acceptable given what it quantifies?

@@ -93,8 +93,10 @@ pub fn build_regions(src: &str) -> RegionMap {
             // multibyte content, so anchor on the content's last raw
             // occurrence and let boundary-snapping cover the rest.
             Event::Code(code) => {
-                let raw = &src[range.start..range.end];
-                let inner_start = match raw.rfind(code.as_ref()) {
+                let inner_start = match src
+                    .get(range.start..range.end)
+                    .and_then(|raw| raw.rfind(code.as_ref()))
+                {
                     Some(rel) => range.start + rel,
                     None => range.end.saturating_sub(code.len()),
                 };
@@ -138,15 +140,13 @@ pub fn build_regions(src: &str) -> RegionMap {
 fn snap_spans_to_boundaries(src: &str, spans: &mut [MaskedSpan]) {
     let len = src.len();
     for span in spans.iter_mut() {
-        let mut lo = span.start.min(len);
+        // Floor the start onto a boundary and ceil the end: identical to the
+        // previous hand-rolled walks (see boundary::floor for the step-back).
+        span.start = crate::boundary::floor(src, span.start.min(len));
         let mut hi = span.end.min(len);
-        while lo > 0 && !src.is_char_boundary(lo) {
-            lo -= 1;
-        }
         while hi < len && !src.is_char_boundary(hi) {
             hi += 1;
         }
-        span.start = lo;
         span.end = hi;
     }
 }

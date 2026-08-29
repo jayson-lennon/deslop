@@ -66,3 +66,9 @@ Entries are added or amended **only with human approval**.
 - (rules) Metric/vocab `advice` strings follow a problem-plus-resolution model, cite no papers, and never carry TODO markers (loader-tested).
 - (render) Human-format source lines are truncated to the terminal width only when stdout is a TTY or `--width` is explicit (`--width 0` disables); piped output stays untruncated.
 - (render) Truncation windows anchor on the finding's primary span with `…` on each cut side so caret marks stay visible; anchorless excerpt lines truncate from the line head.
+- (tests) The clean corpus (`tests/fixtures/clean_corpus/`) is a manually tracked false-positive baseline: tier hit counts are appended to `baseline.csv` via `just corpus-record` and diffed against the last row via `just corpus-check`, never asserted in cargo test.
+- (tests) Each `baseline.csv` row records a timestamp, the deslop crate version, and corpus-wide finding counts per tier.
+- (tests) Every clean-corpus file carries provenance (source URL, author, year, license, sha256) in `MANIFEST.toml` alongside the texts.
+- (tests) Corpus recordings pin the full resolution chain (`--config scripts/corpus-baseline.deslop.toml --rules-dir ./rules`): `--rules-dir` alone still inherits the user-global config's pack list and plugin tables, which can differ per machine.
+- (spans) All byte-offset slicing on source-derived strings in core and CLI goes through boundary-safe helpers in deslop-core; raw `str` range-indexing appears only in tests.
+- (render) Human-format rendering floor-clamps byte offsets to char boundaries, so spans whose arithmetic lands mid-character always render instead of panicking.

@@ -150,16 +150,19 @@ fn tokenize_visible(src: &str, map: &RegionMap) -> Vec<Word> {
 fn push_word(src: &str, map: &RegionMap, s: usize, e: usize, words: &mut Vec<Word>) {
     // A word is usable only when entirely unmasked and its interior contains
     // no NULs (partially masked tokens can't match reliably).
+    let Some(text) = src.get(s..e) else {
+        return;
+    };
     if map.is_masked(s) || map.is_masked(e - 1) {
         return;
     }
-    if src[s..e].bytes().any(|b| b == 0) {
+    if text.bytes().any(|b| b == 0) {
         return;
     }
     words.push(Word {
         start: s,
         end: e,
-        lower: src[s..e].to_lowercase(),
+        lower: text.to_lowercase(),
     });
 }
 
@@ -171,7 +174,7 @@ fn collapse_phrase(src: &str, run: &[Word]) -> Option<String> {
     let mut out = String::with_capacity(run.iter().map(|w| w.lower.len() + 1).sum());
     for (idx, w) in run.iter().enumerate() {
         if idx > 0 {
-            let gap = &src[run[idx - 1].end..w.start];
+            let gap = src.get(run[idx - 1].end..w.start)?;
             if gap.len() != 1 || !gap.bytes().all(|b| b == b' ') {
                 return None; // hyphens/newlines/multi-space break phrases
             }
@@ -301,5 +304,22 @@ mod tests {
         // Then the ASCII term still fires inside the multibyte soup.
         assert_eq!(hits.len(), 1);
         assert_eq!(&src[hits[0].start..hits[0].end], "delve");
+    }
+
+    #[test]
+    fn phrase_with_multibyte_gap_is_rejected_not_matched() {
+        // Given a phrase term and prose where the words are separated by a
+        // multibyte connector (not a single ASCII space).
+        let index = idx(&[("rock roll", "rock roll")]);
+        let src = "rock·roll and rock roll";
+        let map = build_regions(src);
+
+        // When scanning.
+        let hits = index.scan(src, &map, &always);
+
+        // Then the gap-joined pair never forms the phrase, while the
+        // single-space pair does.
+        assert_eq!(hits.len(), 1);
+        assert_eq!(&src[hits[0].start..hits[0].end], "rock roll");
     }
 }

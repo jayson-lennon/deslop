@@ -1,0 +1,24 @@
+# Pinned configuration for corpus baseline recordings
+# (`scripts/corpus_track.py`). Passed via `--config`, which disables both
+# walk-up discovery and the user-global fallback, so a recording always
+# reflects THIS pack set and never whatever the invoking machine has
+# installed. Pack FILES are read from the repo's `./rules` via `--rules-dir`.
+# It lives beside the tooling (not at the repo root as `.deslop.toml`)
+# precisely so interactive runs are unaffected.
+#
+# Mirrors `Config::default()` (crates/core/src/config.rs): keep in sync when
+# a pack is added. No `[plugin.*]` tables here on purpose - the plugin pass
+# stays off so no host-specific wasm install can touch the counts.
+
+[packs]
+builtin = ["aatell", "slop", "wsc", "aisigns", "cluster-terms", "hedging"]
+extra_paths = []
+
+[scan]
+tiers = [1, 2, 3]
+respect_gitignore = true
+extra_globs = []
+
+[output]
+format = "json"
+color = "never"

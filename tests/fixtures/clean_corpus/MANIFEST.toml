@@ -1,0 +1,256 @@
+# Provenance for the clean corpus (tests/fixtures/clean_corpus/).
+#
+# Every file is human-written prose stored VERBATIM (no edits, no
+# reformatting); sha256 pins the exact committed bytes. `added` is the date
+# the file entered the corpus. Licenses permit redistribution with
+# attribution; nothing here relicenses deslop (MIT) or its binary.
+#
+# Files never enter lint scans: the CLI only lints md/markdown/txt/rst/adoc/
+# html/htm, so this manifest and baseline.csv are ignored by the walker.
+#
+# Markdown samples are from MDN Web Docs (mdn/content), CC BY-SA 2.5.
+
+[file]
+
+[file."cpython-tutorial-classes.rst"]
+source = "https://github.com/python/cpython/blob/main/Doc/tutorial/classes.rst"
+author = "Python Software Foundation and contributors"
+title = "Python Tutorial, ch. 9 Classes"
+year = 2026
+license = "PSF License Version 2"
+sha256 = "e322d827e7778530afb1fe832eace5588d8025e12315f2be7e7228a04c85ac41"
+added = "2026-08-29"
+
+[file."cpython-tutorial-controlflow.rst"]
+source = "https://github.com/python/cpython/blob/main/Doc/tutorial/controlflow.rst"
+author = "Python Software Foundation and contributors"
+title = "Python Tutorial, ch. 4 More Control Flow Tools"
+year = 2026
+license = "PSF License Version 2"
+sha256 = "f266943f5ccb194d2027de4bbc1e13b696100c5725ac03cbc5f31238b0a21aee"
+added = "2026-08-29"
+
+[file."gutenberg-1080.txt"]
+source = "https://www.gutenberg.org/ebooks/1080"
+author = "Jonathan Swift"
+title = "A Modest Proposal"
+year = 1729
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "dcabf7a133d50490f99d1ce496764d9f7f21a2008662f89ccfd77bc114732c98"
+added = "2026-08-27"
+
+[file."gutenberg-1228.txt"]
+source = "https://www.gutenberg.org/ebooks/1228"
+author = "Charles Darwin"
+title = "On the Origin of Species by Means of Natural Selection"
+year = 1859
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "ededa9c0bf8761efed092c303b46c1c92de956838cba6249a33bedfd6d7363b4"
+added = "2026-08-29"
+
+[file."gutenberg-1342.txt"]
+source = "https://www.gutenberg.org/ebooks/1342"
+author = "Jane Austen"
+title = "Pride and Prejudice"
+year = 1813
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "a5666f87abf2cbfdaa27ea8c73bd284da9649b9a2ab27b4e6c8f6aeab1bd1c88"
+added = "2026-08-27"
+
+[file."gutenberg-158.txt"]
+source = "https://www.gutenberg.org/ebooks/158"
+author = "Jane Austen"
+title = "Emma"
+year = 1815
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "f2719c1869d7d124783ff422fa93d6d16b2994506269410f64f81304586b2253"
+added = "2026-08-27"
+
+[file."gutenberg-1661.txt"]
+source = "https://www.gutenberg.org/ebooks/1661"
+author = "Arthur Conan Doyle"
+title = "The Adventures of Sherlock Holmes"
+year = 1892
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "dbb03a4b1fb89af9ff03593d341a61285a3c2f207ac6daeafbe4f5a2a0afea2d"
+added = "2026-08-27"
+
+[file."gutenberg-174.txt"]
+source = "https://www.gutenberg.org/ebooks/174"
+author = "Oscar Wilde"
+title = "The Picture of Dorian Gray"
+year = 1890
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "7782dd93e6a457979ef451735c9fe4bd666968c314859d545f0d27a8c9b86aa2"
+added = "2026-08-27"
+
+[file."gutenberg-205.txt"]
+source = "https://www.gutenberg.org/ebooks/205"
+author = "Henry David Thoreau"
+title = "Walden, and On The Duty Of Civil Disobedience"
+year = 1854
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "2d9a76a2e3e8195c69430516ebd33c4d0757a53ad432ff6186b7b794e6fe99f9"
+added = "2026-08-29"
+
+[file."gutenberg-2600.txt"]
+source = "https://www.gutenberg.org/ebooks/2600"
+author = "Leo Tolstoy"
+title = "War and Peace"
+year = 1869
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "4c04d765f17317e19985c206268564f1895a9f988dab5ca3e5f66a8bef16254d"
+added = "2026-08-27"
+
+[file."gutenberg-2701.txt"]
+source = "https://www.gutenberg.org/ebooks/2701"
+author = "Herman Melville"
+title = "Moby Dick; Or, The Whale"
+year = 1851
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "0670d7bb10b99d05f095a28942801aa74d4921d1b34dbdc76900e2c4c2bd2189"
+added = "2026-08-27"
+
+[file."gutenberg-3300.txt"]
+source = "https://www.gutenberg.org/ebooks/3300"
+author = "Adam Smith"
+title = "An Inquiry into the Nature and Causes of the Wealth of Nations"
+year = 1776
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "e91d52dca43fd0fd69baf7776b00a5d8e74b69675b6b608ca8a0378aaf3ae58d"
+added = "2026-08-29"
+
+[file."gutenberg-345.txt"]
+source = "https://www.gutenberg.org/ebooks/345"
+author = "Bram Stoker"
+title = "Dracula"
+year = 1897
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "8cf05c0f0ac5b282d84f2fb36dbccd744bdb5bce7b5612438a63b43cbe27b472"
+added = "2026-08-27"
+
+[file."gutenberg-5200.txt"]
+source = "https://www.gutenberg.org/ebooks/5200"
+author = "Franz Kafka"
+title = "Metamorphosis"
+year = 1915
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "6b023bfbb6c951841325554a588b6d88a8cf5d117d52fd3ffb2790c1089caf77"
+added = "2026-08-27"
+
+[file."gutenberg-76.txt"]
+source = "https://www.gutenberg.org/ebooks/76"
+author = "Mark Twain"
+title = "Adventures of Huckleberry Finn"
+year = 1884
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "871bff91213ee10c95a7e05a84ca5de423ff7cd0a4dd4aafc8bea992acd6d1da"
+added = "2026-08-27"
+
+[file."gutenberg-84.txt"]
+source = "https://www.gutenberg.org/ebooks/84"
+author = "Mary Wollstonecraft Shelley"
+title = "Frankenstein; or, the Modern Prometheus"
+year = 1818
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "06c37d2c52d208d3d81eb12c3b10b5edbd7728b73554325ddceadbe2fb427e77"
+added = "2026-08-27"
+
+[file."gutenberg-98.txt"]
+source = "https://www.gutenberg.org/ebooks/98"
+author = "Charles Dickens"
+title = "A Tale of Two Cities"
+year = 1859
+license = "Public domain (Project Gutenberg eBook)"
+sha256 = "e3dfeb67feb904ac0f73a35204a175c58248422c2be8556802cb8820d958d67c"
+added = "2026-08-27"
+
+[file."nasa-what-we-do.html"]
+source = "https://www.nasa.gov/what-we-do/"
+author = "NASA"
+title = "What We Do (NASA.gov landing content)"
+year = 2026
+license = "Public domain (work of the U.S. federal government, 17 USC 105)"
+sha256 = "43bef9eb065bd59920d867768e686f21444a91351c6fce2d423adb68ad77814d"
+added = "2026-08-29"
+
+[file."rfc-5321.txt"]
+source = "https://www.rfc-editor.org/rfc/rfc5321.txt"
+author = "J. Klensin"
+title = "Simple Mail Transfer Protocol"
+year = 2008
+license = "IETF Trust Legal Provisions: unmodified reproduction permitted"
+sha256 = "7d560eddff1b213c17d4e1e5f95005728b2f05bc2b3947f0fcc91717c6707634"
+added = "2026-08-29"
+
+[file."rfc-8259.txt"]
+source = "https://www.rfc-editor.org/rfc/rfc8259.txt"
+author = "T. Bray (ed.)"
+title = "The JavaScript Object Notation (JSON) Data Interchange Format"
+year = 2017
+license = "IETF Trust Legal Provisions: unmodified reproduction permitted"
+sha256 = "61a5378f4255c720beb2a4b4a63b29540147c140f36988bf086291989b4cd2d7"
+added = "2026-08-29"
+
+[file."rfc-9110.txt"]
+source = "https://www.rfc-editor.org/rfc/rfc9110.txt"
+author = "R. Fielding (ed.), M. Nottingham (ed.), J. Reschke (ed.)"
+title = "HTTP Semantics"
+year = 2022
+license = "IETF Trust Legal Provisions: unmodified reproduction permitted"
+sha256 = "21c1cdce6ab0e5509b04d84a28000836c7a087cf786efe6f04877ebfff47232a"
+added = "2026-08-29"
+
+[file."rfc-9112.txt"]
+source = "https://www.rfc-editor.org/rfc/rfc9112.txt"
+author = "R. Fielding (ed.), M. Nottingham (ed.), J. Reschke (ed.)"
+title = "HTTP/1.1"
+year = 2022
+license = "IETF Trust Legal Provisions: unmodified reproduction permitted"
+sha256 = "e4f426bac6206b67fdf9e0da826154f70588db2133a0a86b15cde4ff725d8937"
+added = "2026-08-29"
+
+[file."wikivoyage-paris.html"]
+source = "https://en.wikivoyage.org/wiki/Paris"
+author = "Wikivoyage contributors"
+title = "Paris"
+year = 2026
+license = "CC BY-SA 4.0 (Attribution-ShareAlike; text not modified)"
+sha256 = "49b5422dee1da986c53e79a8289179610b38a5775dc78277bc69c61fe830980c"
+added = "2026-08-29"
+
+[file."mdn-js-conditionals.md"]
+source = "https://github.com/mdn/content/blob/main/files/en-us/learn_web_development/core/scripting/conditionals/index.md"
+author = "MDN Web Docs contributors"
+title = 'Making decisions in your code - conditionals'
+year = 2026
+license = "CC BY-SA 2.5"
+sha256 = "c3ab21d086026e19e2162f3e2047bc651a76739f8b37ceb52450e2b28ee40892"
+added = "2026-08-29"
+
+[file."mdn-js-functions.md"]
+source = "https://github.com/mdn/content/blob/main/files/en-us/learn_web_development/core/scripting/functions/index.md"
+author = "MDN Web Docs contributors"
+title = 'Functions - reusable blocks of code'
+year = 2026
+license = "CC BY-SA 2.5"
+sha256 = "e33410b70c6423d242e30b83fac37da39a02e299ac60fabb1c809b2572048aeb"
+added = "2026-08-29"
+
+[file."mdn-js-loops.md"]
+source = "https://github.com/mdn/content/blob/main/files/en-us/learn_web_development/core/scripting/loops/index.md"
+author = "MDN Web Docs contributors"
+title = 'Looping code'
+year = 2026
+license = "CC BY-SA 2.5"
+sha256 = "5766e8bfcaa480b633c6833f18deec6ec84c24ac6fb0d8e464863258cfcc39b8"
+added = "2026-08-29"
+
+[file."mdn-using-fetch.md"]
+source = "https://github.com/mdn/content/blob/main/files/en-us/web/api/fetch_api/using_fetch/index.md"
+author = "MDN Web Docs contributors"
+title = 'Using the Fetch API'
+year = 2026
+license = "CC BY-SA 2.5"
+sha256 = "d55e01146faefe211a025192a5911eacd166db6bdd853f5084ea6a6150967ab3"
+added = "2026-08-29"

@@ -196,7 +196,7 @@ Use `#[rstest]` when the same assertion logic runs against different inputs; eac
 
 ### Test Documents
 
-Filenames in `tests/fixtures/docs/` are contract — goldens and test IDs reference them. The clean corpus (`tests/fixtures/clean_corpus/`, Project Gutenberg texts) proves linters stay silent on human writing; extend it rather than loosening a rule.
+Filenames in `tests/fixtures/docs/` are contract — goldens and test IDs reference them. The clean corpus (`tests/fixtures/clean_corpus/`, Project Gutenberg texts) proves linters stay silent on human writing; extend it rather than loosening a rule. The corpus is also a manually tracked false-positive baseline: `just corpus-record` appends tier hit counts to `baseline.csv`, `just corpus-check` diffs against the last row, and `MANIFEST.toml` carries per-file provenance — never asserted in `cargo test`.
 
 ## 5. Documentation
 

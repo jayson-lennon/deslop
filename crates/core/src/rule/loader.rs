@@ -429,11 +429,8 @@ fn parse_group(
 
 /// Byte offset -> 1-based line number.
 fn line_of(text: &str, byte: usize) -> usize {
-    text[..byte.min(text.len())]
-        .bytes()
-        .filter(|&b| b == b'\n')
-        .count()
-        + 1
+    let byte = crate::boundary::floor(text, byte.min(text.len()));
+    text[..byte].bytes().filter(|&b| b == b'\n').count() + 1
 }
 
 /// Allowed template placeholders for a non-pattern kind.

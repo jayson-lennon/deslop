@@ -3,6 +3,7 @@
 //! Everything about lint rules is external data: TOML packs loaded at startup.
 //! The binary embeds no compiled-in rules; this crate is their interpreter.
 
+pub mod boundary;
 pub mod config;
 pub mod doc;
 pub mod eol;

@@ -340,7 +340,7 @@ fn plugin_findings(
                 message: pf.message,
                 advice: pf.advice,
                 span: Span::new(o_start, o_end),
-                excerpt: src[o_start..o_end].to_string(),
+                excerpt: excerpt_of(src, o_start, o_end),
                 url: None,
                 context: None,
                 replacement: None,
@@ -519,7 +519,7 @@ fn metric_finding(
         message,
         advice,
         span: Span::new(o_start, o_end),
-        excerpt: orig_src[o_start..o_end].to_string(),
+        excerpt: excerpt_of(orig_src, o_start, o_end),
         url: group.url.clone(),
         context,
         replacement: None,
@@ -549,10 +549,12 @@ fn trim_window_bounds(text: &str, bounds: (usize, usize)) -> (usize, usize) {
     let bytes = text.as_bytes();
     let mut start = bounds.0.min(text.len());
     let mut end = bounds.1.min(text.len());
-    while start < end && bytes[start] == b'\n' {
+    // `is_char_boundary` guards are documentation-grade here (only `\n` bytes
+    // are trimmed) but keep the safety local to this function.
+    while start < end && bytes[start] == b'\n' && text.is_char_boundary(start + 1) {
         start += 1;
     }
-    while end > start && bytes[end - 1] == b'\n' {
+    while end > start && bytes[end - 1] == b'\n' && text.is_char_boundary(end - 1) {
         end -= 1;
     }
     (start, end)
@@ -596,7 +598,7 @@ fn make_finding(
         .map(|t| crate::rule::template::render(t, &lookup))
         .unwrap_or_else(|| default_message(kind));
     let advice = advice_t.map(|t| crate::rule::template::render(t, &lookup));
-    let excerpt = orig_src[o_start..o_end].to_string();
+    let excerpt = excerpt_of(orig_src, o_start, o_end);
     Finding {
         entry_id: entry_id.to_string(),
         kind,
@@ -611,6 +613,19 @@ fn make_finding(
         replacement,
         anchorless: false,
     }
+}
+
+/// Excerpt for a finding span: boundary-safe against the ORIGINAL source.
+/// A misaligned span (host arithmetic bug) yields an empty excerpt instead
+/// of a panic; debug builds assert so the violation surfaces in tests.
+fn excerpt_of(src: &str, start: usize, end: usize) -> String {
+    debug_assert!(
+        src.is_char_boundary(start) && src.is_char_boundary(end),
+        "finding span {start}..{end} is not on char boundaries"
+    );
+    crate::boundary::slice_floor(src, start, end)
+        .unwrap_or("")
+        .to_string()
 }
 
 fn default_message(kind: KindTag) -> String {

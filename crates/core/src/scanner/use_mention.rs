@@ -14,11 +14,18 @@ const CLOSERS: [char; 6] = ['"', '\u{201D}', '\'', '\u{2019}', '\u{00BB}', '"'];
 
 /// Byte-level in-place replacement preserving String validity:
 /// replacing ASCII bytes with NULs only (UTF-8 continuation untouched).
+///
+/// The range is expected to be char-boundary aligned (quote positions come
+/// from `find` on the same buffer); on a misaligned range the rewrite is
+/// skipped rather than repaired, leaving the zone visible to scanners.
 fn replace_range_bytes(text: &mut String, range: std::ops::Range<usize>, with: &[u8]) {
+    let (Some(head), Some(tail)) = (text.get(..range.start), text.get(range.end..)) else {
+        return;
+    };
     let mut out = Vec::with_capacity(text.len());
-    out.extend_from_slice(text.as_bytes()[..range.start].to_vec().as_slice());
+    out.extend_from_slice(head.as_bytes());
     out.extend_from_slice(with);
-    out.extend_from_slice(text.as_bytes()[range.end..].to_vec().as_slice());
+    out.extend_from_slice(tail.as_bytes());
     *text = String::from_utf8(out).expect("ascii-safe rewrite");
 }
 
@@ -37,26 +44,29 @@ pub fn mask_quoted_terms(map: &RegionMap, dictionary: &[String]) -> RegionMap {
         let open_s = open.encode_utf8(&mut [0u8; 4]).to_string();
         let close_s = close.encode_utf8(&mut [0u8; 4]).to_string();
         let mut from = 0;
-        while let Some(rel) = masked[from..].find(&open_s) {
+        while let Some(rel) = masked.get(from..).and_then(|s| s.find(&open_s)) {
             let open_at = from + rel;
             // Skip bytes already masked.
             if !map.is_masked(open_at) {
-                if let Some(close_rel) = masked[open_at + open_s.len()..].find(&close_s) {
-                    let close_at = open_at + open_s.len() + close_rel;
-                    let inner = &masked[open_at + open_s.len()..close_at];
-                    let trimmed = inner.trim();
-                    if dict.contains(&trimmed.to_lowercase()) {
-                        // Mask quotes + interior (byte-safe: region within
-                        // this string is pure ASCII since both quote chars
-                        // and the dict term matched ASCII case-insensitively;
-                        // non-ASCII interiors are copied unchanged).
-                        let zone = open_at..close_at + close.len_utf8();
-                        let bytes: Vec<u8> = masked.as_bytes()[zone.clone()].to_vec();
-                        let nulled: Vec<u8> = bytes
-                            .iter()
-                            .map(|&b| if b == b'\n' || b >= 0x80 { b } else { 0 })
-                            .collect();
-                        replace_range_bytes(&mut masked, zone, &nulled);
+                let after_open = open_at + open_s.len();
+                if let Some(close_rel) = masked.get(after_open..).and_then(|s| s.find(&close_s)) {
+                    let close_at = after_open + close_rel;
+                    if let Some(inner) = masked.get(after_open..close_at) {
+                        let trimmed = inner.trim();
+                        if dict.contains(&trimmed.to_lowercase()) {
+                            // Mask quotes + interior (byte-safe: region within
+                            // this string is pure ASCII since both quote chars
+                            // and the dict term matched ASCII case-insensitively;
+                            // non-ASCII interiors are copied unchanged).
+                            let zone = open_at..close_at + close.len_utf8();
+                            if let Some(bytes) = masked.get(zone.clone()).map(str::as_bytes) {
+                                let nulled: Vec<u8> = bytes
+                                    .iter()
+                                    .map(|&b| if b == b'\n' || b >= 0x80 { b } else { 0 })
+                                    .collect();
+                                replace_range_bytes(&mut masked, zone, &nulled);
+                            }
+                        }
                     }
                 }
             }
@@ -122,5 +132,19 @@ mod tests {
 
         // Then content remains (exact-match only per spec).
         assert!(map2.masked.contains("delve problem"));
+    }
+
+    #[test]
+    fn second_quoted_term_after_multibyte_text_is_still_masked() {
+        // Given a masked quote, multibyte prose, then another quoted term.
+        let src = "\"delve\" leads 汉字 \"tapestry\"";
+        let map = build_regions(src);
+        let map2 = mask_quoted_terms(&map, &dict());
+
+        // Then BOTH mentions are NULed: scanning continues past multibyte
+        // characters instead of stalling.
+        let visible =
+            map2.masked.matches("delve").count() + map2.masked.matches("tapestry").count();
+        assert_eq!(visible, 0, "{:?}", map2.masked);
     }
 }

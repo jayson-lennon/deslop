@@ -16,6 +16,7 @@ use codespan_reporting::term::emit;
 use codespan_reporting::term::termcolor::{Buffer, Color, ColorSpec, WriteColor};
 
 use super::FiledFinding;
+use deslop_core::boundary;
 use deslop_core::config::ColorChoice;
 use deslop_core::finding::Tier;
 
@@ -229,11 +230,16 @@ fn truncate_finding_src(
     src: &str,
     width: usize,
 ) -> super::truncate::Truncated {
-    let multiline = src[f.span.start..f.span.end].contains('\n');
+    let multiline =
+        boundary::slice_floor(src, f.span.start, f.span.end).is_some_and(|s| s.contains('\n'));
     let advice_labels = usize::from(f.advice.is_some());
     let multi_labels = usize::from(multiline) * (1 + advice_labels);
     let start_line = super::line_col(src, f.span.start).0;
-    let end_line = super::line_col(src, f.span.end.saturating_sub(1).max(f.span.start)).0;
+    let end_line = super::line_col(
+        src,
+        boundary::end_boundary(src, f.span.end).max(f.span.start),
+    )
+    .0;
     let line_digits = start_line.to_string().len().max(end_line.to_string().len());
     let budget = super::truncate::budget_spanned(width, line_digits, multi_labels);
     super::truncate::truncate_source(src, f.span.start, f.span.end, budget)
@@ -243,7 +249,9 @@ fn truncate_finding_src(
 /// anchorless block pads to the widest printed line number).
 fn anchorless_budget(width: usize, src: &str, f: &deslop_core::finding::Finding) -> usize {
     let (line, _) = super::line_col(src, f.span.start);
-    let shown_lines = src[f.span.start..f.span.end].lines().count().min(2);
+    let shown_lines = boundary::slice_floor(src, f.span.start, f.span.end)
+        .map_or(0, |s| s.lines().count())
+        .min(2);
     let digits = (line + shown_lines.saturating_sub(1)).to_string().len();
     super::truncate::budget_anchorless(width, digits)
 }
@@ -294,10 +302,11 @@ fn render_anchorless(
     let gutter = blue_style();
     let (line, col) = super::line_col(src, f.span.start);
     // Gutter width fits the last line number actually printed. Never derive
-    // it from span.end: subtracting one from a byte offset that sits at a
-    // multibyte char boundary panics, and a document-window span capped to
-    // two printed lines wants the SHOWN width anyway.
-    let shown_lines = src[f.span.start..f.span.end].lines().count().min(2);
+    // it from span.end: a document-window span capped to two printed lines
+    // wants the SHOWN width anyway.
+    let shown_lines = boundary::slice_floor(src, f.span.start, f.span.end)
+        .map_or(0, |s| s.lines().count())
+        .min(2);
     let width = (line + shown_lines.saturating_sub(1)).to_string().len();
     // codespan aligns every gutter glyph (`┌─`, `│`, `=`) one space past the
     // line-number width, so bars line up with the `{:width$} │ ` source
@@ -322,9 +331,9 @@ fn render_anchorless(
     // its first two, then an ellipsis continuation (never the whole doc).
     // Under a line budget each printed line is head-truncated to the cells
     // that remain after the gutter.
-    let total_lines = src[f.span.start..f.span.end].lines().count();
+    let total_lines = window_lines(src, f.span.start, f.span.end).count();
     let mut printed = 0usize;
-    for (i, text) in src[f.span.start..f.span.end].lines().enumerate() {
+    for (i, text) in window_lines(src, f.span.start, f.span.end).enumerate() {
         if i >= 2 {
             break;
         }
@@ -344,6 +353,12 @@ fn render_anchorless(
     }
     gutter_line(out, &pad)?;
     write_anchorless_notes(f, out, &pad)
+}
+
+/// Lines printed for an anchorless window: the span's text, boundary-safely
+/// sliced, so a window ending inside a multibyte char cannot panic.
+fn window_lines(src: &str, start: usize, end: usize) -> std::str::Lines<'_> {
+    boundary::slice_floor(src, start, end).unwrap_or("").lines()
 }
 
 /// Severity name as printed in the header (`error`/`warning`/`note`).
@@ -431,10 +446,11 @@ pub fn render_load_errors(
         let (file_id, starts) = (*file_id, starts.clone());
 
         let label = err.line.and_then(|line| {
+            let src = sources.get(&err.path)?;
             let idx = line.saturating_sub(1);
             let start = *starts.get(idx)?;
             let end = starts.get(idx + 1).copied().unwrap_or(start);
-            Some(start..end.saturating_sub(1).max(start))
+            Some(start..boundary::end_boundary(src, end).max(start))
         });
         // The file name must survive rendering even with no known line:
         // codespan prints the `-- path` header only when labels exist.

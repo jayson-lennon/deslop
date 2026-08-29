@@ -30,6 +30,7 @@ fn command(tier: Tier) -> &'static str {
 }
 
 use super::line_col;
+use deslop_core::boundary;
 
 /// Render all findings as workflow commands to `out`.
 ///
@@ -39,7 +40,7 @@ use super::line_col;
 pub fn render_github(filed: &[FiledFinding<'_>], out: &mut dyn Write) -> std::io::Result<()> {
     for f in filed {
         let (line, col) = line_col(f.src, f.finding.span.start);
-        let end_off = f.finding.span.end.clamp(f.finding.span.start, f.src.len());
+        let end_off = boundary::floor(f.src, f.finding.span.end).max(f.finding.span.start);
         let (end_line, end_col) = if end_off > f.finding.span.start {
             line_col(f.src, end_off)
         } else {

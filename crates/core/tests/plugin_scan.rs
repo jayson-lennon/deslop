@@ -214,6 +214,37 @@ fn invalid_spans_are_dropped_with_warnings_not_panics() {
 }
 
 #[test]
+fn span_starting_mid_char_is_dropped_with_warning() {
+    // Given a finding whose START splits a multibyte char (byte 2 is inside
+    // 'é' at 1..3) and one that starts exactly on its end boundary.
+    let src = "héllo wörld";
+    let plugin = fake(
+        "FIX",
+        2,
+        vec![
+            finding("midstart", (2, 6)), // starts inside 'é'
+            finding("valid", (3, 6)),    // "llo"
+        ],
+    );
+    let plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>> = vec![Box::new(plugin)];
+
+    // When scanning.
+    let outcome = scan_with_plugins(src, &RuleSet::default(), &settings_with(&[]), &plugins);
+
+    // Then the mid-char start is rejected by name and the valid one kept.
+    assert!(
+        outcome
+            .warnings
+            .iter()
+            .any(|w| w.contains("plugin FIX finding midstart") && w.contains("invalid span")),
+        "{:?}",
+        outcome.warnings
+    );
+    assert_eq!(outcome.findings.len(), 1);
+    assert_eq!(outcome.findings[0].entry_id, "FIX#valid");
+}
+
+#[test]
 fn duplicate_slugs_keep_the_first() {
     // Given a plugin repeating a slug.
     let plugin = fake(

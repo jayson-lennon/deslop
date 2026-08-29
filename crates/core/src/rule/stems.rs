@@ -3,6 +3,10 @@
 //! NOT a lemmatizer: a deterministic suffixer with a min-length guard. Junk
 //! forms are harmless dead weight (lookups go through the word index), but
 //! missing forms would be silent misses - so we over-generate and dedupe.
+//!
+//! All suffix surgery goes through `strip_suffix`, never byte slicing: the
+//! non-ASCII guard makes the ASCII-only fast path provably safe, but the
+//! stem operations below are boundary-safe by construction regardless.
 
 /// Expand `term` into its plausible surface forms (always includes term).
 pub fn expand(term: &str) -> Vec<String> {
@@ -12,24 +16,22 @@ pub fn expand(term: &str) -> Vec<String> {
     }
 
     let mut forms = vec![base.clone()];
-    let last = base.chars().last().unwrap_or_default();
 
     // --- plural / 3rd person singular: -s, -es, y->ies ---
-    if matches!(last, 's' | 'x' | 'z') || base.ends_with("ch") || base.ends_with("sh") {
+    if base.ends_with(['s', 'x', 'z']) || base.ends_with("ch") || base.ends_with("sh") {
         forms.push(format!("{base}es"));
-    } else if ends_consonant_y(&base) {
-        forms.push(format!("{}ies", &base[..base.len() - 1]));
-        forms.push(format!("{}ys", &base[..base.len() - 1])); // plastics vs. plys
+    } else if let Some(stem) = strip_consonant_y(&base) {
+        forms.push(format!("{stem}ies"));
+        forms.push(format!("{stem}ys")); // plastics vs. plys
     } else {
         forms.push(format!("{base}s"));
     }
 
     // --- past / progressive with e-drop and CVC-doubling variants ---
-    let ed = if ends_with_e(&base) {
-        vec![format!("{base}d"), format!("{}ed", &base[..base.len() - 1])]
-    } else if ends_consonant_y(&base) {
-        let stem = &base[..base.len() - 1];
-        vec![format!("{stem}ied"), format!("{}yed", stem)]
+    let ed = if let Some(stem) = base.strip_suffix('e') {
+        vec![format!("{base}d"), format!("{stem}ed")]
+    } else if let Some(stem) = strip_consonant_y(&base) {
+        vec![format!("{stem}ied"), format!("{stem}yed")]
     } else {
         let mut v = vec![format!("{base}ed")];
         if let Some(doubled) = double_final_consonant(&base) {
@@ -39,10 +41,10 @@ pub fn expand(term: &str) -> Vec<String> {
     };
     forms.extend(ed);
 
-    let ing = if ends_with_e(&base) {
-        vec![format!("{}ing", &base[..base.len() - 1])]
-    } else if ends_consonant_y(&base) {
-        vec![format!("{}ying", &base[..base.len() - 1])]
+    let ing = if let Some(stem) = base.strip_suffix('e') {
+        vec![format!("{stem}ing")]
+    } else if let Some(stem) = strip_consonant_y(&base) {
+        vec![format!("{stem}ying")]
     } else {
         let mut v = vec![format!("{base}ing")];
         if let Some(doubled) = double_final_consonant(&base) {
@@ -57,16 +59,15 @@ pub fn expand(term: &str) -> Vec<String> {
     forms
 }
 
-fn ends_with_e(word: &str) -> bool {
-    word.ends_with('e')
-}
-
-fn ends_consonant_y(word: &str) -> bool {
-    let bytes = word.as_bytes();
-    bytes.last() == Some(&b'y')
-        && bytes
-            .get(bytes.len() - 2)
-            .is_some_and(|b| !matches!(b, b'a' | b'e' | b'i' | b'o' | b'u'))
+/// `word` minus a consonant-y ending (`study` -> `stud`), or `None` when the
+/// word does not end in consonant-y.
+fn strip_consonant_y(word: &str) -> Option<&str> {
+    let stem = word.strip_suffix('y')?;
+    let prev_vowel = stem
+        .bytes()
+        .next_back()
+        .is_some_and(|b| matches!(b, b'a' | b'e' | b'i' | b'o' | b'u'));
+    (!prev_vowel).then_some(stem)
 }
 
 /// CVC ending doubling (consonant-vowel-CONSONANT: stop/stopped).
@@ -143,5 +144,40 @@ mod tests {
             sorted.dedup();
             assert_eq!(again, sorted);
         }
+    }
+
+    #[test]
+    fn multibyte_term_returns_just_the_base_without_panicking() {
+        // Given a term ending in a multibyte character.
+        let forms = expand("café");
+
+        // Then only the base returns: the guard rejects it before any
+        // suffix machinery runs.
+        assert_eq!(forms, vec!["café"]);
+    }
+
+    #[rstest::rstest]
+    #[case("ply", &["plied", "plies", "ply", "plyed", "plying", "plys"])]
+    #[case(
+        "study",
+        &["studied", "studies", "study", "studying", "studyed", "studys"]
+    )]
+    #[case("make", &["make", "maked", "making", "makes"])]
+    fn expand_full_form_lists_are_pinned_byte_for_byte(
+        #[case] term: &str,
+        #[case] expected: &[&str],
+    ) {
+        // Given terms exercising every suffix branch.
+        let mut forms = expand(term);
+
+        // When normalizing the expectation the same way.
+        let mut want: Vec<String> = expected.iter().map(|s| s.to_string()).collect();
+        want.sort();
+        want.dedup();
+        forms.sort();
+
+        // Then the full generated set matches exactly — new or missing
+        // forms would silently change what the word index can hit.
+        assert_eq!(forms, want, "{term}");
     }
 }

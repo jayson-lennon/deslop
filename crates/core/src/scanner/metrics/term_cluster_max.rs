@@ -112,7 +112,12 @@ pub fn windows(
             // the LAST hit, surface keeps the FIRST spelling.
             last = (at, end);
         } else {
-            seen.push((lemma, masked[at..end].to_string()));
+            // Hit bounds come from the same buffer, so boundary-safe in
+            // practice; a `None` skips the term instead of panicking.
+            let surface = masked.get(at..end);
+            if let Some(surface) = surface {
+                seen.push((lemma, surface.to_string()));
+            }
             last = (at, end);
         }
     }

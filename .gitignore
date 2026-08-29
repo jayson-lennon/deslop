@@ -10,3 +10,4 @@
 # Regenerate: cargo build -p example-exclaim --target wasm32-unknown-unknown --release
 #             cp target/wasm32-unknown-unknown/release/example_exclaim.wasm plugins/
 !/plugins/*.wasm
+__pycache__/

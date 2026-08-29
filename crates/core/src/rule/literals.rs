@@ -86,7 +86,12 @@ pub fn find(haystack: &str, marker: &[Segment]) -> Option<(usize, usize)> {
         if let Some(end) = continue_match(&lower, abs + first_text.len(), &marker[1..]) {
             return Some((abs, end));
         }
+        // Retry from the next CHAR boundary: `abs` may open a multibyte
+        // char, and a raw +1 would land mid-character.
         search_from = abs + 1;
+        while search_from < lower.len() && !lower.is_char_boundary(search_from) {
+            search_from += 1;
+        }
     }
     None
 }
@@ -184,5 +189,21 @@ mod tests {
 
         // Then the slice is clean and exact.
         assert_eq!(&hay[span.0..span.1], "turn0search7");
+    }
+
+    #[test]
+    fn multibyte_first_segment_retries_on_char_boundaries() {
+        // Given a marker whose first text segment is multibyte, over a doc
+        // where the first candidate fails the digits segment (so the search
+        // retries from inside the CJK char) and a second candidate matches.
+        let segs = compile("汉汉{N}").expect("compiles");
+        let hay = "汉汉bb汉汉22";
+
+        // When hunting.
+        let span = find(hay, &segs).expect("second candidate hits");
+
+        // Then the hit is the valid later candidate, byte-exact.
+        assert_eq!(span, (8, 16));
+        assert_eq!(&hay[span.0..span.1], "汉汉22");
     }
 }
