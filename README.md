@@ -366,7 +366,7 @@ A plugin that traps, exceeds its fuel budget, or emits invalid spans is skipped 
 
 ## Contributing
 
-Before committing: `cargo test --workspace` and `cargo clippy --workspace` must pass. The full style guide lives in [AGENTS.md](AGENTS.md).
+Before committing: `cargo test --workspace` and `cargo clippy --workspace` must pass.
 
 ## License
 
