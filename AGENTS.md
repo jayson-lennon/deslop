@@ -11,13 +11,13 @@ This document defines the _coding conventions_, _patterns_, and _architecture_ f
 
 The workspace has five crates:
 
-| Crate | Path | Role |
-|---|---|---|
-| `deslop-core` | `crates/core` | Engine: config, rule loading, markdown-aware scanning, metrics, findings |
-| `deslop` | `crates/cli` | Binary: argument surface, dispatch, exit codes, rendering |
-| `deslop-plugin-protocol` | `plugins/protocol` | Wire types + ABI version shared by host and guests |
-| `deslop-plugin-sdk` | `plugins/sdk` | Guest-side SDK: `Plugin` trait, `export!` macro |
-| `example-exclaim` | `plugins/example-exclaim` | Reference plugin |
+| Crate                    | Path                      | Role                                                                     |
+| ------------------------ | ------------------------- | ------------------------------------------------------------------------ |
+| `deslop-core`            | `crates/core`             | Engine: config, rule loading, markdown-aware scanning, metrics, findings |
+| `deslop`                 | `crates/cli`              | Binary: argument surface, dispatch, exit codes, rendering                |
+| `deslop-plugin-protocol` | `plugins/protocol`        | Wire types + ABI version shared by host and guests                       |
+| `deslop-plugin-sdk`      | `plugins/sdk`             | Guest-side SDK: `Plugin` trait, `export!` macro                          |
+| `example-exclaim`        | `plugins/example-exclaim` | Reference plugin                                                         |
 
 ## 2. Core Patterns
 
@@ -177,14 +177,14 @@ Name tests so they read as program behavior in the test report: `submit_message_
 
 ### Test Placement
 
-| What | Where |
-|---|---|
-| Unit tests for a module | `#[cfg(test)] mod tests` in the same file |
-| Loader/schema/dedup/scanner integration | `crates/core/tests/*.rs` |
-| Plugin pass logic (no wasm) | `crates/core/tests/plugin_scan.rs` (uses `FakePlugin`) |
-| Plugin host / wasm ABI | `crates/core/tests/plugin_host.rs` (builds `wat` modules) |
-| Binary contract, exit codes, output formats | `crates/cli/tests/*.rs` via `assert_cmd` |
-| Renderer byte-stability | `crates/cli/tests/goldens.rs` + `tests/fixtures/goldens/` |
+| What                                        | Where                                                     |
+| ------------------------------------------- | --------------------------------------------------------- |
+| Unit tests for a module                     | `#[cfg(test)] mod tests` in the same file                 |
+| Loader/schema/dedup/scanner integration     | `crates/core/tests/*.rs`                                  |
+| Plugin pass logic (no wasm)                 | `crates/core/tests/plugin_scan.rs` (uses `FakePlugin`)    |
+| Plugin host / wasm ABI                      | `crates/core/tests/plugin_host.rs` (builds `wat` modules) |
+| Binary contract, exit codes, output formats | `crates/cli/tests/*.rs` via `assert_cmd`                  |
+| Renderer byte-stability                     | `crates/cli/tests/goldens.rs` + `tests/fixtures/goldens/` |
 
 **CLI integration tests must be hermetic.** The binary resolves packs from disk (`~/.config/deslop/rules`, `./rules`, ...), so tests must provision a tempdir pack copy via `HermeticRules::provision()` (`crates/cli/tests/common/mod.rs`) and pass `--rules-dir`. A test that silently reads the invoking user's installed packs is broken.
 
@@ -196,7 +196,7 @@ Use `#[rstest]` when the same assertion logic runs against different inputs; eac
 
 ### Test Documents
 
-Filenames in `tests/fixtures/docs/` are contract — goldens and test IDs reference them. The clean corpus (`tests/fixtures/clean_corpus/`, Project Gutenberg texts) proves linters stay silent on human writing; extend it rather than loosening a rule. The corpus is also a manually tracked false-positive baseline: `just corpus-record` appends tier hit counts to `baseline.csv`, `just corpus-check` diffs against the last row, and `MANIFEST.toml` carries per-file provenance — never asserted in `cargo test`.
+Filenames in `tests/fixtures/docs/` are contract — goldens and test IDs reference them. The clean corpus (`tests/fixtures/clean_corpus/`, Project Gutenberg texts) is used to track lint hits across application versions via `just corpus-record` which appends tier hit counts to `baseline.csv`, and `just corpus-check` diffs against the last row, and `MANIFEST.toml` carries per-file provenance — never asserted in `cargo test`.
 
 ## 5. Documentation
 
@@ -237,16 +237,16 @@ Locate concerns by convention, not hardcoded paths — use `rg` if unsure.
 
 The `justfile` is minimal; use `cargo` directly for the rest.
 
-| Role | Command | Description |
-|---|---|---|
-| `vcs` | `git` | `git status`, `git diff`, `git log`, ... |
-| `check` | `cargo check --workspace` | Fast compile check |
-| `test` | `cargo test --workspace` | **All tests must pass before committing** |
-| `lint` | `cargo clippy --workspace` | Warnings are not negotiable |
-| `format` | `cargo fmt` | Apply formatting |
-| `commit` | `git add -A && git commit -m '<message>'` | Stage and commit all work |
-| `sync-trunk` | `git rebase main` | Run on your working branch to bring in the latest `main` (resolve conflicts, re-run tests, commit). NEVER merge or push your branch onto `main` |
-| gallery | `just gallery` | Lint `tests/gallery/gallery.md` with the trigger pack — visual regression check for rendered output |
+| Role         | Command                                   | Description                                                                                                                                     |
+| ------------ | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vcs`        | `git`                                     | `git status`, `git diff`, `git log`, ...                                                                                                        |
+| `check`      | `cargo check --workspace`                 | Fast compile check                                                                                                                              |
+| `test`       | `cargo test --workspace`                  | **All tests must pass before committing**                                                                                                       |
+| `lint`       | `cargo clippy --workspace`                | Warnings are not negotiable                                                                                                                     |
+| `format`     | `cargo fmt`                               | Apply formatting                                                                                                                                |
+| `commit`     | `git add -A && git commit -m '<message>'` | Stage and commit all work                                                                                                                       |
+| `sync-trunk` | `git rebase main`                         | Run on your working branch to bring in the latest `main` (resolve conflicts, re-run tests, commit). NEVER merge or push your branch onto `main` |
+| gallery      | `just gallery`                            | Lint `tests/gallery/gallery.md` with the trigger pack — visual regression check for rendered output                                             |
 
 Wasm plugin development additionally needs `rustup target add wasm32-unknown-unknown` (developer machine only; building `deslop` itself never requires it).
 
