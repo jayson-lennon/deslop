@@ -1,27 +1,17 @@
 # deslop
 
-A prose linter for AI-generated text. It scans Markdown documents for
-chatbot artifacts (leaked referral URLs, `[cite: 3]` scaffolds), AI
-vocabulary ("delve", "leverage"), AI sentence patterns ("Whether you're a
-beginner or an expert…"), and document-level statistical signals (bold
-density, em-dash rate, vocabulary clustering).
+Slop prose linter.
 
-```console
-$ deslop doc.md                 # lint (exit 1 if anything at tier 1/2)
+```sh
+$ deslop doc.md                 # lint
 $ deslop fix --write doc.md     # apply mechanical replacements
 $ deslop rules                  # list the effective merged ruleset
 $ deslop init                   # write an annotated .deslop.toml
 ```
 
-Exit codes: `0` clean, `1` findings reported, `2` usage error / failed rule
-load.
-
 ---
 
 ## Rule packs
-
-A **pack is one TOML file**. The file stem is the pack name; a comment
-header credits the source:
 
 ```
 rules/
@@ -31,17 +21,6 @@ rules/
 ├── aisigns.toml         # this project (WP:AISIGNS artifacts + metrics)
 └── cluster-terms.toml   # this project (single-word cluster watch list)
 ```
-
-Packs are read from disk at startup and **deduplicated during load**:
-
-- **vocab / literal-ban terms** get a single owner. The first pack in
-  configured order to claim a term wins; later packs' copies are dropped
-  with a `dedup:` note on stderr. Order = `[packs]` in `.deslop.toml`
-  (default: `aatell`, `slop`, `wsc`, `aisigns`, `cluster-terms`).
-- **pattern regexes** deduplicate by exact string: identical regex strings
-  compile once and every owning rule reports the hit.
-- **metrics** deduplicate on `(stat, window, terms)` — two groups measuring
-  the same thing at the same threshold keep one survivor.
 
 Where packs live (first hit wins):
 
@@ -55,10 +34,7 @@ Where packs live (first hit wins):
 
 ## Creating rules
 
-Every rule lives in a `[[group]]` table. The group carries the shared
-settings; `[[group.entries]]` blocks carry the individual triggers. A file
-may contain any number of groups. The schema rejects unknown fields — a
-typo'd key refuses the pack at load rather than being silently ignored.
+Every rule lives in a `[[group]]` table. The group carries the shared settings; `[[group.entries]]` blocks carry the individual triggers. A file may contain any number of groups. The schema rejects unknown fields. A typo'd key refuses the pack at load rather than being silently ignored.
 
 ### Group fields (shared by all kinds)
 
@@ -117,11 +93,11 @@ must_not_match = ['...']
 
 ### Placeholders in `message` / `advice`
 
-| kind | allowed placeholders |
-|---|---|
-| `vocab`, `literal-ban` | `{match}` — the exact matched text |
-| `pattern` | any named capture from the regex, e.g. `{payload}` |
-| `metric` | `{value}`, `{per_words}` |
+| kind                   | allowed placeholders                               |
+| ---------------------- | -------------------------------------------------- |
+| `vocab`, `literal-ban` | `{match}` — the exact matched text                 |
+| `pattern`              | any named capture from the regex, e.g. `{payload}` |
+| `metric`               | `{value}`, `{per_words}`                           |
 
 Literal braces are doubled: `{{` renders as `{`. Placeholder typos refuse
 the pack at load time.
@@ -185,8 +161,7 @@ terms = [
 
 ### kind = "pattern"
 
-Regex-anchored sentence constructions. Syntax is the Rust `regex` crate
-(no lookaround); matching is case-insensitive.
+Regex-anchored sentence constructions. Syntax is the Rust `regex` crate and matching is case-insensitive.
 
 ```toml
 [[group]]
@@ -204,15 +179,11 @@ regex = "(?P<hedge>\\bwhether you[''’]re ...\\bor\\b)"
 
 advice = '"{hedge}" flattens the audience; address THIS reader'
 
+# Test cases. Rule will not be applied if these fail.
 [group.fixtures]
-# patterns especially want fixtures —
 must_match = ["Whether you're a beginner or an expert, this guide helps."]
 must_not_match = ['She could not decide whether the coat or the jacket suited the weather.']
 ```
-
-`captures = 'echo'` (the default) is what surfaces named captures into
-templates; `engine` is accepted for forward compatibility and currently
-ignored — the engine is the `regex` crate, full stop.
 
 ### kind = "metric"
 
@@ -284,9 +255,6 @@ terms = [
 ]
 ```
 
-Metric groups skip string fixtures — their input is a whole document, not a
-sample string.
-
 ---
 
 ## Silencing rules
@@ -298,10 +266,7 @@ WSC-PAT-AUDIENCE-HEDGE = "allow" # one pattern group off
 "SLOP#delve-into" = "allow"      # one entry off (quote keys containing #)
 ```
 
-Because vocab terms deduplicate to a single owner, allowing the owner
-(`AATELL`) fully silences the word — there is no shadow copy in another
-pack. Entry keys match the full ID exactly (`SLOP#delve-into`, not
-`SLOP#delve`): run `deslop rules` to see the IDs you can silence.
+Because vocab terms deduplicate to a single owner, allowing the owner (`AATELL`) fully silences the word — there is no shadow copy in another pack. Entry keys match the full ID exactly (`SLOP#delve-into`, not `SLOP#delve`): run `deslop rules` to see the IDs you can silence.
 
 ## Testing a pack
 
@@ -310,21 +275,15 @@ $ deslop rules                  # lists entries or shows load errors
 $ deslop doc.md                 # fixtures re-verify on every load
 ```
 
-If `must_match`/`must_not_match` samples fail, the pack refuses to load
-with a named entry and sample — that is the pack's unit test.
+If `must_match`/`must_not_match` samples fail, the pack refuses to load with a named entry and sample.
 
 ---
 
 ## WASM plugins
 
-Packs express what a TOML rule can say. When a check needs logic a pack
-can't express — a custom document metric, stateful iteration over
-structure, anything programmatic — write a plugin: a Rust struct plus one
-macro call, compiled to `.wasm` and declared in `.deslop.toml`.
+Packs express what a TOML rule can say. When a check needs logic a pack can't express — a custom document metric, stateful iteration over structure, anything programmatic — write a plugin: a Rust struct plus one macro call, compiled to `.wasm` and declared in `.deslop.toml`.
 
-**Pack or plugin?** If a `vocab`/`pattern`/`literal-ban`/`metric` entry can
-express it, write a pack (less machinery, config-only tuning). Plugins are
-for logic packs can't reach.
+**Pack or plugin?** If a `vocab`/`pattern`/`literal-ban`/`metric` entry can express it, write a pack (less machinery, config-only tuning). Plugins are for logic packs can't reach.
 
 ### The whole plugin
 
@@ -363,19 +322,7 @@ impl Plugin for Exclaim {
 export!(Exclaim);
 ```
 
-Nothing above mentions wasm, memory, or serialization — the SDK handles
-allocation, the JSON wire protocol, and the exports. `scan` gets the
-document (`doc.text` is normalized prose with quoted-term masking applied,
-mask bytes appear as `\0`; `doc.heading_ranges`, `doc.bold_spans` and
-`doc.list_items` are byte ranges in the same coordinates) and returns
-findings whose spans live in those same coordinates. The host remaps them
-to the original document and validates everything.
-
-To document your params, add a `PARAM_DOCS` const to the impl. `deslop
-plugin install` renders it as commented defaults in the printed config
-block, and the SDK verifies each `default` literal against your `Params`
-type's serde defaults at build time — a mismatch aborts the module, so the
-docs can never drift from the code:
+To document your params, add a `PARAM_DOCS` const to the impl. `deslop plugin install` renders it as commented defaults in the printed config block, and the SDK verifies each `default` literal against your `Params` type's serde defaults at build time — a mismatch aborts the module, so the docs can never drift from the code:
 
 ```rust,ignore
 const PARAM_DOCS: &[ParamDoc] = &[ParamDoc {
@@ -401,11 +348,7 @@ $ deslop plugin install example-exclaim # install one
 $ deslop plugin install-all             # install every builtin at once
 ```
 
-That writes `~/.local/share/deslop/plugins/example-exclaim.wasm` (the
-platform data dir) and prints the `[plugin.<id>]` snippet to enable it.
-`install-all` writes every builtin and prints a single copy-paste block
-declaring all of them. Installing is inert by itself — the directory is
-never scanned; a plugin runs only where a config declares it.
+That writes `~/.local/share/deslop/plugins/example-exclaim.wasm` (the platform data dir) and prints the `[plugin.<id>]` snippet to enable it. `install-all` writes every builtin and prints a single copy-paste block declaring all of them. Installing is inert by itself — the directory is never scanned; a plugin runs only where a config declares it.
 
 ```toml
 # .deslop.toml
@@ -419,28 +362,16 @@ threshold_gt = 1.0       # everything except wasm/enabled/runtime is an opaque p
 
 The `wasm` path resolves by form (must always end in `.wasm`):
 
-| Form | Resolves against | Use |
-|---|---|---|
-| `/abs/path.wasm` | exactly as written | machine-specific locations |
-| `./rel.wasm`, `../up/rel.wasm` | the `.deslop.toml`'s directory | repo-committed plugins |
-| `name.wasm` | `~/.local/share/deslop/plugins/` | personally installed plugins |
+| Form                           | Resolves against                 | Use                          |
+| ------------------------------ | -------------------------------- | ---------------------------- |
+| `/abs/path.wasm`               | exactly as written               | machine-specific locations   |
+| `./rel.wasm`, `../up/rel.wasm` | the `.deslop.toml`'s directory   | repo-committed plugins       |
+| `name.wasm`                    | `~/.local/share/deslop/plugins/` | personally installed plugins |
 
-Plugins can also be declared in the user-global config,
-`~/.config/deslop/deslop.toml` — the same file layout the rules dir uses.
-Config discovery is: `--config` flag, then a `.deslop.toml` walking up from
-the working directory, then that user-global file, then defaults. A
-project config always wins over the user-global one.
+Plugins can also be declared in the user-global config, `~/.config/deslop/deslop.toml` — the same file layout the rules dir uses. Config discovery is: `--config` flag, then a `.deslop.toml` walking up from the working directory, then that user-global file, then defaults. A project config always wins over the user-global one.
 
-Add `enabled = false` to switch a plugin off at load level — the module is
-never read and it disappears from `deslop rules` (whereas `[lints] ID =
-"allow"` keeps it loaded and listed but silent during scans).
+Add `enabled = false` to switch a plugin off at load level — the module is never read and it disappears from `deslop rules` (whereas `[lints] ID = "allow"` keeps it loaded and listed but silent during scans).
 
-Plugin findings behave exactly like native findings: they show up in
-`deslop rules`, can be silenced or re-tiered via `[lints]` (`EXCLAIM =
-"allow"`, `EXCLAIM = "error"`, or per-slug `"EXCLAIM#exclamania"`), feed
-the exit code by tier, and render in all formats. They are report-only —
-`deslop fix` never rewrites text because of a plugin.
+Plugin findings behave exactly like native findings: they show up in `deslop rules`, can be silenced or re-tiered via `[lints]` (`EXCLAIM = "allow"`, `EXCLAIM = "error"`, or per-slug `"EXCLAIM#exclamania"`), feed the exit code by tier, and render in all formats. They are report-only — `deslop fix` never rewrites text because of a plugin.
 
-A plugin that traps, exceeds its fuel budget, or emits invalid spans is
-skipped for that document with a warning on stderr; it never changes the
-exit code or aborts the run.
+A plugin that traps, exceeds its fuel budget, or emits invalid spans is skipped for that document with a warning on stderr; it never changes the exit code or aborts the run.
