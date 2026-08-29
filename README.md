@@ -2,6 +2,8 @@
 
 A linter for AI-generated writing. It finds the vocabulary, sentence patterns, chatbot markup, and document-level statistics that mark text as machine-written, then tells you what to change. Everything is driven by TOML rule packs — the binary embeds no rules of its own, so tuning behavior is a config edit, not a recompile.
 
+![Screenshot](docs/screenshot-1.png)
+
 ## How it works
 
 Packs load, merge, and deduplicate into a single effective ruleset, then every document goes through a markdown-aware scan: code fences, code spans, and link targets are masked out before any rule runs, so lints never fire on URLs or example code. Findings carry byte-accurate spans and sort deterministically; a run is byte-stable across the three output formats.
