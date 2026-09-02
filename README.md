@@ -290,6 +290,21 @@ The `propositional` variant runs the sentence-transformers model **all-MiniLM-L6
     special_tokens_map.json
 ```
 
+#### Installing the model manually
+
+Download the five files from the Hugging Face model repo [`sentence-transformers/all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) and place them in the directory above (create it if needed):
+
+```bash
+MODEL_DIR=~/.local/share/deslop/models/all-MiniLM-L6-v2
+mkdir -p "$MODEL_DIR"
+BASE=https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main
+for f in model.safetensors config.json tokenizer.json tokenizer_config.json special_tokens_map.json; do
+    curl -L -o "$MODEL_DIR/$f" "$BASE/$f"
+done
+```
+
+`curl -L` follows the redirect to the CDN; `wget -O` works too. Verify the downloads with `sha256sum "$MODEL_DIR"/*` against the digests pinned in `crates/core/src/embedder.rs` (`MODEL_FILES`) — mismatches only warn at lint time, but a truncated `model.safetensors` will fail the model load.
+
 Set `DESLOP_MODELS_DIR` to point the models root somewhere else (the model dir is `<root>/all-MiniLM-L6-v2`). If the pack is not installed, none of this is probed and nothing runs. If the pack is installed but files are missing, that pack fails to load with the expected directory named in the error (exit 2). Files whose sha256 differs from the pinned digests produce a one-line stderr warning and the run continues. Without the model (or on machines too small to run it), the other two variants still work.
 
 #### GPU acceleration
