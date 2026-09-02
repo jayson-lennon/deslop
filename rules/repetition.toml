@@ -6,8 +6,8 @@
 # The sentence-level variants only compare pairs within `max-distance`
 # whitespace tokens of each other (default 200): long-range repeats are
 # usually deliberate callbacks, while incidental restatements sit close
-# together. Override per group with e.g. `max-distance = 400`. The
-# content-family variant is deliberately distance-blind.
+# together. Override per group as needed; content-family is
+# deliberately distance-blind.
 
 [[group]]
 id-base = 'REPETITION-NEAR-VERBATIM'
