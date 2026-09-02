@@ -16,7 +16,7 @@ pub struct RuleGroup {
     pub id_base: String,
     /// 1=artifact(error) 2=tell(warning) 3=density(hint).
     pub tier: u8,
-    /// vocab | pattern | literal-ban | metric.
+    /// vocab | pattern | literal-ban | metric | repetition.
     pub kind: String,
     pub category: String,
     pub message: Option<String>,
@@ -28,6 +28,8 @@ pub struct RuleGroup {
     pub entries: Vec<ActiveEntry>,
     /// metric-only fields (kind == "metric").
     pub metric: Option<MetricSpec>,
+    /// repetition-only fields (kind == "repetition").
+    pub repetition: Option<RepetitionSpec>,
 }
 
 /// Threshold spec for a document-level metric rule.
@@ -113,6 +115,60 @@ impl ClusterWindow {
             ClusterWindow::Document => "document",
         }
     }
+}
+
+/// Which repetition detector a group runs. Each variant has its own
+/// similarity math and its own default minimum group size.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RepetitionVariant {
+    /// Near-identical sentences (word shingle Jaccard).
+    NearVerbatim,
+    /// Same proposition reworded (embedding cosine).
+    Propositional,
+    /// One content-word family across many paragraphs (overlap coefficient).
+    ContentFamily,
+}
+
+impl RepetitionVariant {
+    pub fn parse(name: &str) -> Option<RepetitionVariant> {
+        Some(match name {
+            "near-verbatim" => RepetitionVariant::NearVerbatim,
+            "propositional" => RepetitionVariant::Propositional,
+            "content-family" => RepetitionVariant::ContentFamily,
+            _ => return None,
+        })
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            RepetitionVariant::NearVerbatim => "near-verbatim",
+            RepetitionVariant::Propositional => "propositional",
+            RepetitionVariant::ContentFamily => "content-family",
+        }
+    }
+
+    /// Whether the variant needs the MiniLM embedding model.
+    pub fn needs_model(self) -> bool {
+        matches!(self, RepetitionVariant::Propositional)
+    }
+
+    /// Default minimum members before a cluster is worth reporting.
+    pub fn default_min_members(self) -> usize {
+        match self {
+            RepetitionVariant::NearVerbatim | RepetitionVariant::Propositional => 2,
+            RepetitionVariant::ContentFamily => 3,
+        }
+    }
+}
+
+/// Validated repetition settings for a group (kind == "repetition").
+#[derive(Debug, Clone, Copy)]
+pub struct RepetitionSpec {
+    pub variant: RepetitionVariant,
+    /// Similarity cutoff in (0, 1]; pairs at or above it join one cluster.
+    pub threshold: f64,
+    /// Minimum members before a cluster is reported.
+    pub min_members: usize,
 }
 
 /// One scannable entry with its compiled matcher.

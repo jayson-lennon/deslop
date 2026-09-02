@@ -43,6 +43,9 @@ struct Claim {
 /// A surviving metric claim: (group index, threshold, id-base).
 type MetricClaim = (usize, crate::rule::MetricThreshold, String);
 
+/// A surviving repetition claim: (group index, threshold, id-base).
+type RepetitionClaim = (usize, f64, String);
+
 /// Stable direction tag for the dedup key (deterministic ordering).
 fn direction(t: crate::rule::MetricThreshold) -> u8 {
     match t {
@@ -166,6 +169,37 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
         }
     }
 
+    // Repetition dedup: one owner per VARIANT (each variant is a different
+    // detector; two groups running the same detection is a conflict). The
+    // STRICTEST (highest) threshold survives — a higher similarity cutoff
+    // fires on fewer, more-similar clusters. Config order breaks ties.
+    let mut repetition_owners: HashMap<String, RepetitionClaim> = HashMap::new();
+    for (gi, group) in rules.groups.iter().enumerate() {
+        let Some(spec) = &group.repetition else { continue };
+        let key = spec.variant.name().to_string();
+        match repetition_owners.get(&key).cloned() {
+            Some((prev_gi, prev_threshold, prev_gid)) => {
+                if spec.threshold > prev_threshold {
+                    warnings.push(format!(
+                        "dedup: repetition conflict on {} - {}/{} (threshold {}) supersedes {}/{} (threshold {})",
+                        key, group.id_base, key, spec.threshold, prev_gid, key, prev_threshold,
+                    ));
+                    repetition_owners.insert(key, (gi, spec.threshold, group.id_base.clone()));
+                    remove_groups.push(prev_gi);
+                } else {
+                    warnings.push(format!(
+                        "dedup: repetition conflict on {} - {}/{} (threshold {}) dropped; {}/{} keeps the stricter threshold {}",
+                        key, group.id_base, key, spec.threshold, prev_gid, key, prev_threshold,
+                    ));
+                    remove_groups.push(gi);
+                }
+            }
+            None => {
+                repetition_owners.insert(key, (gi, spec.threshold, group.id_base.clone()));
+            }
+        }
+    }
+
     // Prune losing terms from matchers; drop emptied entries and groups.
     let mut owners_by_group: Vec<HashMap<String, Claim>> = Vec::new();
     owners_by_group.resize_with(rules.groups.len(), HashMap::new);
@@ -201,9 +235,9 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
     for gi in remove_groups.into_iter().rev() {
         rules.groups.remove(gi);
     }
-    rules
-        .groups
-        .retain(|g: &RuleGroup| g.metric.is_some() || !g.entries.is_empty());
+    rules.groups.retain(|g: &RuleGroup| {
+        g.metric.is_some() || g.repetition.is_some() || !g.entries.is_empty()
+    });
 
     // Deterministic diagnostics.
     dropped.sort_by(|a, b| a.loser_id.cmp(&b.loser_id).then(a.term.cmp(&b.term)));

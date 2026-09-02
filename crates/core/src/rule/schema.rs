@@ -56,6 +56,16 @@ pub struct GroupToml {
     /// metric cluster: distinct terms counted within the window.
     #[serde(default)]
     pub terms: Option<Vec<String>>,
+    // --- kind = repetition (loader enforces presence iff kind == "repetition") ---
+    /// near-verbatim | propositional | content-family.
+    #[serde(default)]
+    pub variant: Option<String>,
+    /// Similarity cutoff in (0, 1]; pairs at or above it cluster together.
+    #[serde(default)]
+    pub threshold: Option<f64>,
+    /// Minimum members before a repetition cluster is reported.
+    #[serde(default, alias = "min-members")]
+    pub min_members: Option<usize>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -232,6 +242,49 @@ terms = ["delve"]
 
         // Then it fails (no dual syntax).
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn repetition_group_fields_round_trip() {
+        // Given a repetition group with variant, threshold and min-members.
+        let text = r#"
+[[group]]
+id-base = "REPETITION"
+kind = "repetition"
+tier = 2
+category = "repetition"
+message = "Near-verbatim repetition across {count} sentences"
+variant = "near-verbatim"
+threshold = 0.55
+
+[group.fixtures]
+must_match = []
+
+[[group]]
+id-base = "REPETITION-CF"
+kind = "repetition"
+tier = 3
+category = "repetition"
+message = "Content family spans {count} paragraphs"
+variant = "content-family"
+threshold = 0.35
+min-members = 3
+
+[group.fixtures]
+must_match = []
+"#;
+
+        // When parsing.
+        let file: RulesFileToml = toml::from_str(text).expect("parses");
+
+        // Then both repetition groups carry their fields.
+        let nv = &file.groups[0];
+        assert_eq!(nv.variant.as_deref(), Some("near-verbatim"));
+        assert_eq!(nv.threshold, Some(0.55));
+        assert_eq!(nv.min_members, None);
+        let cf = &file.groups[1];
+        assert_eq!(cf.variant.as_deref(), Some("content-family"));
+        assert_eq!(cf.min_members, Some(3));
     }
 
     #[test]

@@ -22,7 +22,7 @@ fn load_with(toml_files: &[(&str, &str)]) -> deslop_core::rule::RuleSet {
         },
         ..Config::default()
     };
-    let loaded = loader::load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"));
+    let loaded = loader::load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"), None);
     assert!(
         loaded.errors.is_empty(),
         "fixture rules must load cleanly: {:?}",
@@ -329,10 +329,11 @@ terms = ["delve", "garner"]
     assert_eq!(findings.len(), 1, "{findings:?}");
     assert_eq!(findings[0].entry_id, "METRIC-A");
 
-    // And when both exist, the STRICTER threshold survives.
+    // And when both exist, the STRICTER threshold survives: for a
+    // fire-above rule the HIGHER cutoff is stricter, so METRIC-B (5) wins
+    // and the two-term document no longer fires anything.
     let findings2 = scan(src, &rules_both, &LintSettings::default());
-    assert_eq!(findings2.len(), 1, "{findings2:?}");
-    assert_eq!(findings2[0].entry_id, "METRIC-A");
+    assert_eq!(findings2.len(), 0, "{findings2:?}");
 }
 
 const CLUSTER_RULE: &str = r#"
@@ -534,12 +535,18 @@ fn at_least_threshold_fires_above_cutoff_unchanged() {
 const UNIFORM_DOC: &str = "One two three four.\n\nFive six seven eight.\n\nNine ten eleven twelve.\n\n\
                            Thirteen fourteen fifteen sixteen.\n\nSeventeen eighteen nineteen twenty.\n\n\
                            Twenty one two three.\n";
-const WILD_DOC: &str = "One two three.\n\nFour five six seven eight nine ten eleven twelve thirteen \
-                        fourteen fifteen sixteen seventeen eighteen nineteen twenty.\n\nOne two three.\n\n\
-                        Four five six seven eight nine ten eleven twelve thirteen fourteen fifteen \
-                        sixteen seventeen eighteen nineteen twenty.\n\nOne two three.\n\nFour five six \
-                        seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen \
-                        eighteen nineteen twenty.\n";
+const WILD_DOC: &str = "One.
+
+Four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty one two three four five six seven.
+
+One.
+
+Four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty one two three four five six seven.
+
+One.
+
+Four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty one two three four five six seven.
+";
 
 #[test]
 fn at_most_rule_survives_dedup_alongside_at_least_on_same_key() {

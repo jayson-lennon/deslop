@@ -127,6 +127,17 @@ impl RulesCmd<'_> {
     }
 }
 
+/// Root directory holding embedding models: `DESLOP_MODELS_DIR` when set,
+/// else `<data_dir>/deslop/models` (same convention as the plugin dir).
+/// `None` when the platform has no data dir.
+pub fn models_root() -> Option<camino::Utf8PathBuf> {
+    if let Some(dir) = std::env::var_os("DESLOP_MODELS_DIR") {
+        return camino::Utf8PathBuf::try_from(dir).ok();
+    }
+    let data = dirs::data_dir()?;
+    camino::Utf8PathBuf::from_path_buf(data.join("deslop").join("models")).ok()
+}
+
 /// Loader access for other commands; pub(crate) within the binary.
 pub fn load_for_lint(
     cfg: &deslop_core::config::Config,
@@ -210,8 +221,12 @@ fn load_rules(
     rules_dir: Option<camino::Utf8PathBuf>,
 ) -> deslop_core::rule::loader::Loaded {
     let (packs_dir, extras_root) = rules_root(rules_dir.as_deref());
-    let loaded =
-        deslop_core::rule::loader::load_split(cfg, packs_dir.as_path(), extras_root.as_path());
+    let loaded = deslop_core::rule::loader::load_split(
+        cfg,
+        packs_dir.as_path(),
+        extras_root.as_path(),
+        models_root().as_deref(),
+    );
     if std::env::var_os("DESLOP_DEBUG_LOAD").is_some() {
         eprintln!(
             "debug: errors={:?} groups={}",

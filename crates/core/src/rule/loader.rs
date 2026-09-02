@@ -53,7 +53,7 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
     // Known kind?
     if !matches!(
         group.kind.as_str(),
-        "vocab" | "pattern" | "literal-ban" | "metric"
+        "vocab" | "pattern" | "literal-ban" | "metric" | "repetition"
     ) {
         push(None, format!("unknown kind {:?}", group.kind));
     }
@@ -97,6 +97,41 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
                 push(
                     None,
                     "`window`/`terms` only apply to term_cluster_max".into(),
+                );
+            }
+        }
+        "repetition" => {
+            if group.variant.is_none() {
+                push(None, "repetition rule requires `variant`".into());
+            } else if crate::rule::RepetitionVariant::parse(
+                group.variant.as_deref().unwrap_or_default(),
+            )
+            .is_none()
+            {
+                push(None, format!("unknown variant {:?}", group.variant));
+            }
+            match group.threshold {
+                Some(t) if !(0.0 < t && t <= 1.0) => {
+                    push(None, format!("repetition threshold {t} is not in (0, 1]"));
+                }
+                None => push(None, "repetition rule requires `threshold`".into()),
+                _ => {}
+            }
+            if !group.entries.is_empty() {
+                push(None, "repetition rules must not carry [[entries]]".into());
+            }
+            // Metric-only keys are illegal here: a typo'd kind must refuse,
+            // not fall through to defaults.
+            if group.stat.is_some()
+                || group.per_words.is_some()
+                || group.threshold_gt.is_some()
+                || group.threshold_lt.is_some()
+                || group.window.is_some()
+                || group.terms.is_some()
+            {
+                push(
+                    None,
+                    "`stat`/`per_words`/`threshold-gt`/`threshold-lt`/`window`/`terms` only apply to metric rules".into(),
                 );
             }
         }
@@ -154,9 +189,23 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
         }
     }
 
-    // Fixtures are mandatory for every group except metrics (aggregate-only,
-    // no per-instance matching exists).
-    if group.kind == "metric" {
+    // Fixtures are mandatory for every group except metrics and repetitions
+    // (aggregate-only: no per-instance matching exists to fixture).
+    if matches!(group.kind.as_str(), "metric" | "repetition") {
+        // Group-level templates still validate: placeholders must fit the
+        // kind's grammar (metric: value/per_words/stat/window; repetition:
+        // count).
+        let allowed: &[&str] = match group.kind.as_str() {
+            "metric" => &["value", "per_words", "stat", "window"],
+            _ => &["count"],
+        };
+        for (field, template) in [("advice", &group.advice), ("message", &group.message)] {
+            if let Some(text) = template {
+                if let Err(e) = crate::rule::template::validate(text, allowed) {
+                    push(None, format!("group {field} template: {e}"));
+                }
+            }
+        }
         return;
     }
     // Template validation: placeholders must fit the kind's grammar.
@@ -221,16 +270,30 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
 /// flat file per pack, any number of `[[group]]` tables inside. `extra_paths`
 /// name files or directories, relative to `rules_root`, used as-is.
 ///
+/// `models_dir` is the embedding-model root (`None` in tests, which skips
+/// the model-presence check entirely). When a repetition group needs the
+/// model and the directory lacks it, that pack fails to load.
+///
 /// Never panics on bad data: problems land in [`Loaded::errors`].
-pub fn load(cfg: &Config, rules_root: &Utf8Path) -> Loaded {
-    load_split(cfg, rules_root.join("rules").as_path(), rules_root)
+pub fn load(cfg: &Config, rules_root: &Utf8Path, models_dir: Option<&Utf8Path>) -> Loaded {
+    load_split(
+        cfg,
+        rules_root.join("rules").as_path(),
+        rules_root,
+        models_dir,
+    )
 }
 
 /// Like [`load`], but the pack directory and the extras root are given
 /// separately. `packs_dir` holds `<stem>.toml` files; `extras_root` anchors
 /// config `extra_paths`. The CLI's `--rules-dir` uses this so an explicitly
 /// named pack directory works regardless of its name.
-pub fn load_split(cfg: &Config, packs_dir: &Utf8Path, extras_root: &Utf8Path) -> Loaded {
+pub fn load_split(
+    cfg: &Config,
+    packs_dir: &Utf8Path,
+    extras_root: &Utf8Path,
+    models_dir: Option<&Utf8Path>,
+) -> Loaded {
     let mut loaded = Loaded::default();
 
     let mut pack_files = Vec::new();
@@ -265,6 +328,10 @@ pub fn load_split(cfg: &Config, packs_dir: &Utf8Path, extras_root: &Utf8Path) ->
         };
         parse_pack_file(&file, &text, &mut seen_ids, &mut entry_ids, &mut loaded);
     }
+    // Model-dependent repetition groups need their model files present.
+    // Only packs that ARE installed are probed: with no repetition pack in
+    // the effective set, a missing model is invisible.
+    check_model_availability(rules_needed_models(&loaded.rule_set), models_dir, &mut loaded.errors);
     // Compile stage: one owner per term (highest tier, then config order),
     // metric conflicts resolved to the strictest threshold.
     loaded.dedup_warnings = crate::rule::dedup::dedup(&mut loaded.rule_set);
@@ -274,6 +341,69 @@ pub fn load_split(cfg: &Config, packs_dir: &Utf8Path, extras_root: &Utf8Path) ->
         .groups
         .sort_by(|a, b| a.id_base.cmp(&b.id_base));
     loaded
+}
+
+/// Model files a propositional repetition rule requires, under
+/// `<models_dir>/all-MiniLM-L6-v2/`.
+const MODEL_DIR_NAME: &str = "all-MiniLM-L6-v2";
+const MODEL_FILES: [&str; 5] = [
+    "model.safetensors",
+    "config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+];
+
+/// Every (group id-base, variant) pair in `rules` whose variant requires
+/// the embedding model. Group-scoped: disabled groups and `[lints]`-allowed
+/// groups do not force the check.
+fn rules_needed_models(rules: &RuleSet) -> Vec<(String, crate::rule::RepetitionVariant)> {
+    let mut out = Vec::new();
+    for group in &rules.groups {
+        let Some(spec) = &group.repetition else {
+            continue;
+        };
+        if group.enabled && spec.variant.needs_model() {
+            out.push((group.id_base.clone(), spec.variant));
+        }
+    }
+    out
+}
+
+/// Record a load error per group whose model files are missing. A `None`
+/// models_dir (tests, hermetic harnesses) skips the check entirely.
+fn check_model_availability(
+    needed: Vec<(String, crate::rule::RepetitionVariant)>,
+    models_dir: Option<&Utf8Path>,
+    errors: &mut Vec<LoadError>,
+) {
+    let Some(models_dir) = models_dir else {
+        return;
+    };
+    if needed.is_empty() {
+        return;
+    }
+    let model_dir = models_dir.join(MODEL_DIR_NAME);
+    let missing: Vec<&str> = MODEL_FILES
+        .iter()
+        .copied()
+        .filter(|f| !model_dir.join(f).is_file())
+        .collect();
+    if missing.is_empty() {
+        return;
+    }
+    for (id_base, variant) in needed {
+        errors.push(LoadError {
+            path: model_dir.to_string(),
+            line: None,
+            message: format!(
+                "repetition rule `{id_base}` needs the {MODEL_DIR_NAME} model ({}) for the `{}` variant - expected files in {}",
+                missing.join(", "),
+                variant.name(),
+                model_dir
+            ),
+        });
+    }
 }
 
 /// Expansion result: surface forms plus the lemma each belongs to.
@@ -388,7 +518,7 @@ fn parse_group(
         }
     }
 
-    let has_group_level_rule = group.kind == "metric";
+    let has_group_level_rule = matches!(group.kind.as_str(), "metric" | "repetition");
     if active_entries.is_empty() && !has_group_level_rule {
         return;
     }
@@ -411,8 +541,7 @@ fn parse_group(
         entries: active_entries,
         // Only materialize when THIS group validated; broken groups already
         // recorded errors and abort the run before scanning.
-        metric: if group.kind == "metric" && group_was_valid {
-            crate::metric_stats::Stat::from_name(group.stat.as_deref().unwrap_or_default()).map(
+        metric: if group.kind == "metric" && group_was_valid {            crate::metric_stats::Stat::from_name(group.stat.as_deref().unwrap_or_default()).map(
                 |stat| {
                     let threshold = match (group.threshold_gt, group.threshold_lt) {
                         // Validation guarantees exactly one is present.
@@ -438,6 +567,19 @@ fn parse_group(
         } else {
             None
         },
+        repetition: if group.kind == "repetition" && group_was_valid {
+            crate::rule::RepetitionVariant::parse(group.variant.as_deref().unwrap_or_default()).map(
+                |variant| crate::rule::RepetitionSpec {
+                    variant,
+                    threshold: group.threshold.unwrap_or_default(),
+                    min_members: group
+                        .min_members
+                        .unwrap_or_else(|| variant.default_min_members()),
+                },
+            )
+        } else {
+            None
+        },
     });
 }
 
@@ -452,7 +594,8 @@ fn group_allowed_for(kind: &str) -> &'static [&'static str] {
     match kind {
         "vocab" => &["match"],
         "literal-ban" => &["match"],
-        "metric" => &["value", "per_words"],
+        "metric" => &["value", "per_words", "stat", "window"],
+        "repetition" => &["count"],
         _ => &[],
     }
 }
@@ -488,4 +631,207 @@ pub(crate) fn push_error(
         line,
         message,
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn utf8(path: &std::path::Path) -> camino::Utf8PathBuf {
+        camino::Utf8PathBuf::from_path_buf(path.to_path_buf()).expect("utf8")
+    }
+
+    fn pack_dir(toml: &str) -> (tempfile::TempDir, camino::Utf8PathBuf) {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let packs = tmp.path().join("rules");
+        std::fs::create_dir_all(&packs).expect("mkdir");
+        std::fs::write(packs.join("pack.toml"), toml).expect("write");
+        let root = camino::Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).expect("utf8");
+        (tmp, root)
+    }
+
+    fn cfg(pack: &str) -> Config {
+        Config {
+            packs: crate::config::Packs {
+                builtin: vec![pack.to_owned()],
+                extra_paths: vec![],
+            },
+            ..Config::default()
+        }
+    }
+
+    const REP: &str = r#"
+[[group]]
+id-base = "REP"
+kind = "repetition"
+tier = 2
+category = "repetition"
+message = "Repeated {count} times"
+variant = "propositional"
+threshold = 0.8
+
+[group.fixtures]
+must_match = []
+"#;
+
+    #[test]
+    fn repetition_group_with_valid_fields_loads() {
+        // Given a repetition group with every required field.
+        let (tmp, root) = pack_dir(REP);
+
+        // When loading with no models_dir (check skipped).
+        let loaded = load(&cfg("pack"), &root, None);
+
+        // Then the group lands with its spec materialized.
+        assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+        let spec = loaded.rule_set.groups[0]
+            .repetition
+            .as_ref()
+            .expect("repetition spec");
+        assert_eq!(spec.variant.name(), "propositional");
+        assert!((spec.threshold - 0.8).abs() < f64::EPSILON);
+        // And the pair-variant default min_members is 2.
+        assert_eq!(spec.min_members, 2);
+        drop(tmp);
+    }
+
+    #[test]
+    fn repetition_group_with_unknown_variant_is_refused() {
+        // Given a repetition group naming a variant that does not exist.
+        let toml = REP.replace("propositional", "semantic-foo");
+        let (tmp, root) = pack_dir(&toml);
+
+        // When loading.
+        let loaded = load(&cfg("pack"), &root, None);
+
+        // Then the pack is refused naming the variant.
+        assert!(
+            loaded
+                .errors
+                .iter()
+                .any(|e| e.message.contains("unknown variant")),
+            "{:?}",
+            loaded.errors
+        );
+        drop(tmp);
+    }
+
+    #[test]
+    fn repetition_group_without_threshold_is_refused() {
+        // Given a repetition group missing its threshold.
+        let toml = REP.replace("threshold = 0.8\n", "");
+        let (tmp, root) = pack_dir(&toml);
+
+        // When loading.
+        let loaded = load(&cfg("pack"), &root, None);
+
+        // Then the pack is refused requiring threshold.
+        assert!(
+            loaded
+                .errors
+                .iter()
+                .any(|e| e.message.contains("requires `threshold`")),
+            "{:?}",
+            loaded.errors
+        );
+        drop(tmp);
+    }
+
+    #[test]
+    fn repetition_group_with_out_of_range_threshold_is_refused() {
+        // Given a repetition group whose threshold exceeds 1.
+        let toml = REP.replace("threshold = 0.8", "threshold = 1.5");
+        let (tmp, root) = pack_dir(&toml);
+
+        // When loading.
+        let loaded = load(&cfg("pack"), &root, None);
+
+        // Then the pack is refused with the range in the message.
+        assert!(
+            loaded
+                .errors
+                .iter()
+                .any(|e| e.message.contains("not in (0, 1]")),
+            "{:?}",
+            loaded.errors
+        );
+        drop(tmp);
+    }
+
+    #[test]
+    fn repetition_group_with_metric_keys_is_refused() {
+        // Given a repetition group carrying a metric-only key.
+        let toml = REP.replace("threshold = 0.8", "threshold = 0.8\nstat = \"em_dash_rate\"");
+        let (tmp, root) = pack_dir(&toml);
+
+        // When loading.
+        let loaded = load(&cfg("pack"), &root, None);
+
+        // Then the pack is refused: metric keys are not repetition keys.
+        assert!(
+            loaded
+                .errors
+                .iter()
+                .any(|e| e.message.contains("only apply to metric rules")),
+            "{:?}",
+            loaded.errors
+        );
+        drop(tmp);
+    }
+
+    #[test]
+    fn repetition_group_requiring_model_fails_load_when_model_missing() {
+        // Given a propositional repetition pack and an EMPTY models dir.
+        let (tmp, root) = pack_dir(REP);
+        let models = tempfile::tempdir().expect("models");
+
+        // When loading with models_dir pointed at the empty dir.
+        let loaded = load(&cfg("pack"), &root, Some(utf8(models.path()).as_path()));
+
+        // Then the pack fails to load naming the model directory and file.
+        let err = loaded
+            .errors
+            .iter()
+            .find(|e| e.message.contains("all-MiniLM-L6-v2"))
+            .expect("model error");
+        assert!(err.message.contains("model.safetensors"), "{err:?}");
+        drop(tmp);
+        drop(models);
+    }
+
+    #[test]
+    fn content_family_group_does_not_require_model() {
+        // Given a content-family repetition pack (no model needed).
+        let toml = REP
+            .replace("propositional", "content-family")
+            .replace("threshold = 0.8", "threshold = 0.4\nmin-members = 3");
+        let (tmp, root) = pack_dir(&toml);
+        let models = tempfile::tempdir().expect("models");
+
+        // When loading with an empty models dir.
+        let loaded = load(&cfg("pack"), &root, Some(utf8(models.path()).as_path()));
+
+        // Then the pack loads: the content-family variant is model-free.
+        assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+        let spec = loaded.rule_set.groups[0].repetition.expect("spec");
+        assert_eq!(spec.min_members, 3);
+        drop(tmp);
+        drop(models);
+    }
+
+    #[test]
+    fn disabled_repetition_group_skips_model_check() {
+        // Given a DISABLED propositional repetition pack.
+        let toml = REP.replace("id-base = \"REP\"", "id-base = \"REP\"\nenabled = false");
+        let (tmp, root) = pack_dir(&toml);
+        let models = tempfile::tempdir().expect("models");
+
+        // When loading with an empty models dir.
+        let loaded = load(&cfg("pack"), &root, Some(utf8(models.path()).as_path()));
+
+        // Then nothing is probed: a disabled pack never demands the model.
+        assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+        drop(tmp);
+        drop(models);
+    }
 }
