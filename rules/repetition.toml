@@ -16,8 +16,8 @@ tier = 2
 category = 'repetition'
 variant = 'near-verbatim'
 threshold = 0.55
-message = 'Near-verbatim repetition: {count} sentences say the same thing'
-advice = 'Cut or merge the repeats; each idea earns exactly one sentence'
+message = 'Near word-for-word repeats differing only in minor wording ({count} sentences)'
+advice = 'Keep the best-specified sentence, fold in any unique details from the others, remove the rest.'
 enabled = true
 max-distance = 500
 
@@ -36,8 +36,8 @@ tier = 2
 category = 'repetition'
 variant = 'propositional'
 threshold = 0.78
-message = 'Repeated proposition: {count} sentences restate the same point'
-advice = 'Keep the sharpest phrasing; delete the restatements'
+message = 'The same point restated in different words without new information ({count} sentences)'
+advice = 'State it once where it serves the document best, folding in any unique supporting details first.'
 enabled = true
 max-distance = 500
 
@@ -57,8 +57,8 @@ category = 'repetition'
 variant = 'content-family'
 threshold = 0.6
 min-members = 2
-message = 'Recurring content: {count} paragraphs circle the same small idea'
-advice = 'Consolidate the scattered mentions into one place, or diversify what each paragraph covers'
+message = 'One idea spread across {count} paragraphs instead of developed'
+advice = 'Pick its natural home, fold in anything unique from the others, then rework the rest to advance new aspects of the document.'
 enabled = true
 
 [group.url]
