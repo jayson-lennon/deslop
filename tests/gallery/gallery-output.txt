@@ -1,15 +1,35 @@
-note[AISIGNS-METRIC-SENTENCE-LENGTH-MONOTONY]: Sentence-length coefficient of variation 1.3
- = help: Uniform sentence lengths produce an even, synthetic cadence; combine some sentences and split others for rhythm
+note[AISIGNS-METRIC-ANAPHORA-OPENERS]: Same two-word opening repeated 4.0×
+ = help: Sentences opening with the same bigram ('It can', 'This technology') form anaphora-like repetition; vary openers
  = see: Wikipedia:Signs of AI writing § Style - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style
+
+error[GALLERY-FMT-DOCWINDOW]: 10 distinct trigger words cluster across the document
+  ┌─ tests/gallery/gallery.md:1:1
+  │
+1 │ # deslop output gallery
+2 │ 
+  │ …
+  │
+  = help: Vary the vocabulary; a document leaning on the same intensity words throughout reads as machine-generated emphasis
+  = Clustered terms:
+  =   paragraph
+  =   delve
+  =   tapestry
+  =   Second
+  =   dense
+  =   whilst
+  =   additionally
+  =   comprehensive
+  =   pivotal
+  =   landscape
 
 note[AISIGNS-METRIC-EM-DASH-RATE]: 
   ┌─ tests/gallery/gallery.md:3:74
   │
-3 │ One document designed to trip every *output shape* the linter can render —
+3 │ One document designed to trip every _output shape_ the linter can render —
   │                                                                          ^
   │                                                                          │
-  │                                                                          Em-dash density 11.8 per 1000 words
-  │                                                                          help: Em-dash density 11.8/1000 words exceeds conversational norms - reword the sentences instead; em-dashes as a default pause are a machine tell
+  │                                                                          Em-dash density 10.1 per 1000 words
+  │                                                                          help: Em-dash density 10.1/1000 words exceeds conversational norms - reword the sentences instead; em-dashes as a default pause are a machine tell
   │
   = see: Wikipedia:Signs of AI writing § Style - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style
 
@@ -120,6 +140,22 @@ note[AISIGNS-METRIC-CURLY-DOUBLE-RATIO]:
    │
    = see: Wikipedia:Signs of AI writing § Style - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing#Style
 
+warning[GALLERY-FMT-PARAGRAPH]: 6 distinct trigger words cluster in one paragraph
+   ┌─ tests/gallery/gallery.md:49:1
+   │
+49 │ Paragraph window: the team felt also aptly adept aims align across
+50 │ crucial robust notably deep tapestry efforts, and the whole pitch read
+   │ …
+   │
+   = help: Split and vary; a paragraph leaning on the same intensity words reads as machine-generated emphasis
+   = Clustered terms:
+   =   also
+   =   aptly
+   =   adept
+   =   aims
+   =   align
+   =   across
+
 note[CLUSTER]: 11 distinct watch-list words cluster in paragraph
    ┌─ tests/gallery/gallery.md:49:1
    │
@@ -175,7 +211,7 @@ warning[AATELL#leverage]:
    │                     AI-tell vocabulary
    │                     help: Replace "leveraging" with its plain verb ("use")
 
-note[CLUSTER]: 7 distinct watch-list words cluster in paragraph
+note[CLUSTER]: 13 distinct watch-list words cluster in paragraph
    ┌─ tests/gallery/gallery.md:57:1
    │
 57 │ Sentence window next: crucial robust notably adept. Adept crucial
@@ -191,5 +227,36 @@ note[CLUSTER]: 7 distinct watch-list words cluster in paragraph
    =   aims
    =   Tapestry
    =   delve
+   =   Boast
+   =   burgeoning
+   =   camaraderie
+   =   cutting-edge
+   =   daunting
+   =   efficacious
    = see: Wikipedia:Signs of AI writing - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
+warning[GALLERY-FMT-SENTWINDOW]: 6 distinct trigger words cluster in one sentence
+   ┌─ tests/gallery/gallery.md:59:59
+   │
+59 │ Boast
+60 │ burgeoning camaraderie cutting-edge daunting efficacious claims stack
+   │ …
+   │
+   = help: Split and vary; a sentence stacking intensity words reads as machine-generated emphasis
+   = Clustered terms:
+   =   Boast
+   =   burgeoning
+   =   camaraderie
+   =   cutting-edge
+   =   daunting
+   =   efficacious
+
+note[EXCLAIM#exclamania]: 
+   ┌─ tests/gallery/gallery.md:77:13
+   │
+77 │ It's awesome! It's spectacular! It's stupendous! It's in a text file! It's an exclamation point!
+   │             ^
+   │             │
+   │             exclamation rate 9.8 per 1000 words
+   │             help: cut most of these; one reads confident, ten reads shaky
 

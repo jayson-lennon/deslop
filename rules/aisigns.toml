@@ -576,12 +576,12 @@ id-base = 'AISIGNS-METRIC-SENTENCE-LENGTH-MONOTONY'
 kind = 'metric'
 tier = 3
 category = 'document-signals'
-message = 'Sentence-length coefficient of variation {value}'
+message = 'Sentence-length variation {value} (uniform lengths)'
 advice = 'Uniform sentence lengths produce an even, synthetic cadence; combine some sentences and split others for rhythm'
 scope = 'anywhere'
 stat = 'sent_len_cv'
 per_words = 1
-threshold-gt = 0.75
+threshold-lt = 0.3
 
 [group.url]
 text = 'Wikipedia:Signs of AI writing § Style'

@@ -250,3 +250,41 @@ must_match = []
     assert!(stderr.contains("unknown stat"), "{stderr}");
     assert!(stderr.contains("requires `threshold_gt`"), "{stderr}");
 }
+
+#[test]
+fn metric_rule_with_both_thresholds_exits_two() {
+    // Given a pack with a metric rule carrying both threshold keys.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(
+        tmp.path(),
+        "rules/boththresh.toml",
+        r#"
+[[group]]
+id-base = "M-BOTH"
+kind = "metric"
+tier = 3
+category = "density"
+stat = "em_dash_rate"
+threshold-gt = 6.0
+threshold-lt = 0.1
+
+[group.fixtures]
+must_match = []
+"#,
+    );
+    let cfg = cfg_for(tmp.path(), "boththresh");
+
+    // When linting.
+    let output = deslop(tmp.path())
+        .arg("--config")
+        .arg(&cfg)
+        .arg(".")
+        .current_dir(tmp.path())
+        .output()
+        .expect("runs");
+
+    // Then exit 2 names the both-keys error.
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("not both"), "{stderr}");
+}

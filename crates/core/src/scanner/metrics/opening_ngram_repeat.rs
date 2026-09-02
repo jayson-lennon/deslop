@@ -48,8 +48,10 @@ mod tests {
 
     #[test]
     fn repeated_openers_streak() {
-        // Given three sentences opening with the same two words.
-        let doc = "we ship speed today. we ship quality tomorrow. we ship both always. done now.";
+        // Given three sentences opening with the same two words (each
+        // sentence starts capitalized after the first, which UAX #29
+        // requires to break after the period).
+        let doc = "We ship speed. We ship quality. We ship both. Done here.";
 
         // When computing.
         let s = compute(&testutil::inputs(doc));
@@ -60,8 +62,9 @@ mod tests {
 
     #[test]
     fn distinct_openers_yield_one() {
-        // Given sentences that all start differently.
-        let doc = "we ship speed. they ship quality. you ship trust. done now.";
+        // Given sentences that all start differently (each sentence starts
+        // capitalized, which UAX #29 requires to break after the period).
+        let doc = "We ship speed. They ship quality. You ship trust. Done here.";
 
         // When computing.
         let s = compute(&testutil::inputs(doc));

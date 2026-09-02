@@ -34,8 +34,10 @@ mod tests {
 
     #[test]
     fn consecutive_tricolons_stack_the_streak() {
-        // Given two adjacent sentences each containing a tricolon.
-        let doc = "we ship speed, scale, and soul. we love rust, cargo, and crabs.";
+        // Given two adjacent sentences each containing a tricolon (the
+        // second sentence starts capitalized, which UAX #29 requires to
+        // break after the period).
+        let doc = "We ship speed, scale, and soul today. We love rust, cargo, and crabs too.";
 
         // When computing.
         let s = compute(&testutil::inputs(doc));
@@ -46,8 +48,10 @@ mod tests {
 
     #[test]
     fn separated_tricolons_reset_the_streak() {
-        // Given tricolons split by a plain sentence.
-        let doc = "a, b, and c here. plain sentence. d, e, and f there.";
+        // Given tricolons split by plain sentences (the tricolon pattern is
+        // lowercase-only, and UAX #29 needs a capitalized word after each
+        // period to break, so a connective opens the third sentence).
+        let doc = "a, b, and c here now. Plain sentence. Then d, e, and f there too.";
 
         // When computing.
         let s = compute(&testutil::inputs(doc));

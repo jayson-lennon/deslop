@@ -274,6 +274,113 @@ fn extra_path_pack_file_loads() {
 }
 
 #[test]
+fn metric_rule_with_threshold_lt_alone_loads() {
+    // Given a metric group carrying only `threshold-lt`.
+    let pack = r#"
+[[group]]
+id-base = "M-LT-ONLY"
+kind = "metric"
+tier = 3
+category = "density"
+stat = "sent_len_cv"
+per_words = 1
+threshold-lt = 0.45
+message = "Sentence-length variation {value}"
+
+[group.fixtures]
+must_match = []
+"#;
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "rules/pack.toml", pack);
+
+    // When loading.
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
+
+    // Then the pack loads clean with an AtMost spec.
+    assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+    let spec = loaded.rule_set.groups[0]
+        .metric
+        .as_ref()
+        .expect("metric spec");
+    assert_eq!(
+        spec.threshold,
+        deslop_core::rule::MetricThreshold::AtMost(0.45)
+    );
+}
+
+#[test]
+fn metric_rule_with_both_thresholds_is_refused() {
+    // Given a metric group carrying both threshold keys.
+    let pack = r#"
+[[group]]
+id-base = "M-BOTH-THRESH"
+kind = "metric"
+tier = 3
+category = "density"
+stat = "em_dash_rate"
+threshold-gt = 6.0
+threshold-lt = 0.1
+
+[group.fixtures]
+must_match = []
+"#;
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "rules/pack.toml", pack);
+
+    // When loading.
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
+
+    // Then the group is refused with a message naming both keys.
+    assert!(
+        loaded.errors.iter().any(|e| e.message.contains("not both")),
+        "{:?}",
+        loaded.errors
+    );
+    // And no metric spec materializes for the broken group.
+    assert!(loaded.rule_set.groups[0].metric.is_none());
+}
+
+#[test]
+fn metric_rule_with_neither_threshold_is_refused() {
+    // Given a metric group with no threshold key at all.
+    let pack = r#"
+[[group]]
+id-base = "M-NEITHER"
+kind = "metric"
+tier = 3
+category = "density"
+stat = "em_dash_rate"
+
+[group.fixtures]
+must_match = []
+"#;
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write(tmp.path(), "rules/pack.toml", pack);
+
+    // When loading.
+    let loaded = load(
+        &cfg_for(&["pack"]),
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+    );
+
+    // Then the legacy missing-threshold error message survives.
+    assert!(
+        loaded
+            .errors
+            .iter()
+            .any(|e| e.message.contains("requires `threshold_gt`")),
+        "{:?}",
+        loaded.errors
+    );
+}
+
+#[test]
 fn rule_failing_own_fixture_is_refused() {
     // Given a rule whose must_match sample cannot hit.
     let broken = r#"

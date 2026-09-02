@@ -10,15 +10,17 @@
 //!
 //! Patterns are never dropped here: identical regex strings fan out to every
 //! owning rule at scan time (the scanner groups them by `Regex::as_str()`).
-//! Metrics deduplicate on (stat, window, normalized terms); the STRICTest
-//! threshold (smallest) survives so a config conflict cannot weaken a check.
+//! Metrics deduplicate on (stat, window, normalized terms, direction); the
+//! STRICTest threshold survives within a direction so a config conflict
+//! cannot weaken a check. Opposite directions on one key are different
+//! predicates (fire above vs fire below) and both survive.
 
 use std::collections::HashMap;
 
 use crate::rule::{RuleGroup, RuleSet, fixtures::Matcher};
 
-/// Metric dedup identity: (stat, window, sorted normalized terms).
-type MetricKey = (String, String, Vec<String>);
+/// Metric dedup identity: (stat, window, sorted normalized terms, direction).
+type MetricKey = (String, String, Vec<String>, u8);
 
 /// One dropped claim, for `dedup:` diagnostics.
 struct DroppedClaim {
@@ -39,7 +41,23 @@ struct Claim {
 }
 
 /// A surviving metric claim: (group index, threshold, id-base).
-type MetricClaim = (usize, f64, String);
+type MetricClaim = (usize, crate::rule::MetricThreshold, String);
+
+/// Stable direction tag for the dedup key (deterministic ordering).
+fn direction(t: crate::rule::MetricThreshold) -> u8 {
+    match t {
+        crate::rule::MetricThreshold::AtLeast(_) => 0,
+        crate::rule::MetricThreshold::AtMost(_) => 1,
+    }
+}
+
+/// Human word for the fire direction, for `dedup:` diagnostics.
+fn direction_word(t: crate::rule::MetricThreshold) -> &'static str {
+    match t {
+        crate::rule::MetricThreshold::AtLeast(_) => "above",
+        crate::rule::MetricThreshold::AtMost(_) => "below",
+    }
+}
 
 /// Deduplicate `rules` in place; returns human-readable diagnostics lines.
 pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
@@ -102,8 +120,10 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
         }
     }
 
-    // Metric dedup: (stat, window, sorted terms) -> strictest threshold wins.
-    // Value = (group index, threshold, id-base) of the surviving claim.
+    // Metric dedup: (stat, window, sorted terms, direction) -> strictest
+    // threshold wins within one direction; opposite directions on the same
+    // key are different predicates (fire above vs fire below) and both
+    // survive. Value = (group index, threshold, id-base) of the survivor.
     let mut metric_owners: HashMap<MetricKey, MetricClaim> = HashMap::new();
     let mut remove_groups: Vec<usize> = Vec::new();
     for (gi, group) in rules.groups.iter().enumerate() {
@@ -116,27 +136,32 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
                 t.sort();
                 t
             },
+            direction(spec.threshold),
         );
         match metric_owners.get(&key).cloned() {
             Some((prev_gi, prev_threshold, prev_gid)) => {
-                if spec.threshold_gt < prev_threshold {
+                if spec.threshold.is_stricter_than(prev_threshold) {
                     // Strictest wins: this group supersedes the previous owner.
                     warnings.push(format!(
-                        "dedup: metric conflict on {}/{} - {}/{} (threshold {}) supersedes {}/{} (threshold {})",
-                        key.0, key.1, group.id_base, key.0, spec.threshold_gt, prev_gid, key.0, prev_threshold
+                        "dedup: metric conflict on {}/{} - {}/{} (fires {} {}) supersedes {}/{} (fires {} {})",
+                        key.0, key.1,
+                        group.id_base, key.0, direction_word(spec.threshold), spec.threshold.value(),
+                        prev_gid, key.0, direction_word(prev_threshold), prev_threshold.value(),
                     ));
-                    metric_owners.insert(key, (gi, spec.threshold_gt, group.id_base.clone()));
+                    metric_owners.insert(key, (gi, spec.threshold, group.id_base.clone()));
                     remove_groups.push(prev_gi);
                 } else {
                     warnings.push(format!(
-                        "dedup: metric conflict on {}/{} - {}/{} (threshold {}) dropped; {}/{} keeps the stricter {}",
-                        key.0, key.1, group.id_base, key.0, spec.threshold_gt, prev_gid, key.0, prev_threshold
+                        "dedup: metric conflict on {}/{} - {}/{} (fires {} {}) dropped; {}/{} keeps the stricter fires {} {}",
+                        key.0, key.1,
+                        group.id_base, key.0, direction_word(spec.threshold), spec.threshold.value(),
+                        prev_gid, key.0, direction_word(prev_threshold), prev_threshold.value(),
                     ));
                     remove_groups.push(gi);
                 }
             }
             None => {
-                metric_owners.insert(key, (gi, spec.threshold_gt, group.id_base.clone()));
+                metric_owners.insert(key, (gi, spec.threshold, group.id_base.clone()));
             }
         }
     }

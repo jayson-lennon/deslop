@@ -56,15 +56,21 @@ whilst additionally leveraging comprehensive pivotal landscape.
 
 Sentence window next: crucial robust notably adept. Adept crucial
 robust notably aims. Tapestry delve crucial robust notably adept aims.
-Each dense sentence in this paragraph reports on its own.
+Each dense sentence in this paragraph reports on its own. Boast
+burgeoning camaraderie cutting-edge daunting efficacious claims stack
+into one sentence here.
 
 ## Section: distributional metrics
 
-Sentence lengths in this section swing wildly. Tiny. Then an enormous,
-sprawling, meandering sentence that pads across half the page with clause
-after clause after clause, none of which earns its keep, until the reader
-has completely lost the thread of what was even being said or why it
-mattered in the first place.
+Uniform rhythm carries this passage: every sentence holds exactly ten
+words, so the document settles into one even, synthetic cadence. The
+linter reads the flat distribution and notes the monotone sentence pulse.
+Steady ten word lines land like ticks of a patient clock. Nothing here
+swells or shrinks, so the variation statistic sinks below its cutoff.
+Each sentence opens with the same two words in this closing run. Each
+sentence keeps the repeated-opener streak alive for the scanner. Each
+sentence completes the third consecutive hit, so the bare document-level
+render shape stays on display.
 
 ## Section: exclaim-example
 

@@ -22,11 +22,7 @@ threshold-gt = 9
 terms = ['delve', 'tapestry', 'whilst', 'additionally', 'comprehensive', 'pivotal', 'landscape', 'second', 'dense', 'paragraph']
 
 # A tier-2 WARNING cluster over the paragraph window: the anchorless
-# gutter block in warning yellow. (A sentence-window group was tried here,
-# but `sentences()` does not split on a terminator followed by a newline,
-# so a trailing sentence swallows the rest of the document into one window;
-# the builtin pack already shows the sentence window at note severity on
-# text that splits cleanly.)
+# gutter block in warning yellow.
 [[group]]
 id-base = 'GALLERY-FMT-PARAGRAPH'
 kind = 'metric'
@@ -38,3 +34,18 @@ stat = 'term_cluster_max'
 window = 'paragraph'
 threshold-gt = 4
 terms = ['also', 'aptly', 'adept', 'aims', 'align', 'across']
+
+# A tier-2 WARNING cluster over the sentence window: the fixed sentence
+# segmentation splits on a terminator followed by a newline, so each dense
+# sentence reports its own anchorless note.
+[[group]]
+id-base = 'GALLERY-FMT-SENTWINDOW'
+kind = 'metric'
+tier = 2
+category = 'vocabulary-density'
+message = '{value:.0} distinct trigger words cluster in one sentence'
+advice = 'Split and vary; a sentence stacking intensity words reads as machine-generated emphasis'
+stat = 'term_cluster_max'
+window = 'sentence'
+threshold-gt = 3
+terms = ['boast', 'burgeoning', 'camaraderie', 'cutting-edge', 'daunting', 'efficacious']

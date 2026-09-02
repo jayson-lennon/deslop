@@ -62,7 +62,10 @@ Entries are added or amended **only with human approval**.
 - (rules) At load, vocab and literal-ban terms deduplicate to a single owner: the most severe tier wins (a lower tier number beats a higher one), with config order breaking same-tier ties.
 - (rules) Dedup drops losing terms, removes emptied entries/groups, and emits a `dedup:` line per drop.
 - (rules) Identical pattern regex strings compile once and fan findings out to every owning rule.
-- (rules) Metrics deduplicate on (stat, window, terms) with the strictest (smallest) threshold surviving.
+- (rules) Metrics deduplicate on (stat, window, terms, direction); strictest threshold wins within a direction, opposite directions both survive.
+- (metrics) Document-metric sentence segmentation uses Unicode sentence boundaries (`icu_segmenter`): lone newlines are soft wraps (joined to spaces before segmentation, spans remapped back), blank lines stay paragraph breaks and never merge sentences, guard abbreviations (`e.g`, `i.e`, `Dr`, `vs`, `etc`, `Mr`) re-merge across a break, and zero-word segments are dropped.
+- (metrics) Metric rules fire on `threshold-gt` (value strictly exceeds) or `threshold-lt` (value strictly falls below), exactly one required; the `sent_len_cv` monotony rule fires below its threshold (uniform lengths). Metric dedup keys carry the direction: strictest threshold wins within a direction, opposite directions on one key both survive.
+- (metrics) UAX #29 treats every lone newline as a sentence break, so deslop's segmenter joins soft wraps before segmenting; raw unjoined segmentation is wrong for wrapped markdown prose.
 - (rules) Metric/vocab `advice` strings follow a problem-plus-resolution model, cite no papers, and never carry TODO markers (loader-tested).
 - (render) Human-format source lines are truncated to the terminal width only when stdout is a TTY or `--width` is explicit (`--width 0` disables); piped output stays untruncated.
 - (render) Truncation windows anchor on the finding's primary span with `…` on each cut side so caret marks stay visible; anchorless excerpt lines truncate from the line head.

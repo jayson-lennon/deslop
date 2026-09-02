@@ -422,7 +422,7 @@ fn metric_findings(
             for w in
                 metrics::cluster_windows(norm_text, &spec.terms, &spec.term_lemmas, spec.window)
             {
-                if (w.distinct as f64) <= spec.threshold_gt {
+                if !spec.threshold.fires(w.distinct as f64) {
                     continue;
                 }
                 // Trim the blank-line padding from paragraph/document window
@@ -458,7 +458,7 @@ fn metric_findings(
         }) else {
             continue;
         };
-        if value <= spec.threshold_gt {
+        if !spec.threshold.fires(value) {
             continue;
         }
         let (o_start, o_end) = norm.span_to_orig(s, e);

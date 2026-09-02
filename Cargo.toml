@@ -25,6 +25,7 @@ toml = "0.9"
 regex = "1"
 unicode-segmentation = "1.12"
 pulldown-cmark = { version = "0.13", default-features = false }
+icu_segmenter = "2.3"
 
 # diagnostics rendering
 codespan-reporting = "0.11"

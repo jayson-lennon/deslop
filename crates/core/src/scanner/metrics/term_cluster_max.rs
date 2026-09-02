@@ -246,13 +246,30 @@ mod tests {
 
     #[test]
     fn sentence_window_separates_siblings() {
-        // Given two sentences, each dense on its own.
-        let text = "crucial robust. notably crucial robust.";
+        // Given two sentences, each dense on its own (the second sentence
+        // starts capitalized, which UAX #29 requires to break after the
+        // period).
+        let text = "Crucial robust today. Notably crucial robust too.";
 
         // When measuring per-sentence.
         let got = windows(text, &terms(), &lemmas(), ClusterWindow::Sentence);
 
         // Then each sentence is its own window.
+        assert_eq!(got.len(), 2);
+        assert_eq!(got[0].distinct, 2);
+        assert_eq!(got[1].distinct, 3);
+    }
+
+    #[test]
+    fn sentence_window_stops_at_sentence_before_blank_line() {
+        // Given a sentence ending at a blank line and a following sentence.
+        let text = "crucial robust.\n\nnotably crucial robust.";
+
+        // When measuring per-sentence.
+        let got = windows(text, &terms(), &lemmas(), ClusterWindow::Sentence);
+
+        // Then the windows do not swallow across the blank line: the first
+        // sentence is its own window.
         assert_eq!(got.len(), 2);
         assert_eq!(got[0].distinct, 2);
         assert_eq!(got[1].distinct, 3);

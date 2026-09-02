@@ -1,7 +1,9 @@
-::notice file=tests/gallery/gallery.md,line=1,col=1,endLine=1,endColumn=1,title=AISIGNS-METRIC-SENTENCE-LENGTH-MONOTONY::Sentence-length coefficient of variation 1.3
-help: Uniform sentence lengths produce an even, synthetic cadence; combine some sentences and split others for rhythm
-::notice file=tests/gallery/gallery.md,line=3,col=74,endLine=3,endColumn=75,title=AISIGNS-METRIC-EM-DASH-RATE::Em-dash density 11.8 per 1000 words
-help: Em-dash density 11.8/1000 words exceeds conversational norms - reword the sentences instead; em-dashes as a default pause are a machine tell
+::notice file=tests/gallery/gallery.md,line=1,col=1,endLine=1,endColumn=1,title=AISIGNS-METRIC-ANAPHORA-OPENERS::Same two-word opening repeated 4.0×
+help: Sentences opening with the same bigram ('It can', 'This technology') form anaphora-like repetition; vary openers
+::error file=tests/gallery/gallery.md,line=1,col=1,endLine=77,endColumn=97,title=GALLERY-FMT-DOCWINDOW::10 distinct trigger words cluster across the document
+help: Vary the vocabulary; a document leaning on the same intensity words throughout reads as machine-generated emphasis
+::notice file=tests/gallery/gallery.md,line=3,col=74,endLine=3,endColumn=75,title=AISIGNS-METRIC-EM-DASH-RATE::Em-dash density 10.1 per 1000 words
+help: Em-dash density 10.1/1000 words exceeds conversational norms - reword the sentences instead; em-dashes as a default pause are a machine tell
 ::notice file=tests/gallery/gallery.md,line=9,col=1,endLine=10,endColumn=1,title=AISIGNS-METRIC-BULLET-BOLDLEAD::100%25 of bullets open with '**Term:**' lead-ins
 help: Uniform **bold lead-in:** bullets are listicle scaffolding; vary or convert to flowing sentences
 ::error file=tests/gallery/gallery.md,line=24,col=29,endLine=24,endColumn=65,title=AISIGNS#oaicite::Chatbot markup artifact
@@ -22,11 +24,17 @@ help: AI-tell vocabulary; state the idea in your own plain words
 help: Drop the negation scaffold and state it positively: roughly "it is a discipline"
 ::notice file=tests/gallery/gallery.md,line=39,col=5,endLine=39,endColumn=6,title=AISIGNS-METRIC-CURLY-DOUBLE-RATIO::100%25 of double quotes are curly
 help: Curly-quote share 100% - chat exports carry typographic quotes; normalize to straight ASCII
+::warning file=tests/gallery/gallery.md,line=49,col=1,endLine=51,endColumn=69,title=GALLERY-FMT-PARAGRAPH::6 distinct trigger words cluster in one paragraph
+help: Split and vary; a paragraph leaning on the same intensity words reads as machine-generated emphasis
 ::notice file=tests/gallery/gallery.md,line=49,col=1,endLine=51,endColumn=69,title=CLUSTER::11 distinct watch-list words cluster in paragraph
 help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
 ::notice file=tests/gallery/gallery.md,line=53,col=1,endLine=55,endColumn=64,title=CLUSTER::13 distinct watch-list words cluster in paragraph
 help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
 ::warning file=tests/gallery/gallery.md,line=55,col=21,endLine=55,endColumn=31,title=AATELL#leverage::AI-tell vocabulary
 help: Replace "leveraging" with its plain verb ("use")
-::notice file=tests/gallery/gallery.md,line=57,col=1,endLine=59,endColumn=58,title=CLUSTER::7 distinct watch-list words cluster in paragraph
+::notice file=tests/gallery/gallery.md,line=57,col=1,endLine=61,endColumn=24,title=CLUSTER::13 distinct watch-list words cluster in paragraph
 help: Vary the vocabulary; clustered intensity words read as machine-generated emphasis
+::warning file=tests/gallery/gallery.md,line=59,col=59,endLine=77,endColumn=97,title=GALLERY-FMT-SENTWINDOW::6 distinct trigger words cluster in one sentence
+help: Split and vary; a sentence stacking intensity words reads as machine-generated emphasis
+::notice file=tests/gallery/gallery.md,line=77,col=13,endLine=77,endColumn=14,title=EXCLAIM#exclamania::exclamation rate 9.8 per 1000 words
+help: cut most of these; one reads confident, ten reads shaky

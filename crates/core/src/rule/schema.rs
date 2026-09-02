@@ -48,6 +48,8 @@ pub struct GroupToml {
     pub per_words: Option<u32>,
     #[serde(default, alias = "threshold-gt")]
     pub threshold_gt: Option<f64>,
+    #[serde(default, alias = "threshold-lt")]
+    pub threshold_lt: Option<f64>,
     /// metric cluster: paragraph | sentence | document (default paragraph).
     #[serde(default)]
     pub window: Option<String>,

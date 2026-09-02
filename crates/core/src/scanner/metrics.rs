@@ -11,6 +11,9 @@
 //! docs from producing explosive nonsense rates; they live in
 //! [`DocStats::get`], next to the values they guard.
 
+use icu_segmenter::SentenceSegmenter;
+use icu_segmenter::options::SentenceBreakInvariantOptions;
+
 mod anchors;
 mod bold_density;
 mod bullet_boldlead;
@@ -163,55 +166,94 @@ pub fn compute(inputs: &Inputs<'_>) -> DocStats {
 
 pub use term_cluster_max::{ClusterWindowHit, first_words, windows as cluster_windows};
 
-/// Sentence splitting with abbreviation guard. Shared: several stats and
-/// the cluster windows all need the same segmentation.
+/// Abbreviations the Unicode rules miss: each ends in a dot that the
+/// segmenter reads as a sentence end before a capitalized next word.
+/// Post-segment, spans whose last word is one of these are merged with
+/// their successor (iteratively - `e.g. e.g. foo` chains).
+const SENTENCE_GUARDS: [&str; 6] = ["e.g", "i.e", "Dr", "vs", "etc", "Mr"];
+
+fn last_word_is_guard(span_text: &str) -> bool {
+    let last_word = span_text
+        .split_whitespace()
+        .next_back()
+        .unwrap_or("")
+        .trim_matches(|c: char| !c.is_alphanumeric());
+    SENTENCE_GUARDS
+        .iter()
+        .any(|g| last_word.trim_end_matches('.').eq_ignore_ascii_case(g))
+}
+
+/// Sentence segmentation over Unicode sentence boundaries, shared by the
+/// sentence-window stats and the cluster windows.
+///
+/// A lone newline in prose is a SOFT wrap (markdown renders it as a
+/// space), so segmentation runs over a joined view where lone newlines
+/// become spaces; newlines adjacent to another newline are paragraph
+/// breaks and stay. This keeps wrapped lines inside one sentence while
+/// blank lines still end one — a paragraph break can NEVER merge two
+/// sentences into a single window.
+///
+/// Returns `(start, end)` byte spans into `prose` (view offsets are
+/// remapped back). Spans carry trailing whitespace (e.g. `"Okay. "`),
+/// and zero-word segments (the blank line between paragraphs arrives as
+/// its own segment) are dropped. `Dr. Smith` stays one sentence via the
+/// guard merge.
 pub(crate) fn sentences(prose: &str) -> Vec<(usize, usize)> {
-    const GUARDS: [&str; 6] = ["e.g", "i.e", "Dr", "vs", "etc", "Mr"];
-    let mut out = Vec::new();
-    let mut start = 0usize;
-    let bytes = prose.as_bytes();
-    let mut i = 0;
-    while i < prose.len() {
-        if matches!(bytes[i], b'.' | b'!' | b'?') {
-            // Consume runs like "!!!" / "..."
-            let mut j = i + 1;
-            while j < prose.len() && matches!(bytes[j], b'.' | b'!' | b'?') {
-                j += 1;
-            }
-            // Guard: abbreviation like "e.g." - inspect only the final
-            // word fragment before the dot (bounded, no allocation).
-            let win_start = crate::boundary::floor(prose, i.saturating_sub(12).max(start));
-            let last_word: String = prose[win_start..i]
-                .chars()
-                .rev()
-                .take_while(|c| c.is_alphanumeric() || *c == '.')
-                .collect::<Vec<_>>()
-                .into_iter()
-                .rev()
-                .collect();
-            let is_guard = GUARDS.iter().any(|g| {
-                let g = g.trim_end_matches('.');
-                last_word.eq_ignore_ascii_case(g)
-                    || last_word.eq_ignore_ascii_case(&format!("{g}."))
-                    || last_word.to_lowercase().ends_with(&format!(".{g}"))
-            });
-            if !is_guard
-                && bytes
-                    .get(j)
-                    .is_none_or(|&b| matches!(b, b'\n' | b' ' | b'-' | b')' | b'"' | b'\'' | b']'))
-                && bytes.get(j + 1).is_none_or(|&b| b.is_ascii_alphabetic())
-            {
-                out.push((start, j));
-                start = j;
-            }
-            i = j;
-        } else {
-            i += 1;
+    // Soft-wrap join: view text plus view-byte -> prose-byte map.
+    let mut view = String::with_capacity(prose.len());
+    let mut map: Vec<usize> = Vec::with_capacity(prose.len() + 1);
+    let mut prev_newline = false;
+    for (i, c) in prose.char_indices() {
+        let next_newline = prose[i + c.len_utf8()..].starts_with('\n');
+        let keep_newline = c == '\n' && (prev_newline || next_newline);
+        match keep_newline {
+            true => view.push('\n'),
+            false if c == '\n' => view.push(' '),
+            false => view.push(c),
+        }
+        for _ in 0..c.len_utf8() {
+            map.push(i);
+        }
+        prev_newline = c == '\n';
+    }
+    map.push(prose.len());
+
+    // Const-built from baked data (a cheap Copy of static refs); the
+    // segmenter holds no per-document state and needs no caching.
+    let segmenter = SentenceSegmenter::new(SentenceBreakInvariantOptions::default());
+    // Segmenter boundaries: byte offsets into the VIEW, starting at 0.
+    let mut bounds: Vec<usize> = segmenter.segment_str(&view).collect();
+    if bounds.first() != Some(&0) {
+        bounds.insert(0, 0);
+    }
+    if *bounds.last().unwrap_or(&0) != view.len() {
+        bounds.push(view.len());
+    }
+
+    // Consecutive boundary pairs, minus zero-word segments (spaces in the
+    // view are whitespace, so word counts match the prose slices) and with
+    // trailing paragraph-break whitespace trimmed off each span.
+    let units: Vec<(usize, usize)> = bounds
+        .windows(2)
+        .map(|w| (w[0], w[1]))
+        .filter(|(s, e)| words_count(&view[*s..*e]) > 0)
+        .map(|(s, e)| (s, s + view[s..e].trim_end().len()))
+        .collect();
+
+    // Guard-merge: an abbreviation-final span rejoins its successor,
+    // repeating until no merged span itself ends in a guard.
+    let mut out: Vec<(usize, usize)> = Vec::with_capacity(units.len());
+    for (start, end) in units {
+        match out.last_mut() {
+            Some(prev) if last_word_is_guard(&view[prev.0..prev.1]) => prev.1 = end,
+            _ => out.push((start, end)),
         }
     }
-    if start < prose.len() {
-        out.push((start, prose.len()));
-    }
+    // Remap view coordinates back to prose coordinates.
+    out.iter_mut().for_each(|(s, e)| {
+        *s = map[*s];
+        *e = map[*e];
+    });
     out
 }
 
@@ -336,6 +378,79 @@ pub(crate) mod testutil {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn blank_line_breaks_sentences() {
+        // Given two sentences separated by a blank line.
+        let doc = "One two three.\n\nMembers arrive here.";
+
+        // When segmenting.
+        let got = sentences(doc);
+
+        // Then the sentences are separate spans, not one merged chunk.
+        assert_eq!(got.len(), 2);
+        assert_eq!(&doc[got[0].0..got[0].1], "One two three.");
+        assert_eq!(&doc[got[1].0..got[1].1], "Members arrive here.");
+    }
+
+    #[test]
+    fn guard_merges_across_segments() {
+        // Given "Mr." at a segment boundary (a UAX #29 miss).
+        let doc = "Mr. Jones left.";
+
+        // When segmenting.
+        let got = sentences(doc);
+
+        // Then the guard merges the segments into one sentence.
+        assert_eq!(got.len(), 1);
+        assert_eq!(&doc[got[0].0..got[0].1], doc);
+    }
+
+    #[test]
+    fn decimal_and_abbrev_do_not_split() {
+        // Given a decimal and an example abbreviation.
+        let doc = "It cost $5.50 total. E.g. this.";
+
+        // When segmenting.
+        let got = sentences(doc);
+
+        // Then the decimal stays inside one span.
+        assert_eq!(got.len(), 2);
+        assert_eq!(&doc[got[0].0..got[0].1], "It cost $5.50 total.");
+        // And the abbreviation does not start a new sentence.
+        assert_eq!(&doc[got[1].0..got[1].1], "E.g. this.");
+    }
+
+    #[test]
+    fn zero_word_segments_are_dropped() {
+        // Given a sentence followed only by blank lines.
+        let doc = "Ends here.\n\n";
+
+        // When segmenting.
+        let got = sentences(doc);
+
+        // Then no trailing zero-word span is emitted.
+        assert_eq!(got.len(), 1);
+        assert_eq!(&doc[got[0].0..got[0].1], "Ends here.");
+    }
+
+    #[test]
+    fn lowercase_continuation_does_not_split() {
+        // Given a lowercase continuation after a period (SB8 suppression).
+        let doc = "Ends with etc. then lowercase continues. Next real one.";
+
+        // When segmenting.
+        let got = sentences(doc);
+
+        // Then the abbreviation + lowercase continuation stays one sentence,
+        // and the capitalized sentence after it separates.
+        assert_eq!(got.len(), 2);
+        assert_eq!(
+            &doc[got[0].0..got[0].1],
+            "Ends with etc. then lowercase continues."
+        );
+        assert_eq!(&doc[got[1].0..got[1].1], "Next real one.");
+    }
 
     #[test]
     fn compute_fills_word_count_and_coordinator_fields() {

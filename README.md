@@ -213,12 +213,15 @@ advice = 'Bold only genuinely pivotal terms'
 #   emoji_decoration_count        emoji in headings/bullets
 #   bullet_boldlead_fraction      bullets opening with bold
 #   tricolon_max_streak           longest "x, y, and z" run
-#   sent_len_cv                   sentence-length variation
+#   sent_len_cv                   sentence-length variation (low = uniform)
 #   opening_ngram_repeat          repeated sentence openers
 #   term_cluster_max              distinct watch words in one window
 stat = 'bold_density'
 
-# Required. Fires when the value exceeds this (strictly greater).
+# Required, exactly one of:
+#   threshold-gt   fires when the value exceeds this (strictly greater)
+#   threshold-lt   fires when the value falls below this (strictly less);
+#                  for stats where LOW means synthetic, e.g. sent_len_cv
 threshold-gt = 3.0
 
 # Optional, default 1000. Scale factor for {value} in the message.
@@ -261,7 +264,7 @@ Levels are clippy-style: `allow | note | warn | error`. Because vocab terms dedu
 
 ## Deduplication
 
-When two packs claim the same term, the stricter tier wins (tier 1 beats tier 3, and config order breaks ties). Every vocab or literal-ban term ends up with exactly one owner, identical pattern regexes compile once, and metric rules deduplicate on `(stat, window, terms)` with the strictest threshold surviving. Dropped duplicates are noted on stderr as `dedup:` lines. In practice this means allowing a lint in `[lints]` silences it completely, with nothing left firing from a second pack.
+When two packs claim the same term, the stricter tier wins (tier 1 beats tier 3, and config order breaks ties). Every vocab or literal-ban term ends up with exactly one owner, identical pattern regexes compile once, and metric rules deduplicate on `(stat, window, terms, direction)` with the strictest threshold surviving within a direction — opposite directions on the same key are different predicates and both survive. Dropped duplicates are noted on stderr as `dedup:` lines. In practice this means allowing a lint in `[lints]` silences it completely, with nothing left firing from a second pack.
 
 ## Testing a pack
 

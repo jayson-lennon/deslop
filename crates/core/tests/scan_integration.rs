@@ -455,3 +455,192 @@ fn cluster_below_threshold_window_is_silent() {
     // Then only the dense window reports.
     assert_eq!(findings.len(), 1);
 }
+
+const UNIFORM_LT_RULE: &str = r#"
+[[group]]
+id-base = "TEST-MONOTONY"
+kind = "metric"
+tier = 3
+category = "document-signals"
+message = 'Sentence-length variation {value}'
+advice = 'vary sentence length'
+stat = 'sent_len_cv'
+per_words = 1
+threshold-lt = 0.5
+"#;
+
+#[test]
+fn at_most_threshold_fires_below_cutoff() {
+    // Given a uniform-rhythm doc (six ~4-word sentences) and an AtMost
+    // threshold of 0.5.
+    let rules = load_with(&[("mono.toml", UNIFORM_LT_RULE)]);
+    let src = "One two three four.\n\nFive six seven eight.\n\nNine ten eleven twelve.\n\n\
+               Thirteen fourteen fifteen sixteen.\n\nSeventeen eighteen nineteen twenty.\n\n\
+               Twenty one two three.\n";
+
+    // When scanning.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    // Then the low-CV doc fires the AtMost rule.
+    let hits: Vec<_> = findings
+        .iter()
+        .filter(|f| f.entry_id == "TEST-MONOTONY")
+        .collect();
+    assert_eq!(hits.len(), 1, "{findings:?}");
+    assert_eq!(hits[0].tier, deslop_core::finding::Tier::Density);
+}
+
+#[test]
+fn at_most_threshold_stays_silent_above_cutoff() {
+    // Given a doc whose sentence lengths swing wildly (high CV).
+    let rules = load_with(&[("mono.toml", UNIFORM_LT_RULE)]);
+    let src = "One two three.\n\nFour five six seven eight nine ten eleven twelve thirteen \
+               fourteen fifteen sixteen seventeen eighteen nineteen twenty.\n\nOne two three.\n\n\
+               Four five six seven eight nine ten eleven twelve thirteen fourteen fifteen \
+               sixteen seventeen eighteen nineteen twenty.\n\nOne two three.\n\nFour five six \
+               seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen \
+               eighteen nineteen twenty.\n";
+
+    // When scanning.
+    let findings = scan(src, &rules, &LintSettings::default());
+
+    // Then nothing fires: the variation is above the cutoff.
+    assert!(
+        findings.iter().all(|f| f.entry_id != "TEST-MONOTONY"),
+        "{findings:?}"
+    );
+}
+
+#[test]
+fn at_least_threshold_fires_above_cutoff_unchanged() {
+    // Given the historical AtLeast shape on the same stat family.
+    let gt_rule = UNIFORM_LT_RULE
+        .replace("TEST-MONOTONY", "TEST-EMDASH")
+        .replace("stat = 'sent_len_cv'", "stat = 'em_dash_rate'")
+        .replace("per_words = 1", "per_words = 1000")
+        .replace("threshold-lt = 0.5", "threshold-gt = 2.0")
+        .replace("Sentence-length variation", "Em-dash density");
+    let rules = load_with(&[("dash.toml", &gt_rule)]);
+    let src = format!("{} —\n", "word ".repeat(400));
+
+    // When scanning.
+    let findings = scan(&src, &rules, &LintSettings::default());
+
+    // Then the high-rate doc (2.5 dashes per 1000 words) fires AtLeast.
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert_eq!(findings[0].entry_id, "TEST-EMDASH");
+}
+
+const UNIFORM_DOC: &str = "One two three four.\n\nFive six seven eight.\n\nNine ten eleven twelve.\n\n\
+                           Thirteen fourteen fifteen sixteen.\n\nSeventeen eighteen nineteen twenty.\n\n\
+                           Twenty one two three.\n";
+const WILD_DOC: &str = "One two three.\n\nFour five six seven eight nine ten eleven twelve thirteen \
+                        fourteen fifteen sixteen seventeen eighteen nineteen twenty.\n\nOne two three.\n\n\
+                        Four five six seven eight nine ten eleven twelve thirteen fourteen fifteen \
+                        sixteen seventeen eighteen nineteen twenty.\n\nOne two three.\n\nFour five six \
+                        seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen \
+                        eighteen nineteen twenty.\n";
+
+#[test]
+fn at_most_rule_survives_dedup_alongside_at_least_on_same_key() {
+    // Given two sent_len_cv groups on the same (stat, window, terms) key
+    // with OPPOSITE directions: AtLeast 0.8 and AtMost 0.5.
+    let metric = |gid: &str, key: &str, th: &str| {
+        format!(
+            r#"
+[[group]]
+id-base = "{gid}"
+kind = "metric"
+tier = 3
+category = "signals"
+stat = "sent_len_cv"
+per_words = 1
+{key} = {th}
+"#
+        )
+    };
+    let rules = load_with(&[(
+        "m.toml",
+        &format!(
+            "{}\n{}",
+            metric("METRIC-GT", "threshold-gt", "0.8"),
+            metric("METRIC-LT", "threshold-lt", "0.5")
+        ),
+    )]);
+
+    // When scanning a uniform doc (CV near zero).
+    let findings = scan(UNIFORM_DOC, &rules, &LintSettings::default());
+
+    // Then the AtMost rule survived dedup and is the one that fires.
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert_eq!(findings[0].entry_id, "METRIC-LT");
+}
+
+#[test]
+fn at_least_rule_survives_dedup_alongside_at_most_on_same_key() {
+    // Given the same opposite-direction pair on one key.
+    let metric = |gid: &str, key: &str, th: &str| {
+        format!(
+            r#"
+[[group]]
+id-base = "{gid}"
+kind = "metric"
+tier = 3
+category = "signals"
+stat = "sent_len_cv"
+per_words = 1
+{key} = {th}
+"#
+        )
+    };
+    let rules = load_with(&[(
+        "m.toml",
+        &format!(
+            "{}\n{}",
+            metric("METRIC-GT", "threshold-gt", "0.8"),
+            metric("METRIC-LT", "threshold-lt", "0.5")
+        ),
+    )]);
+
+    // When scanning a wildly varied doc (CV well above both cutoffs).
+    let findings = scan(WILD_DOC, &rules, &LintSettings::default());
+
+    // Then the AtLeast rule survived dedup and is the one that fires.
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert_eq!(findings[0].entry_id, "METRIC-GT");
+}
+
+#[test]
+fn at_most_strictest_smallest_threshold_survives_dedup() {
+    // Given two AtMost groups on the same key, cutoffs 0.9 and 0.3.
+    let metric = |gid: &str, th: &str| {
+        format!(
+            r#"
+[[group]]
+id-base = "{gid}"
+kind = "metric"
+tier = 3
+category = "signals"
+stat = "sent_len_cv"
+per_words = 1
+threshold-lt = {th}
+"#
+        )
+    };
+    let rules = load_with(&[(
+        "m.toml",
+        &format!(
+            "{}\n{}",
+            metric("METRIC-LOOSE", "0.9"),
+            metric("METRIC-TIGHT", "0.3")
+        ),
+    )]);
+
+    // When scanning a uniform doc (CV near zero, below both cutoffs).
+    let findings = scan(UNIFORM_DOC, &rules, &LintSettings::default());
+
+    // Then the stricter (smaller) AtMost cutoff survives: only METRIC-TIGHT
+    // reports.
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert_eq!(findings[0].entry_id, "METRIC-TIGHT");
+}

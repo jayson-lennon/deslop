@@ -35,7 +35,8 @@ pub struct RuleGroup {
 pub struct MetricSpec {
     pub stat: crate::metric_stats::Stat,
     pub per_words: u32,
-    pub threshold_gt: f64,
+    /// Direction + cutoff the stat must cross to fire.
+    pub threshold: MetricThreshold,
     /// term_cluster_max: granularity of the counted window.
     pub window: ClusterWindow,
     /// term_cluster_max: surface forms counted per window (lowercased,
@@ -44,6 +45,47 @@ pub struct MetricSpec {
     /// Parallel to `terms`: the lemma each form belongs to. Distinct-lemma
     /// counting, so inflections never inflate the cluster score.
     pub term_lemmas: Vec<u32>,
+}
+
+/// Which side of the cutoff a metric fires on. Chosen per rule in TOML
+/// via `threshold-gt` ([`MetricThreshold::AtLeast`]) or `threshold-lt`
+/// ([`MetricThreshold::AtMost`]); exactly one is present.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MetricThreshold {
+    /// Fires when the value exceeds the cutoff (stat grows past it).
+    AtLeast(f64),
+    /// Fires when the value falls below the cutoff (stat shrinks under it).
+    AtMost(f64),
+}
+
+impl MetricThreshold {
+    /// Whether a measured value crosses this threshold. Comparisons are
+    /// strict, matching the historical `value > threshold-gt` behavior.
+    pub fn fires(self, value: f64) -> bool {
+        match self {
+            MetricThreshold::AtLeast(cutoff) => value > cutoff,
+            MetricThreshold::AtMost(cutoff) => value < cutoff,
+        }
+    }
+
+    /// The cutoff value (for dedup decisions and message interpolation).
+    pub fn value(self) -> f64 {
+        match self {
+            MetricThreshold::AtLeast(cutoff) | MetricThreshold::AtMost(cutoff) => cutoff,
+        }
+    }
+
+    /// Whether `self` fires on a strict subset of what `other` fires on.
+    /// Only like directions compare: AtLeast gets stricter as the cutoff
+    /// rises, AtMost as it falls. Opposite directions are different
+    /// predicates and never compete (both survive dedup).
+    pub fn is_stricter_than(self, other: MetricThreshold) -> bool {
+        match (self, other) {
+            (MetricThreshold::AtLeast(a), MetricThreshold::AtLeast(b)) => a > b,
+            (MetricThreshold::AtMost(a), MetricThreshold::AtMost(b)) => a < b,
+            _ => false,
+        }
+    }
 }
 
 /// Window granularity for cluster stats.

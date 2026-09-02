@@ -69,8 +69,16 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
             {
                 push(None, format!("unknown stat {:?}", group.stat));
             }
-            if group.threshold_gt.is_none() {
-                push(None, "metric rule requires `threshold_gt`".into());
+            match (group.threshold_gt, group.threshold_lt) {
+                (Some(_), Some(_)) => push(
+                    None,
+                    "metric rule takes one of `threshold_gt` or `threshold_lt`, not both".into(),
+                ),
+                (None, None) => push(
+                    None,
+                    "metric rule requires `threshold_gt` or `threshold_lt`".into(),
+                ),
+                _ => {}
             }
             if !group.entries.is_empty() {
                 push(None, "metric rules must not carry [[entries]]".into());
@@ -406,11 +414,17 @@ fn parse_group(
         metric: if group.kind == "metric" && group_was_valid {
             crate::metric_stats::Stat::from_name(group.stat.as_deref().unwrap_or_default()).map(
                 |stat| {
+                    let threshold = match (group.threshold_gt, group.threshold_lt) {
+                        // Validation guarantees exactly one is present.
+                        (Some(gt), _) => crate::rule::MetricThreshold::AtLeast(gt),
+                        (None, Some(lt)) => crate::rule::MetricThreshold::AtMost(lt),
+                        (None, None) => crate::rule::MetricThreshold::AtLeast(0.0),
+                    };
                     let (terms, term_lemmas) = expand_metric_terms(&group.terms);
                     crate::rule::MetricSpec {
                         stat,
                         per_words: group.per_words.unwrap_or(1000),
-                        threshold_gt: group.threshold_gt.unwrap_or(0.0),
+                        threshold,
                         window: group
                             .window
                             .as_deref()
