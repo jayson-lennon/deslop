@@ -19,6 +19,7 @@ threshold = 0.55
 message = 'Near-verbatim repetition: {count} sentences say the same thing'
 advice = 'Cut or merge the repeats; each idea earns exactly one sentence'
 enabled = true
+max-distance = 500
 
 [group.url]
 text = "Signs of AI writing"
@@ -38,6 +39,7 @@ threshold = 0.78
 message = 'Repeated proposition: {count} sentences restate the same point'
 advice = 'Keep the sharpest phrasing; delete the restatements'
 enabled = true
+max-distance = 500
 
 [group.url]
 text = "Signs of AI writing"
@@ -53,8 +55,8 @@ kind = 'repetition'
 tier = 3
 category = 'repetition'
 variant = 'content-family'
-threshold = 0.5
-min-members = 3
+threshold = 0.6
+min-members = 2
 message = 'Recurring content: {count} paragraphs circle the same small idea'
 advice = 'Consolidate the scattered mentions into one place, or diversify what each paragraph covers'
 enabled = true
