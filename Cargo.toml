@@ -34,6 +34,14 @@ candle-transformers = "0.11"
 tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
 sha2 = "0.10"
 
+# structured logging (traces compiled out of hot paths unless enabled)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+    "env-filter",
+    "fmt",
+    "std",
+] }
+
 # diagnostics rendering
 codespan-reporting = "0.11"
 termcolor = "1"

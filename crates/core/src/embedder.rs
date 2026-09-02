@@ -12,6 +12,8 @@
 //! the same model is not a hard error).
 
 use std::path::Path;
+use std::time::Instant;
+use tracing::{debug, info, warn};
 
 use candle_core::{Device, Tensor};
 use candle_nn::VarBuilder;
@@ -122,9 +124,12 @@ impl CandleEmbedder {
     /// Returns an error if a file is missing, unreadable, or the tokenizer /
     /// model fails to construct. Hash mismatches only warn (stderr).
     pub fn from_dir(dir: &Path) -> Result<Self, error_stack::Report<EmbedError>> {
+        let started = Instant::now();
+        info!(dir = %dir.display(), "loading embedding model all-MiniLM-L6-v2");
         for (file, pinned) in MODEL_FILES {
             let path = dir.join(file);
             if !path.is_file() {
+                debug!(file = %path.display(), "model file missing");
                 return Err(error_stack::Report::new(EmbedError::MissingFile {
                     dir: dir.display().to_string(),
                     file,
@@ -132,10 +137,18 @@ impl CandleEmbedder {
             }
             let digest = file_sha256(&path)?;
             if digest != pinned {
+                warn!(
+                    file = %path.display(),
+                    actual = %digest,
+                    expected = %pinned,
+                    "model file sha256 differs from the pinned digest - continuing"
+                );
                 eprintln!(
                     "deslop: model file {} has sha256 {digest}; expected {pinned} - continuing",
                     path.display()
                 );
+            } else {
+                debug!(file = %path.display(), sha256 = %digest, "model file verified");
             }
         }
 
@@ -161,6 +174,11 @@ impl CandleEmbedder {
             }
         };
 
+        debug!(
+            elapsed_ms = started.elapsed().as_millis() as u64,
+            "tokenizer ready"
+        );
+
         let config_path = dir.join("config.json");
         let config_json = read_file(&config_path)?;
         let config: Config = serde_json::from_str(&config_json).map_err(|e| {
@@ -172,11 +190,22 @@ impl CandleEmbedder {
 
         let weights_path = dir.join("model.safetensors");
         let data = read_file_binary(&weights_path)?;
+        debug!(
+            bytes = data.len(),
+            elapsed_ms = started.elapsed().as_millis() as u64,
+            "weights read"
+        );
         let device = Device::Cpu;
         let vb = VarBuilder::from_buffered_safetensors(data, candle_core::DType::F32, &device)
             .map_err(EmbedError::Candle)?;
         let model = BertModel::load(vb, &config).map_err(EmbedError::Candle)?;
 
+        info!(
+            elapsed_ms = started.elapsed().as_millis() as u64,
+            hidden_size = config.hidden_size,
+            layers = config.num_hidden_layers,
+            "embedding model ready"
+        );
         Ok(CandleEmbedder { tokenizer, model })
     }
 
@@ -251,10 +280,21 @@ impl Embedder for CandleEmbedder {
         if inputs.is_empty() {
             return Ok(Vec::new());
         }
+        let started = Instant::now();
+        debug!(
+            inputs = inputs.len(),
+            batch_size = BATCH_SIZE,
+            "embedding batch run"
+        );
         let mut out = Vec::with_capacity(inputs.len());
         for batch in inputs.chunks(BATCH_SIZE) {
             out.extend(self.embed_batch(batch)?);
         }
+        debug!(
+            inputs = inputs.len(),
+            elapsed_ms = started.elapsed().as_millis() as u64,
+            "embedding complete"
+        );
         Ok(out)
     }
 }

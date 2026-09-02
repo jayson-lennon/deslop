@@ -292,6 +292,10 @@ The `propositional` variant runs the sentence-transformers model **all-MiniLM-L6
 
 Set `DESLOP_MODELS_DIR` to point the models root somewhere else (the model dir is `<root>/all-MiniLM-L6-v2`). If the pack is not installed, none of this is probed and nothing runs. If the pack is installed but files are missing, that pack fails to load with the expected directory named in the error (exit 2). Files whose sha256 differs from the pinned digests produce a one-line stderr warning and the run continues. Without the model (or on machines too small to run it), the other two variants still work.
 
+## Tracing
+
+Set `DESLOP_LOG` (or the ecosystem-standard `RUST_LOG`) to emit structured traces on stderr; with neither set, output is byte-identical to a run without tracing. `DESLOP_LOG=debug` shows the embedding model load (per-file sha256 verdicts, tokenizer/weights timing, model shape), one `rule active` line per loaded rule, hit counts per scanner pass, and the repetition passes (paragraph/pair/component counts). `DESLOP_LOG=deslop_core::embedder=debug` scopes tracing to just the model load.
+
 ## Silencing rules
 
 ```toml

@@ -11,6 +11,8 @@
 //! stderr warning per document set and skips instead of failing the run.
 
 use super::metrics;
+use tracing::{debug, info_span};
+
 use super::repetition::{
     components, content_words, jaccard, lcs_ratio, line_index, line_of, overlap_coef,
     shingles_adaptive, words_lower,
@@ -99,13 +101,19 @@ pub fn repetition_findings(
             continue;
         };
 
+        let _pass =
+            info_span!("repetition_pass", rule = %group.id_base, variant = spec.variant.name());
         let all_components = match spec.variant {
-            RepetitionVariant::NearVerbatim => cluster(
-                &prose,
-                near_verbatim_pairs(&prose, spec.threshold),
-                spec.min_members,
-                MIN_UNIT_WORDS,
-            ),
+            RepetitionVariant::NearVerbatim => {
+                let comps = cluster(
+                    &prose,
+                    near_verbatim_pairs(&prose, spec.threshold),
+                    spec.min_members,
+                    MIN_UNIT_WORDS,
+                );
+                debug!(rule = %group.id_base, components = comps.len(), "near-verbatim pass");
+                comps
+            }
             RepetitionVariant::Propositional => {
                 let Some(embedder) = embedder else {
                     warnings.push(
@@ -115,6 +123,7 @@ pub fn repetition_findings(
                 };
                 match propositional_pairs(&prose, spec.threshold, embedder) {
                     Ok(pairs) => {
+                        debug!(rule = %group.id_base, pairs = pairs.len(), "propositional pairs");
                         let comps = cluster(
                             &prose,
                             pairs,
@@ -149,6 +158,7 @@ pub fn repetition_findings(
             RepetitionVariant::ContentFamily => {
                 let paragraphs = paragraph_bounds(&prose);
                 let pairs = content_family_pairs(&prose, spec.threshold);
+                debug!(rule = %group.id_base, paragraphs = paragraphs.len(), pairs = pairs.len(), "content-family pass");
                 components(paragraphs.len(), &pairs)
                     .into_iter()
                     .filter(|comp| comp.len() >= spec.min_members)
@@ -224,6 +234,7 @@ fn near_verbatim_set(prose: &str, threshold: f64) -> Vec<Vec<usize>> {
 
 /// Propositional pairs: sentence pairs whose embedding cosine reaches
 /// `threshold`. Requires the model; errors surface as a run warning.
+#[allow(clippy::needless_pass_by_value)]
 fn propositional_pairs(
     prose: &str,
     threshold: f64,
@@ -237,6 +248,7 @@ fn propositional_pairs(
     if texts.is_empty() {
         return Ok(Vec::new());
     }
+    debug!(units = texts.len(), "embedding sentence units");
     let vectors = embedder.embed(&texts)?;
     let mut pairs = Vec::new();
     for i in 0..vectors.len() {

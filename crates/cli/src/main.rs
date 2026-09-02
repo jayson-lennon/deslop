@@ -139,6 +139,26 @@ mod builtin_registry {
     }
 }
 
+/// Install the stderr tracing subscriber. Filter source, in order:
+/// `DESLOP_LOG`, then the ecosystem-standard `RUST_LOG`. When neither is
+/// set, no events are emitted and output stays byte-identical to a run
+/// without tracing.
+fn init_tracing() {
+    use tracing_subscriber::EnvFilter;
+    let filter = match std::env::var("DESLOP_LOG") {
+        Ok(v) => EnvFilter::new(v),
+        Err(_) => match std::env::var("RUST_LOG") {
+            Ok(v) => EnvFilter::new(v),
+            Err(_) => return,
+        },
+    };
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_writer(std::io::stderr)
+        .with_target(true)
+        .try_init();
+}
+
 /// Process exit contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExitCode {
@@ -156,6 +176,8 @@ fn main() {
 }
 
 fn run(cli: Cli) -> i32 {
+    init_tracing();
+
     // --config must point at a real file when given.
     if let Some(cfg_path) = &cli.config {
         if !cfg_path.is_file() {

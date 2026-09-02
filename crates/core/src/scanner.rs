@@ -14,6 +14,8 @@ pub mod repetition_scan;
 pub mod use_mention;
 pub mod vocab_scan;
 
+use tracing::{debug, info_span, trace};
+
 use crate::eol::normalize;
 use crate::finding::{Finding, KindTag, Span, Tier};
 use crate::plugin::{LintPlugin, PluginFinding, PluginInput};
@@ -108,11 +110,15 @@ pub fn scan_with_plugins(
                 continue;
             }
         }
+        debug!(rule = %group.id_base, kind = %group.kind, "rule active");
+        let rule_span = info_span!("rule_pass", rule = %group.id_base, kind = %group.kind);
+        let _guard = rule_span.enter();
         for entry in &group.entries {
             let entry_level = settings.level_for(&group.id_base, &entry.id);
             if entry_level == Some(crate::config::LintLevel::Allow) {
                 continue;
             }
+            trace!(entry = %entry.id, "entry pass");
             match &entry.matcher {
                 Matcher::Vocab { .. } => {}
                 Matcher::Pattern(_) => {
@@ -128,7 +134,11 @@ pub fn scan_with_plugins(
                                 .map(|s| (n.clone(), s))
                         })
                         .collect();
-                    for hit in literal_scan::scan(&map, &compiled) {
+                    let hits = literal_scan::scan(&map, &compiled);
+                    if !hits.is_empty() {
+                        debug!(rule = %group.id_base, entry = %entry.id, hits = hits.len(), "literal-ban hits");
+                    }
+                    for hit in hits {
                         findings.push(make_finding(
                             group,
                             entry.id.as_str(),
@@ -161,7 +171,15 @@ pub fn scan_with_plugins(
     // owner per hit. Tier/`[lints]` gates were applied when building the
     // owner table, so a suppressed owner simply doesn't appear here.
     for (re, owners) in &pattern_groups {
-        for hit in pattern_scan::scan(re, text, &map) {
+        let hits = pattern_scan::scan(re, text, &map);
+        if !hits.is_empty() {
+            debug!(
+                rules = %owners.iter().map(|(g, _)| g.id_base.as_str()).collect::<Vec<_>>().join(","),
+                hits = hits.len(),
+                "pattern hits"
+            );
+        }
+        for hit in hits {
             for (group, entry) in owners {
                 findings.push(make_finding(
                     group,
@@ -192,7 +210,11 @@ pub fn scan_with_plugins(
     // Shared vocab scan: one pass, then per-hit entry resolution.
     {
         let scope_allow = scope_predicate("prose");
-        for hit in shared_vocab.scan(text, &map, &scope_allow) {
+        let vocab_hits = shared_vocab.scan(text, &map, &scope_allow);
+        if !vocab_hits.is_empty() {
+            debug!(hits = vocab_hits.len(), "vocab hits");
+        }
+        for hit in vocab_hits {
             let Some((group, entry)) = resolve_entry(rules, &hit.entry_slug) else {
                 continue;
             };
@@ -272,6 +294,7 @@ pub struct ScanWithPlugins {
 /// key gets the same allow/note/warn/error treatment. A plugin failure drops
 /// that plugin's findings for this document and records a warning.
 #[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 fn plugin_findings(
     src: &str,
     _norm_text: &str,
@@ -313,13 +336,18 @@ fn plugin_findings(
             config: plugin.params(),
             ..envelope.clone()
         };
+        let started = std::time::Instant::now();
         let produced = match plugin.scan(&input) {
             Ok(produced) => produced,
             Err(error) => {
                 warnings.push(format!("deslop: plugin {id} failed: {error}"));
+                debug!(plugin = %id, elapsed_ms = started.elapsed().as_millis() as u64, "plugin failed");
                 continue;
             }
         };
+        if !produced.is_empty() {
+            debug!(plugin = %id, findings = produced.len(), elapsed_ms = started.elapsed().as_millis() as u64, "plugin scan");
+        }
         let tier = tier_of(manifest.tier);
         for pf in dedupe_by_slug(produced, id) {
             let entry_id = format!("{id}#{}", pf.slug);
@@ -430,6 +458,7 @@ fn metric_findings(
             }
         }
         let Some(spec) = &group.metric else { continue };
+        debug!(rule = %group.id_base, stat = spec.stat.name(), "metric rule active");
         let local_stat = metrics::Stat::parse(spec.stat.name()).expect("same registry");
 
         // Cluster: per-rule terms, one finding PER offending window. The

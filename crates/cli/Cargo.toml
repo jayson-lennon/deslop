@@ -11,6 +11,8 @@ name = "deslop"
 path = "src/main.rs"
 
 [dependencies]
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 deslop-core = { workspace = true }
 deslop-plugin-protocol = { workspace = true }
 clap = { workspace = true }
