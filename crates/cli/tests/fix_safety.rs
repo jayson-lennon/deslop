@@ -25,6 +25,7 @@ impl FixRun {
     fn run_fix(&self, extra: &[&str]) -> (i32, String) {
         let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
         self.hermetic.apply(&mut cmd);
+        self.hermetic.pin_seed_config(&mut cmd);
         let out = cmd
             .arg("fix")
             .args(extra)

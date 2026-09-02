@@ -11,6 +11,7 @@ fn run_twice(doc: &str, format: &str) -> (String, String) {
     let run = || {
         let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
         hermetic.apply(&mut cmd);
+        hermetic.pin_seed_config(&mut cmd);
         let out = cmd
             .arg(doc)
             .args(["--color", "never", "--format", format])

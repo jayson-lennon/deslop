@@ -130,6 +130,34 @@ pub fn content_words(text: &str) -> Vec<String> {
     out
 }
 
+/// Longest-common-subsequence ratio over word lists, normalized by the
+/// shorter sentence. Order-preserving containment: near-verbatim pairs
+/// (same sentence, small edits/insertions) score high even when no full
+/// k-gram survives the edit, while topically-similar but differently
+/// structured sentences stay low.
+pub fn lcs_ratio(a: &[String], b: &[String]) -> f64 {
+    if a.is_empty() || b.is_empty() {
+        return 0.0;
+    }
+    // O(n*m) table; sentence units are short, and comparisons are
+    // O(units^2) per document anyway.
+    let mut prev = vec![0u32; b.len() + 1];
+    let mut curr = vec![0u32; b.len() + 1];
+    for aw in a {
+        for (j, bw) in b.iter().enumerate() {
+            curr[j + 1] = if aw == bw {
+                prev[j] + 1
+            } else {
+                prev[j + 1].max(curr[j])
+            };
+        }
+        std::mem::swap(&mut prev, &mut curr);
+        curr.fill(0);
+    }
+    let lcs = prev[b.len()];
+    f64::from(lcs) / a.len().min(b.len()) as f64
+}
+
 /// Overlap coefficient: |A∩B| / min(|A|,|B|). Both non-empty by contract;
 /// an empty set makes the coefficient 0.0.
 pub fn overlap_coef(a: &[String], b: &[String]) -> f64 {

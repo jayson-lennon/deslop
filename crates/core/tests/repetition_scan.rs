@@ -149,10 +149,13 @@ must_match = []
 fn propositional_flags_similar_embedding_clusters() {
     // Given a fake embedder giving three near-identical vectors to a family.
     let rules = propositional_pack();
-    let src = "Alpha sentence one with several words.\n\
-        Beta sentence two with several words.\n\
-        Gamma sentence three with several words.\n\
-        Wholly different content entirely, truly unrelated.\n";
+    // The sentences paraphrase one another (similar meaning, different
+    // words) so they pass the propositional bar without tripping the
+    // near-verbatim suppression rule.
+    let src = "Alpha wrote a sweeping history of the canal project.\n\
+        Beta covered the canal project in a very long book.\n\
+        Gamma described the canal project at great length.\n\
+        Wholly different content entirely about bread prices this winter.\n";
     let embedder = FakeEmbedder::new(|s: &str| {
         if s.starts_with("Wholly") {
             vec![0.0, 1.0]
@@ -271,10 +274,10 @@ fn content_family_clusters_three_diffuse_paragraphs() {
     // Below the eight-paragraph bar the ubiquitous filter is inert, so the
     // shared "canal" still links the family.
     let rules = content_family_pack();
-    let src = "The canal demanded endless excavation of hard volcanic rock.\n\n\
-        The canal builders nearly surrendered to that excavation.\n\n\
-        The canal excavation soon became the dig's hardest challenge.\n\n\
-        Crews called the canal dig the greatest excavation of the age.\n\n\
+    let src = "The canal excavation crews demanded endless volcanic rock.\n\n\
+        The canal excavation crews nearly surrendered twice.\n\n\
+        The canal excavation crews faced the hardest challenge.\n\n\
+        The canal excavation crews called it the greatest dig.\n\n\
         Unrelated: the price of bread rose sharply that winter.\n";
 
     // When scanning.
@@ -330,25 +333,4 @@ fn repetition_output_is_byte_identical_across_runs() {
 
     // Then both runs produce identical findings (determinism).
     assert_eq!(a.findings, b.findings);
-}
-
-#[test]
-fn dbg_probe() {
-    let src = "The canal demanded endless excavation of hard volcanic rock.\n\n\
-        The canal builders nearly surrendered to that excavation.\n\n\
-        The canal excavation soon became the dig's hardest challenge.\n\n\
-        Crews called the canal dig the greatest excavation of the age.\n\n\
-        Unrelated: the price of bread rose sharply that winter.\n";
-    let rules = content_family_pack();
-    eprintln!(
-        "DBG ngroups={} ids={:?}",
-        rules.groups.len(),
-        rules
-            .groups
-            .iter()
-            .map(|g| g.id_base.clone())
-            .collect::<Vec<_>>()
-    );
-    let out = scan_with_plugins(src, &rules, &LintSettings::default(), &[], None);
-    eprintln!("DBG findings: {:?}", out.findings);
 }

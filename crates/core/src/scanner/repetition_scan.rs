@@ -12,21 +12,44 @@
 
 use super::metrics;
 use super::repetition::{
-    components, content_words, jaccard, line_index, line_of, overlap_coef, shingles_adaptive,
-    words_lower,
+    components, content_words, jaccard, lcs_ratio, line_index, line_of, overlap_coef,
+    shingles_adaptive, words_lower,
 };
 use crate::embedder::Embedder;
 use crate::finding::{Finding, KindTag};
 use crate::rule::{RepetitionSpec, RepetitionVariant, RuleGroup, RuleSet};
 
 /// Minimum words for a sentence unit to participate in pair comparisons.
-/// One-liners ("Nope.", section stubs) are noise for every variant.
-const MIN_UNIT_WORDS: usize = 5;
+/// One-liners, interjections, and rhetorical fragments ("Nope.", "That was
+/// the whole point.") are noise for every variant: below this bar,
+/// order-blind similarity over a handful of function words matches by
+/// accident in themed prose.
+const MIN_UNIT_WORDS: usize = 7;
+
+/// Minimum words for a sentence unit in the propositional variant. Embedding
+/// similarity is meaning-level, not string-level, so shorter rhetorical
+/// twins ("X did not write the books.") are safe to compare here even
+/// though the order-blind near-verbatim bar excludes them.
+const MIN_UNIT_WORDS_PROPOSITIONAL: usize = 6;
+
+/// Minimum content words for a paragraph unit to participate in the
+/// content-family variant. Headings ("The piracy part") and stubs have
+/// tiny word sets that overlap trivially with everything.
+const MIN_PARA_CONTENT: usize = 6;
+
+/// Minimum absolute word overlap for a content-family pair, regardless of
+/// the coefficient: one shared word is not a family.
+const MIN_OVERLAP_WORDS: usize = 2;
 
 /// Jaccard bar at which a sentence pair counts as near-verbatim for the
 /// propositional suppression rule. Pinned here because dedup may drop the
 /// near-verbatim group itself; suppression must not depend on config order.
 const NEAR_VERBATIM_BAR: f64 = 0.55;
+
+/// LCS-ratio bar for the near-verbatim variant's order-preserving path.
+/// Tuned on youtube-script prose: twin sentences score 0.6-0.85, unrelated
+/// sentences in the same document stay under 0.25.
+const CONTAINMENT_BAR: f64 = 0.6;
 
 /// A similarity pair over unit indices.
 type Pair = (usize, usize);
@@ -81,6 +104,7 @@ pub fn repetition_findings(
                 &prose,
                 near_verbatim_pairs(&prose, spec.threshold),
                 spec.min_members,
+                MIN_UNIT_WORDS,
             ),
             RepetitionVariant::Propositional => {
                 let Some(embedder) = embedder else {
@@ -91,7 +115,12 @@ pub fn repetition_findings(
                 };
                 match propositional_pairs(&prose, spec.threshold, embedder) {
                     Ok(pairs) => {
-                        let comps = cluster(&prose, pairs, spec.min_members);
+                        let comps = cluster(
+                            &prose,
+                            pairs,
+                            spec.min_members,
+                            MIN_UNIT_WORDS_PROPOSITIONAL,
+                        );
                         // Suppression: a propositional component whose members
                         // all sit inside one near-verbatim component is that
                         // lint's report already; saying it twice is noise.
@@ -99,7 +128,7 @@ pub fn repetition_findings(
                         // canonical constant, not another group's threshold.
                         let nv = near_verbatim_set(&prose, NEAR_VERBATIM_BAR);
                         // Map each propositional component back to unit indices.
-                        let units = sentence_units(&prose);
+                        let units = sentence_units(&prose, MIN_UNIT_WORDS_PROPOSITIONAL);
                         comps
                             .into_iter()
                             .filter(|comp| {
@@ -138,11 +167,17 @@ pub fn repetition_findings(
 
 use crate::scanner::LintSettings;
 
-/// Sentence units (>= [`MIN_UNIT_WORDS`] words) as prose spans.
-fn sentence_units(prose: &str) -> Vec<(usize, usize)> {
+/// Sentence units (>= [`MIN_UNIT_WORDS`] words) as prose spans. Pure
+/// bracketed stage cues ("[SCREEN: ...]") are production notes, not prose,
+/// and pair with each other trivially.
+fn sentence_units(prose: &str, min_words: usize) -> Vec<(usize, usize)> {
     metrics::sentences(prose)
         .into_iter()
-        .filter(|&(s, e)| words_count(&prose[s..e]) >= MIN_UNIT_WORDS)
+        .filter(|&(s, e)| {
+            let text = prose[s..e].trim();
+            let cue = text.starts_with('[') && text.ends_with(']');
+            !cue && words_count(text) >= min_words
+        })
         .collect()
 }
 
@@ -153,15 +188,25 @@ fn words_count(text: &str) -> usize {
 /// Near-verbatim pairs: sentence pairs whose adaptive-shingle Jaccard
 /// reaches `threshold`.
 fn near_verbatim_pairs(prose: &str, threshold: f64) -> Vec<Pair> {
-    let units = sentence_units(prose);
-    let sets: Vec<_> = units
+    let units = sentence_units(prose, MIN_UNIT_WORDS);
+    let shingle_sets: Vec<_> = units
         .iter()
         .map(|&(s, e)| shingles_adaptive(&prose[s..e]))
+        .collect();
+    // LCS-over-words catches the mid-length regime where k-gram shingles
+    // are all-or-nothing: "X did not write the books" vs "X did not write
+    // these books" shares no 8-gram but is unmistakably the same sentence
+    // with one substitution.
+    let word_sets: Vec<Vec<String>> = units
+        .iter()
+        .map(|&(s, e)| words_lower(&prose[s..e]))
         .collect();
     let mut pairs = Vec::new();
     for i in 0..units.len() {
         for j in (i + 1)..units.len() {
-            if jaccard(&sets[i], &sets[j]) >= threshold {
+            let shingle_sim = jaccard(&shingle_sets[i], &shingle_sets[j]);
+            let lcs_sim = lcs_ratio(&word_sets[i], &word_sets[j]);
+            if shingle_sim >= threshold || lcs_sim >= CONTAINMENT_BAR {
                 pairs.push((i, j));
             }
         }
@@ -172,7 +217,7 @@ fn near_verbatim_pairs(prose: &str, threshold: f64) -> Vec<Pair> {
 /// The full set of near-verbatim components at a given threshold, as UNIT
 /// INDEX groups, used for the propositional suppression rule.
 fn near_verbatim_set(prose: &str, threshold: f64) -> Vec<Vec<usize>> {
-    let units = sentence_units(prose);
+    let units = sentence_units(prose, MIN_UNIT_WORDS);
     let pairs = near_verbatim_pairs(prose, threshold);
     components(units.len(), &pairs)
 }
@@ -184,7 +229,7 @@ fn propositional_pairs(
     threshold: f64,
     embedder: &dyn Embedder,
 ) -> Result<Vec<Pair>, error_stack::Report<crate::embedder::EmbedError>> {
-    let units = sentence_units(prose);
+    let units = sentence_units(prose, MIN_UNIT_WORDS_PROPOSITIONAL);
     let texts: Vec<String> = units
         .iter()
         .map(|&(s, e)| prose[s..e].to_string())
@@ -236,8 +281,15 @@ fn content_family_pairs(prose: &str, threshold: f64) -> Vec<Pair> {
         .collect();
     let mut pairs = Vec::new();
     for i in 0..paragraphs.len() {
+        if sets[i].len() < MIN_PARA_CONTENT {
+            continue;
+        }
         for j in (i + 1)..paragraphs.len() {
-            if overlap_coef(&sets[i], &sets[j]) >= threshold {
+            if sets[j].len() < MIN_PARA_CONTENT {
+                continue;
+            }
+            let shared = sets[i].iter().filter(|w| sets[j].contains(*w)).count();
+            if shared >= MIN_OVERLAP_WORDS && overlap_coef(&sets[i], &sets[j]) >= threshold {
                 pairs.push((i, j));
             }
         }
@@ -245,7 +297,9 @@ fn content_family_pairs(prose: &str, threshold: f64) -> Vec<Pair> {
     pairs
 }
 
-/// Paragraph units (>= 1 word) as prose spans, like the cluster windows.
+/// Paragraph units as prose spans, like the cluster windows. Paragraphs
+/// below [`MIN_PARA_CONTENT`] content words do not participate: headings
+/// and stub lines have tiny word sets that overlap trivially.
 fn paragraph_bounds(prose: &str) -> Vec<(usize, usize)> {
     let bytes = prose.as_bytes();
     let mut bounds = vec![0usize];
@@ -270,8 +324,8 @@ fn paragraph_bounds(prose: &str) -> Vec<(usize, usize)> {
 /// Connected components over SENTENCE unit indices mapped back to prose
 /// spans, filtered to `min_members`, members ascending. (Only used for the
 /// sentence-unit variants; content-family clusters inline.)
-fn cluster(prose: &str, pairs: Vec<Pair>, min_members: usize) -> Vec<Component> {
-    let units = sentence_units(prose);
+fn cluster(prose: &str, pairs: Vec<Pair>, min_members: usize, min_words: usize) -> Vec<Component> {
+    let units = sentence_units(prose, min_words);
     components(units.len(), &pairs)
         .into_iter()
         .filter(|comp| comp.len() >= min_members)

@@ -9,6 +9,7 @@ fn lint(doc: &str, color: &str, env: &[(&str, &str)]) -> String {
     let hermetic = common::HermeticRules::provision();
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
     hermetic.apply(&mut cmd);
+    hermetic.pin_seed_config(&mut cmd);
     cmd.arg(doc)
         .args(["--color", color, "--format", "human"])
         .current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."));

@@ -13,6 +13,7 @@ fn run_json(doc: &str) -> (String, i32) {
     let hermetic = common::HermeticRules::provision();
     let mut cmd = Command::new(bin);
     hermetic.apply(&mut cmd);
+    hermetic.pin_seed_config(&mut cmd);
     let out = cmd
         .args([path.to_str().expect("utf8"), "--format", "json"])
         .output()

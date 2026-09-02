@@ -33,4 +33,22 @@ impl HermeticRules {
         cmd.arg("--rules-dir")
             .arg(self.dir.path().to_str().expect("utf8 tempdir"));
     }
+
+    /// Prepend `--config <dir>/seed-packs.toml`, pinning the seed pack
+    /// list. Without an explicit config the binary walks up and inherits
+    /// whatever the invoking user has installed - packs, lints, and any
+    /// model-dependent repetition pack, which would drag the embedding
+    /// model into every test run.
+    // Suites that pin their own closest-config (lint_levels, plugins) keep
+    // walk-up discovery and so never call this.
+    #[allow(dead_code)]
+    pub fn pin_seed_config(&self, cmd: &mut Command) {
+        let cfg = self.dir.path().join("seed-packs.toml");
+        std::fs::write(
+            &cfg,
+            "[packs]\nbuiltin = [\"aatell\", \"slop\", \"wsc\", \"aisigns\", \"cluster-terms\", \"hedging\"]\n",
+        )
+        .expect("write golden config");
+        cmd.arg("--config").arg(cfg.to_str().expect("utf8 config"));
+    }
 }

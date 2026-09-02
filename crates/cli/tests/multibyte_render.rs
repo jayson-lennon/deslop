@@ -30,6 +30,7 @@ fn lint_doc(name: &str, text: &str, extra: &[&str]) -> (i32, String, String) {
     let hermetic = common::HermeticRules::provision();
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
     hermetic.apply(&mut cmd);
+    hermetic.pin_seed_config(&mut cmd);
     for flag in extra {
         cmd.arg(flag);
     }

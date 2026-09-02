@@ -1,0 +1,62 @@
+# deslop pack: repetition - document-level repetition lints (near-verbatim,
+# propositional similarity, content-family). Sentence/paragraph grouping via
+# a shared similarity engine; propositional variant requires the
+# all-MiniLM-L6-v2 model in the deslop data dir.
+
+[[group]]
+id-base = 'REPETITION-NEAR-VERBATIM'
+kind = 'repetition'
+tier = 2
+category = 'repetition'
+variant = 'near-verbatim'
+threshold = 0.55
+message = 'Near-verbatim repetition: {count} sentences say the same thing'
+advice = 'Cut or merge the repeats; each idea earns exactly one sentence'
+enabled = true
+
+[group.url]
+text = "Signs of AI writing"
+href = "https://en.wikipedia.org/wiki/Signs_of_AI_writing#Duplication"
+
+[group.fixtures]
+must_match = []
+must_not_match = []
+
+[[group]]
+id-base = 'REPETITION-PROPOSITIONAL'
+kind = 'repetition'
+tier = 2
+category = 'repetition'
+variant = 'propositional'
+threshold = 0.78
+message = 'Repeated proposition: {count} sentences restate the same point'
+advice = 'Keep the sharpest phrasing; delete the restatements'
+enabled = true
+
+[group.url]
+text = "Signs of AI writing"
+href = "https://en.wikipedia.org/wiki/Signs_of_AI_writing#Duplication"
+
+[group.fixtures]
+must_match = []
+must_not_match = []
+
+[[group]]
+id-base = 'REPETITION-CONTENT-FAMILY'
+kind = 'repetition'
+tier = 3
+category = 'repetition'
+variant = 'content-family'
+threshold = 0.5
+min-members = 3
+message = 'Recurring content: {count} paragraphs circle the same small idea'
+advice = 'Consolidate the scattered mentions into one place, or diversify what each paragraph covers'
+enabled = true
+
+[group.url]
+text = "Signs of AI writing"
+href = "https://en.wikipedia.org/wiki/Signs_of_AI_writing#Duplication"
+
+[group.fixtures]
+must_match = []
+must_not_match = []

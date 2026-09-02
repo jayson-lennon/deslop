@@ -26,12 +26,13 @@ fn golden_path(doc: &str, ext: &str) -> std::path::PathBuf {
 
 fn run_format(doc: &str, format: &str) -> String {
     // Relative doc path from the repo root keeps outputs machine-stable.
-    // Hermetic packs: the golden must not depend on the invoking user's
-    // installed rule packs.
+    // Hermetic packs AND config: the golden must not depend on the invoking
+    // user's installed rule packs or their ~/.config/deslop config.
     let hermetic = common::HermeticRules::provision();
     let doc_rel = format!("tests/fixtures/docs/{doc}.md");
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_deslop"));
     hermetic.apply(&mut cmd);
+    hermetic.pin_seed_config(&mut cmd);
     let out = cmd
         .arg(&doc_rel)
         .args(["--color", "never", "--format", format])

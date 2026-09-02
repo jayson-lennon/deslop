@@ -43,7 +43,7 @@ Building requires a stable Rust toolchain (`rust-toolchain.toml` pins the stable
 
 ## Rule packs
 
-A pack is one TOML file with any number of `[[group]]` tables. Six ship with the tool:
+A pack is one TOML file with any number of `[[group]]` tables. Seven ship with the tool:
 
 - `aatell` — frequency-measured AI-tell words with suggested rewrites (tier 2)
 - `slop` — AI-slop words and phrases (tier 2)
@@ -51,6 +51,7 @@ A pack is one TOML file with any number of `[[group]]` tables. Six ship with the
 - `hedging` — structural hedge formulas like concession scaffolding (tier 2)
 - `aisigns` — chatbot markup artifacts plus document metrics (tiers 1 and 3)
 - `cluster-terms` — a single-word watch list (tier 3)
+- `repetition` — document-level repetition: near-verbatim sentences, restated propositions, and one idea spread across many paragraphs (tiers 2 and 3)
 
 Packs resolve from the first location that exists:
 
@@ -118,6 +119,7 @@ must_not_match = ['...']
 | `vocab`, `literal-ban` | `{match}` — the exact matched text                 |
 | `pattern`              | any named capture from the regex, e.g. `{payload}` |
 | `metric`               | `{value}`, `{per_words}`                           |
+| `repetition`           | `{count}` — the repetition group's member count    |
 
 Literal braces are doubled, so `{{` renders as `{`. Placeholder typos refuse the pack at load time.
 
@@ -250,6 +252,45 @@ window = 'paragraph'
 # (lemma identity): delve + delves = 1.
 terms = ['crucial', 'robust', 'notably']
 ```
+
+### repetition
+
+Document-level repetition: the same sentence twice, the same proposition rephrased, or one narrow idea spread across many paragraphs. Like `metric`, groups have no `[[entries]]` — everything is group-level — but the detection is similarity-based, not statistical.
+
+```toml
+[[group]]
+id-base = 'REPETITION-NEAR-VERBATIM'
+kind = 'repetition'
+tier = 2
+category = 'repetition'
+variant = 'near-verbatim'
+threshold = 0.55
+message = 'Near-verbatim repetition: {count} sentences say the same thing'
+advice = 'Cut or merge the repeats; each idea earns exactly one sentence'
+```
+
+Three variants, all reporting one anchorless finding per repetition group with a `Repetition members:` context list of `line N` excerpts:
+
+- `near-verbatim` — sentences that are the same text modulo small edits (k-gram shingle Jaccard plus order-preserving word-subsequence similarity against `threshold`)
+- `propositional` — sentences that restate the same point (embedding cosine against `threshold`); a component already covered by a near-verbatim finding is suppressed rather than double-reported
+- `content-family` — paragraphs circling one narrow idea (content-word overlap coefficient against `threshold`, at least `min-members` paragraphs)
+
+`threshold` (0–1) is required; `min-members` defaults to 2 for the sentence variants and 3 for `content-family`. The `{count}` placeholder carries the member count.
+
+#### The embedding model
+
+The `propositional` variant runs the sentence-transformers model **all-MiniLM-L6-v2** in-process. deslop never downloads anything: you supply the model files yourself, once:
+
+```
+~/.local/share/deslop/models/all-MiniLM-L6-v2/
+    model.safetensors
+    config.json
+    tokenizer.json
+    tokenizer_config.json
+    special_tokens_map.json
+```
+
+Set `DESLOP_MODELS_DIR` to point the models root somewhere else (the model dir is `<root>/all-MiniLM-L6-v2`). If the pack is not installed, none of this is probed and nothing runs. If the pack is installed but files are missing, that pack fails to load with the expected directory named in the error (exit 2). Files whose sha256 differs from the pinned digests produce a one-line stderr warning and the run continues. Without the model (or on machines too small to run it), the other two variants still work.
 
 ## Silencing rules
 
