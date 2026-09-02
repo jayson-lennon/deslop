@@ -9,6 +9,7 @@ pub mod literal_scan;
 pub mod metrics;
 pub mod pattern_scan;
 pub mod regions;
+pub mod repetition;
 pub mod use_mention;
 pub mod vocab_scan;
 
