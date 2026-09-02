@@ -10,6 +10,7 @@ pub mod metrics;
 pub mod pattern_scan;
 pub mod regions;
 pub mod repetition;
+pub mod repetition_scan;
 pub mod use_mention;
 pub mod vocab_scan;
 
@@ -40,9 +41,10 @@ impl LintSettings {
 
 /// One document's lint result set, sorted deterministically.
 ///
-/// Convenience wrapper with no plugins; see [`scan_with_plugins`].
+/// Convenience wrapper with no plugins and no embedder; see
+/// [`scan_with_plugins`].
 pub fn scan(src: &str, rules: &RuleSet, settings: &LintSettings) -> Vec<Finding> {
-    scan_with_plugins(src, rules, settings, &[]).findings
+    scan_with_plugins(src, rules, settings, &[], None).findings
 }
 
 /// [`scan`] with a plugin pass appended. The only difference besides the
@@ -52,6 +54,7 @@ pub fn scan_with_plugins(
     rules: &RuleSet,
     settings: &LintSettings,
     plugins: &[Box<dyn LintPlugin>],
+    embedder: Option<&dyn crate::embedder::Embedder>,
 ) -> ScanWithPlugins {
     let norm = normalize(src);
     let text = &norm.text;
@@ -219,6 +222,20 @@ pub fn scan_with_plugins(
     }
 
     metric_findings(src, text, &map, rules, settings, &norm, &mut findings);
+
+    repetition_scan::repetition_findings(
+        &repetition_scan::DocumentView {
+            src,
+            norm_text: text,
+            map: &map,
+            norm: &norm,
+        },
+        rules,
+        settings,
+        embedder,
+        &mut findings,
+        &mut warnings,
+    );
 
     plugin_findings(
         src,
@@ -619,7 +636,7 @@ fn make_finding(
 /// Excerpt for a finding span: boundary-safe against the ORIGINAL source.
 /// A misaligned span (host arithmetic bug) yields an empty excerpt instead
 /// of a panic; debug builds assert so the violation surfaces in tests.
-fn excerpt_of(src: &str, start: usize, end: usize) -> String {
+pub(crate) fn excerpt_of(src: &str, start: usize, end: usize) -> String {
     debug_assert!(
         src.is_char_boundary(start) && src.is_char_boundary(end),
         "finding span {start}..{end} is not on char boundaries"
@@ -638,6 +655,7 @@ fn default_message(kind: KindTag) -> String {
         // Plugins always provide their own message; the host never renders
         // templates on their behalf.
         KindTag::Plugin => "plugin finding".into(),
+        KindTag::Repetition => "repeated content".into(),
     }
 }
 

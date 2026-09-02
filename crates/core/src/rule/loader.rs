@@ -331,7 +331,11 @@ pub fn load_split(
     // Model-dependent repetition groups need their model files present.
     // Only packs that ARE installed are probed: with no repetition pack in
     // the effective set, a missing model is invisible.
-    check_model_availability(rules_needed_models(&loaded.rule_set), models_dir, &mut loaded.errors);
+    check_model_availability(
+        rules_needed_models(&loaded.rule_set),
+        models_dir,
+        &mut loaded.errors,
+    );
     // Compile stage: one owner per term (highest tier, then config order),
     // metric conflicts resolved to the strictest threshold.
     loaded.dedup_warnings = crate::rule::dedup::dedup(&mut loaded.rule_set);
@@ -541,7 +545,8 @@ fn parse_group(
         entries: active_entries,
         // Only materialize when THIS group validated; broken groups already
         // recorded errors and abort the run before scanning.
-        metric: if group.kind == "metric" && group_was_valid {            crate::metric_stats::Stat::from_name(group.stat.as_deref().unwrap_or_default()).map(
+        metric: if group.kind == "metric" && group_was_valid {
+            crate::metric_stats::Stat::from_name(group.stat.as_deref().unwrap_or_default()).map(
                 |stat| {
                     let threshold = match (group.threshold_gt, group.threshold_lt) {
                         // Validation guarantees exactly one is present.
@@ -761,7 +766,10 @@ must_match = []
     #[test]
     fn repetition_group_with_metric_keys_is_refused() {
         // Given a repetition group carrying a metric-only key.
-        let toml = REP.replace("threshold = 0.8", "threshold = 0.8\nstat = \"em_dash_rate\"");
+        let toml = REP.replace(
+            "threshold = 0.8",
+            "threshold = 0.8\nstat = \"em_dash_rate\"",
+        );
         let (tmp, root) = pack_dir(&toml);
 
         // When loading.

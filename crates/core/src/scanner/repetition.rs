@@ -181,14 +181,12 @@ pub fn components(n: usize, pairs: &[(usize, usize)]) -> Vec<Vec<usize>> {
     for &(a, b) in pairs {
         ds.union(a, b);
     }
-    let mut grouped: std::collections::BTreeMap<usize, Vec<usize>> = std::collections::BTreeMap::new();
+    let mut grouped: std::collections::BTreeMap<usize, Vec<usize>> =
+        std::collections::BTreeMap::new();
     for i in 0..n {
         grouped.entry(ds.find(i)).or_default().push(i);
     }
-    let mut out: Vec<Vec<usize>> = grouped
-        .into_values()
-        .filter(|c| c.len() >= 2)
-        .collect();
+    let mut out: Vec<Vec<usize>> = grouped.into_values().filter(|c| c.len() >= 2).collect();
     out.sort();
     out
 }
@@ -379,7 +377,12 @@ mod tests {
     fn overlap_coefficient_measures_containment() {
         // Given a set fully contained in a larger one.
         let a = vec!["books".to_owned(), "scanned".to_owned()];
-        let b = vec!["books".to_owned(), "pages".to_owned(), "scanned".to_owned(), "warehouses".to_owned()];
+        let b = vec![
+            "books".to_owned(),
+            "pages".to_owned(),
+            "scanned".to_owned(),
+            "warehouses".to_owned(),
+        ];
 
         // When comparing.
         // Then the coefficient is 1 (a is a subset of b).
@@ -390,7 +393,12 @@ mod tests {
     fn overlap_coefficient_is_symmetric() {
         // Given two partially overlapping sets.
         let a = vec!["books".to_owned(), "pages".to_owned(), "scanned".to_owned()];
-        let b = vec!["pages".to_owned(), "warehouses".to_owned(), "scanned".to_owned(), "shelves".to_owned()];
+        let b = vec![
+            "pages".to_owned(),
+            "warehouses".to_owned(),
+            "scanned".to_owned(),
+            "shelves".to_owned(),
+        ];
 
         // When comparing both directions.
         // Then both directions report the same value.

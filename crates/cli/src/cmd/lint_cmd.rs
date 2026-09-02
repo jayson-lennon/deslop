@@ -139,12 +139,26 @@ impl ScanRun<'_> {
             }
         };
 
+        // The embedder is built at most once per run, and only when an
+        // enabled repetition group actually needs the model. Missing model
+        // files already failed the pack at load; a build failure here (bad
+        // files, OOM) degrades to the scan-time skip warning.
+        let embedder = repetition_embedder(&loaded.rule_set, &settings);
+        let embedder_ref = embedder
+            .as_ref()
+            .map(|e| e as &dyn deslop_core::embedder::Embedder);
+
         // Findings are owned per-doc; collect (finding, doc-index) then
         // borrow views at render time so lifetimes stay simple.
         let mut all: Vec<(Finding, usize)> = Vec::new();
         for (idx, doc) in corpus.docs.iter().enumerate() {
-            let outcome =
-                scanner::scan_with_plugins(&doc.src, &loaded.rule_set, &settings, &self.plugins);
+            let outcome = scanner::scan_with_plugins(
+                &doc.src,
+                &loaded.rule_set,
+                &settings,
+                &self.plugins,
+                embedder_ref,
+            );
             for warning in &outcome.warnings {
                 eprintln!("{warning}");
             }
@@ -187,6 +201,48 @@ impl ScanRun<'_> {
             crate::ExitCode::FindingsReported as i32
         } else {
             crate::ExitCode::Clean as i32
+        }
+    }
+}
+
+/// Build the shared model embedder when any enabled repetition group needs
+/// one. Returns `None` when no model-dependent group is active.
+fn repetition_embedder(
+    rules: &deslop_core::rule::RuleSet,
+    settings: &deslop_core::scanner::LintSettings,
+) -> Option<deslop_core::embedder::CandleEmbedder> {
+    let needs_model = rules.groups.iter().any(|g| {
+        if !g.enabled {
+            return false;
+        }
+        if settings.level_for(&g.id_base, &g.id_base) == Some(deslop_core::config::LintLevel::Allow)
+        {
+            return false;
+        }
+        matches!(
+            g.repetition.as_ref().map(|s| s.variant),
+            Some(deslop_core::rule::RepetitionVariant::Propositional)
+        )
+    });
+    if !needs_model {
+        return None;
+    }
+    let dir: Result<camino::Utf8PathBuf, String> = match std::env::var("DESLOP_MODELS_DIR") {
+        Ok(v) => Ok(camino::Utf8PathBuf::from(v)),
+        Err(_) => crate::cmd::plugin_cmd::resolve_data_dir()
+            .map(|d| d.join("deslop").join("models"))
+            .ok_or_else(|| "deslop: no user data directory available".to_string()),
+    };
+    let Ok(models_root) = dir else {
+        return None;
+    };
+    match deslop_core::embedder::CandleEmbedder::from_dir(
+        &models_root.join("all-MiniLM-L6-v2").into_std_path_buf(),
+    ) {
+        Ok(e) => Some(e),
+        Err(e) => {
+            eprintln!("deslop: embedding model failed to load: {e}");
+            None
         }
     }
 }

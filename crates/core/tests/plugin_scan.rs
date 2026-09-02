@@ -57,7 +57,13 @@ fn plugin_findings_flow_through_the_pipeline() {
     let plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>> = vec![Box::new(plugin)];
 
     // When scanning.
-    let outcome = scan_with_plugins(src, &RuleSet::default(), &settings_with(&[]), &plugins);
+    let outcome = scan_with_plugins(
+        src,
+        &RuleSet::default(),
+        &settings_with(&[]),
+        &plugins,
+        None,
+    );
 
     // Then the finding is assembled with remapped span and sliced excerpt.
     assert!(outcome.warnings.is_empty());
@@ -85,6 +91,7 @@ fn group_allow_skips_the_plugin_entirely() {
         &RuleSet::default(),
         &settings_with(&[("FIX", "allow")]),
         &plugins,
+        None,
     );
 
     // Then no findings and no warning (the plugin was never called).
@@ -111,6 +118,7 @@ fn per_slug_allow_drops_one_finding_but_keeps_others() {
         &RuleSet::default(),
         &settings_with(&[("FIX#drop", "allow")]),
         &plugins,
+        None,
     );
 
     // Then only the keep slug survives.
@@ -134,6 +142,7 @@ fn lint_overrides_retier_plugin_findings() {
         &RuleSet::default(),
         &settings_with(&[("FIX", "error")]),
         &plugins,
+        None,
     );
 
     // Then the finding carries tier 1 (artifact).
@@ -152,7 +161,7 @@ fn max_tier_filter_skips_higher_tier_plugins() {
     };
 
     // When scanning with max tier 2.
-    let outcome = scan_with_plugins("x", &RuleSet::default(), &settings, &plugins);
+    let outcome = scan_with_plugins("x", &RuleSet::default(), &settings, &plugins, None);
 
     // Then only the tier-2 plugin's finding appears.
     let ids: Vec<&str> = outcome
@@ -176,7 +185,13 @@ fn plugin_failure_becomes_a_warning_and_other_findings_survive() {
         vec![Box::new(bad), Box::new(good)];
 
     // When scanning.
-    let outcome = scan_with_plugins("x", &RuleSet::default(), &settings_with(&[]), &plugins);
+    let outcome = scan_with_plugins(
+        "x",
+        &RuleSet::default(),
+        &settings_with(&[]),
+        &plugins,
+        None,
+    );
 
     // Then a warning names the bad plugin and the good finding survives.
     assert_eq!(outcome.warnings.len(), 1);
@@ -204,7 +219,13 @@ fn invalid_spans_are_dropped_with_warnings_not_panics() {
     let plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>> = vec![Box::new(plugin)];
 
     // When scanning.
-    let outcome = scan_with_plugins(src, &RuleSet::default(), &settings_with(&[]), &plugins);
+    let outcome = scan_with_plugins(
+        src,
+        &RuleSet::default(),
+        &settings_with(&[]),
+        &plugins,
+        None,
+    );
 
     // Then three findings were dropped with warnings and the valid one kept.
     assert_eq!(outcome.warnings.len(), 3);
@@ -229,7 +250,13 @@ fn span_starting_mid_char_is_dropped_with_warning() {
     let plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>> = vec![Box::new(plugin)];
 
     // When scanning.
-    let outcome = scan_with_plugins(src, &RuleSet::default(), &settings_with(&[]), &plugins);
+    let outcome = scan_with_plugins(
+        src,
+        &RuleSet::default(),
+        &settings_with(&[]),
+        &plugins,
+        None,
+    );
 
     // Then the mid-char start is rejected by name and the valid one kept.
     assert!(
@@ -255,7 +282,13 @@ fn duplicate_slugs_keep_the_first() {
     let plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>> = vec![Box::new(plugin)];
 
     // When scanning.
-    let outcome = scan_with_plugins("a b", &RuleSet::default(), &settings_with(&[]), &plugins);
+    let outcome = scan_with_plugins(
+        "a b",
+        &RuleSet::default(),
+        &settings_with(&[]),
+        &plugins,
+        None,
+    );
 
     // Then only the first instance survives.
     assert_eq!(outcome.findings.len(), 1);
@@ -270,7 +303,13 @@ fn crlf_document_offsets_remap_to_original() {
     let plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>> = vec![Box::new(plugin)];
 
     // When scanning.
-    let outcome = scan_with_plugins(src, &RuleSet::default(), &settings_with(&[]), &plugins);
+    let outcome = scan_with_plugins(
+        src,
+        &RuleSet::default(),
+        &settings_with(&[]),
+        &plugins,
+        None,
+    );
 
     // Then the span points at the original text (shifted by the CR bytes).
     assert_eq!(
@@ -288,6 +327,7 @@ fn empty_plugin_list_matches_plain_scan() {
         &RuleSet::default(),
         &settings_with(&[]),
         &[],
+        None,
     );
 
     // Then no findings and no warnings.
@@ -335,6 +375,7 @@ fn params_reach_the_plugin_config_verbatim() {
         &RuleSet::default(),
         &settings_with(&[]),
         &plugins,
+        None,
     );
 
     // Then nothing fails (assertions need the input back; see typed variant).

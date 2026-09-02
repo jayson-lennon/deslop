@@ -175,7 +175,9 @@ pub fn dedup(rules: &mut RuleSet) -> Vec<String> {
     // fires on fewer, more-similar clusters. Config order breaks ties.
     let mut repetition_owners: HashMap<String, RepetitionClaim> = HashMap::new();
     for (gi, group) in rules.groups.iter().enumerate() {
-        let Some(spec) = &group.repetition else { continue };
+        let Some(spec) = &group.repetition else {
+            continue;
+        };
         let key = spec.variant.name().to_string();
         match repetition_owners.get(&key).cloned() {
             Some((prev_gi, prev_threshold, prev_gid)) => {

@@ -66,11 +66,14 @@ impl FixCmd<'_> {
                 // Fix remains plugin-free by design: findings from plugins
                 // would only pollute overlap accounting, so no plugin pass
                 // is appended here.
+                // Fix is vocab-replacement only; repetition findings have
+                // no machine fix, so no embedder is threaded here.
                 let outcome = scanner::scan_with_plugins(
                     &doc.src,
                     &loaded.rule_set,
                     &settings,
                     &self.plugins,
+                    None,
                 );
                 let findings = outcome.findings;
                 for warning in &outcome.warnings {

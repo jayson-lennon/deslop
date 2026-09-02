@@ -22,7 +22,11 @@ fn load_with(toml_files: &[(&str, &str)]) -> deslop_core::rule::RuleSet {
         },
         ..Config::default()
     };
-    let loaded = loader::load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"), None);
+    let loaded = loader::load(
+        &cfg,
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+        None,
+    );
     assert!(
         loaded.errors.is_empty(),
         "fixture rules must load cleanly: {:?}",

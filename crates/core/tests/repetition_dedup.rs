@@ -20,7 +20,11 @@ fn load_with(toml_files: &[(&str, &str)]) -> (deslop_core::rule::RuleSet, Vec<St
         },
         ..Config::default()
     };
-    let mut loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"), None);
+    let mut loaded = load(
+        &cfg,
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+        None,
+    );
     let warnings = std::mem::take(&mut loaded.dedup_warnings);
     (loaded.rule_set, warnings)
 }

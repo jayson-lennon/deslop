@@ -69,7 +69,7 @@ fn loads_good_pack_with_zero_errors() {
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then no errors and one group lands.
@@ -86,7 +86,7 @@ fn missing_pack_file_is_recorded_naming_the_stem() {
     let loaded = load(
         &cfg_for(&["missing"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then an error names the expected flat path.
@@ -110,7 +110,7 @@ fn bad_toml_yields_error_with_line_number() {
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then exactly one error naming the file and a line.
@@ -132,7 +132,7 @@ fn errors_accumulate_across_packs() {
     let loaded = load(
         &cfg_for(&["pack-a", "pack-b"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then errors from BOTH files accumulate (never first-fail).
@@ -158,7 +158,7 @@ fn multi_group_file_loads_every_group() {
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then both groups are active.
@@ -183,7 +183,7 @@ fn duplicate_term_across_groups_dedups_to_highest_tier_owner() {
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then the higher tier keeps the term and the emptied group is gone,
@@ -212,7 +212,7 @@ fn duplicate_id_bases_are_flagged_across_files_and_within_one_file() {
     let loaded = load(
         &cfg_for(&["pack-a", "pack-b"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then a collision error appears.
@@ -241,7 +241,7 @@ fn duplicate_entry_slugs_across_groups_are_legal_within_a_file() {
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then no duplicate-id error appears (ids differ by group prefix).
@@ -274,7 +274,11 @@ fn extra_path_pack_file_loads() {
     };
 
     // When loading.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(tmp.path()).expect("utf8"), None);
+    let loaded = load(
+        &cfg,
+        camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
+        None,
+    );
 
     // Then both builtin and extra packs contribute groups.
     assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
@@ -305,7 +309,7 @@ must_match = []
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then the pack loads clean with an AtMost spec.
@@ -343,7 +347,7 @@ must_match = []
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then the group is refused with a message naming both keys.
@@ -355,11 +359,7 @@ must_match = []
     // And no metric spec survives for the broken group (an entryless
     // group-level rule is dropped whole, so nothing materializes).
     assert!(
-        loaded
-            .rule_set
-            .groups
-            .iter()
-            .all(|g| g.metric.is_none()),
+        loaded.rule_set.groups.iter().all(|g| g.metric.is_none()),
         "{:?}",
         loaded.rule_set.groups
     );
@@ -386,7 +386,7 @@ must_match = []
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then the legacy missing-threshold error message survives.
@@ -424,7 +424,7 @@ regex = 'delve'
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then a fixture failure is recorded naming the entry.
@@ -463,7 +463,7 @@ regex = 'delve'
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then no fixture failures exist.
@@ -495,7 +495,7 @@ advice = 'replace {bogus} please'
     let loaded = load(
         &cfg_for(&["pack"]),
         camino::Utf8Path::from_path(tmp.path()).expect("utf8"),
-    None,
+        None,
     );
 
     // Then the template error is recorded naming the field.
@@ -518,7 +518,11 @@ fn builtin_pack_advices_carry_no_todo_markers() {
         .into_std_path_buf();
 
     // When loading the builtin packs from the repo root.
-    let loaded = load(&cfg, camino::Utf8Path::from_path(&root).expect("utf8"), None);
+    let loaded = load(
+        &cfg,
+        camino::Utf8Path::from_path(&root).expect("utf8"),
+        None,
+    );
 
     // Then no errors and no advice mentions TODO.
     assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);

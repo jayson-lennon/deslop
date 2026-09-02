@@ -77,6 +77,10 @@ pub enum KindTag {
     /// Findings from a `[plugins]` WASM module; identity comes from the
     /// module's own manifest rather than the rule loader.
     Plugin,
+    /// Group-level repetition clusters (near-verbatim, propositional,
+    /// content-family); one finding per repeated group of sentences or
+    /// paragraphs, with per-member line evidence in `context`.
+    Repetition,
 }
 
 /// A single lint result, ready for rendering.

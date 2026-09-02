@@ -153,12 +153,10 @@ impl CandleEmbedder {
             Some(_) => tokenizer,
             None => {
                 let mut t = tokenizer;
-                t.with_post_processor(Some(
-                    tokenizers::processors::bert::BertProcessing::new(
-                        ("[SEP]".to_string(), 102u32),
-                        ("[CLS]".to_string(), 101u32),
-                    ),
-                ));
+                t.with_post_processor(Some(tokenizers::processors::bert::BertProcessing::new(
+                    ("[SEP]".to_string(), 102u32),
+                    ("[CLS]".to_string(), 101u32),
+                )));
                 t
             }
         };
@@ -220,7 +218,13 @@ impl CandleEmbedder {
             type_data.extend_from_slice(&types[..len]);
             mask_data.extend_from_slice(&mask[..len]);
             let pad = max_len - len;
-            let pad_id = i64::from(self.tokenizer.get_vocab(true).get("[PAD]").copied().unwrap_or(0));
+            let pad_id = i64::from(
+                self.tokenizer
+                    .get_vocab(true)
+                    .get("[PAD]")
+                    .copied()
+                    .unwrap_or(0),
+            );
             ids_data.extend(std::iter::repeat_n(pad_id, pad));
             type_data.extend(std::iter::repeat_n(0, pad));
             mask_data.extend(std::iter::repeat_n(0, pad));
@@ -330,7 +334,10 @@ mod tests {
 
         // When embedding.
         // Then the output is empty, not an error.
-        assert_eq!(fake.embed(&[]).expect("fake embeds"), Vec::<Vec<f32>>::new());
+        assert_eq!(
+            fake.embed(&[]).expect("fake embeds"),
+            Vec::<Vec<f32>>::new()
+        );
     }
 
     #[test]
@@ -373,16 +380,14 @@ mod tests {
             assert_eq!(a, b);
         }
         // And the two paraphrases land close together (cosine > 0.9).
-        let cos: f32 = first[0]
-            .iter()
-            .zip(&first[1])
-            .map(|(x, y)| x * y)
-            .sum();
+        let cos: f32 = first[0].iter().zip(&first[1]).map(|(x, y)| x * y).sum();
         assert!(cos > 0.5, "paraphrases should be close, got {cos}");
     }
 
     fn model_dir_from_env() -> Option<std::path::PathBuf> {
-        let dir = std::env::var("DESLOP_MODELS_DIR").ok().map(std::path::PathBuf::from)?;
+        let dir = std::env::var("DESLOP_MODELS_DIR")
+            .ok()
+            .map(std::path::PathBuf::from)?;
         dir.is_dir().then_some(dir)
     }
 }

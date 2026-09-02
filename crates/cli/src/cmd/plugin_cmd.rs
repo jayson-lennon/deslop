@@ -173,7 +173,7 @@ fn to_toml_literal(value: &serde_json::Value) -> String {
 }
 
 /// Resolve the platform data dir, reporting to stderr when unavailable.
-fn resolve_data_dir() -> Option<camino::Utf8PathBuf> {
+pub(crate) fn resolve_data_dir() -> Option<camino::Utf8PathBuf> {
     match dirs::data_dir().and_then(|p| camino::Utf8PathBuf::from_path_buf(p).ok()) {
         Some(dir) => Some(dir),
         None => {

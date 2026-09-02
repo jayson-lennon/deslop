@@ -6,8 +6,8 @@
 pub mod boundary;
 pub mod config;
 pub mod doc;
-pub mod eol;
 pub mod embedder;
+pub mod eol;
 pub mod finding;
 pub mod metric_stats;
 pub mod plugin;
