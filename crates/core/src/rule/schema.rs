@@ -66,6 +66,10 @@ pub struct GroupToml {
     /// Minimum members before a repetition cluster is reported.
     #[serde(default, alias = "min-members")]
     pub min_members: Option<usize>,
+    /// Maximum whitespace-token distance between a repetition pair's
+    /// members (sentence-level variants; content-family ignores it).
+    #[serde(default, alias = "max-distance")]
+    pub max_distance: Option<usize>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]

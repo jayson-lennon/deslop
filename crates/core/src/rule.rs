@@ -169,7 +169,15 @@ pub struct RepetitionSpec {
     pub threshold: f64,
     /// Minimum members before a cluster is reported.
     pub min_members: usize,
+    /// Maximum whitespace-token distance between a pair's members; pairs
+    /// farther apart never form, so they cannot bridge transitive chains.
+    pub max_distance: usize,
 }
+
+/// Default `max-distance` for sentence-level repetition variants. Long-range
+/// repeats are usually deliberate callbacks; the cap keeps incidental
+/// restatements (which sit close together) as the signal.
+pub const DEFAULT_MAX_DISTANCE: usize = 200;
 
 /// One scannable entry with its compiled matcher.
 #[derive(Debug, Clone)]

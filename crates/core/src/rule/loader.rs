@@ -120,6 +120,11 @@ fn validate_group(path: &str, group: &GroupToml, errors: &mut Vec<LoadError>) {
             if !group.entries.is_empty() {
                 push(None, "repetition rules must not carry [[entries]]".into());
             }
+            if group.max_distance == Some(0) {
+                // A zero cap filters every pair (distinct units are >= 1
+                // token apart), silently disabling the lint.
+                push(None, "repetition max-distance must be at least 1".into());
+            }
             // Metric-only keys are illegal here: a typo'd kind must refuse,
             // not fall through to defaults.
             if group.stat.is_some()
@@ -580,6 +585,9 @@ fn parse_group(
                     min_members: group
                         .min_members
                         .unwrap_or_else(|| variant.default_min_members()),
+                    max_distance: group
+                        .max_distance
+                        .unwrap_or(crate::rule::DEFAULT_MAX_DISTANCE),
                 },
             )
         } else {
@@ -697,6 +705,48 @@ must_match = []
         assert!((spec.threshold - 0.8).abs() < f64::EPSILON);
         // And the pair-variant default min_members is 2.
         assert_eq!(spec.min_members, 2);
+        // And the distance cap defaults to 200.
+        assert_eq!(spec.max_distance, crate::rule::DEFAULT_MAX_DISTANCE);
+        drop(tmp);
+    }
+
+    #[test]
+    fn repetition_explicit_max_distance_round_trips() {
+        // Given a repetition group with an explicit max-distance.
+        let toml = REP.replace("threshold = 0.8", "threshold = 0.8\nmax-distance = 42");
+        let (tmp, root) = pack_dir(&toml);
+
+        // When loading.
+        let loaded = load(&cfg("pack"), &root, None);
+
+        // Then the explicit cap wins.
+        assert!(loaded.errors.is_empty(), "{:?}", loaded.errors);
+        let spec = loaded.rule_set.groups[0]
+            .repetition
+            .as_ref()
+            .expect("repetition spec");
+        assert_eq!(spec.max_distance, 42);
+        drop(tmp);
+    }
+
+    #[test]
+    fn repetition_zero_max_distance_is_refused() {
+        // Given a repetition group whose max-distance is zero.
+        let toml = REP.replace("threshold = 0.8", "threshold = 0.8\nmax-distance = 0");
+        let (tmp, root) = pack_dir(&toml);
+
+        // When loading.
+        let loaded = load(&cfg("pack"), &root, None);
+
+        // Then the pack refuses with a pointing message.
+        assert!(
+            loaded
+                .errors
+                .iter()
+                .any(|e| e.message.contains("max-distance")),
+            "{:?}",
+            loaded.errors
+        );
         drop(tmp);
     }
 
