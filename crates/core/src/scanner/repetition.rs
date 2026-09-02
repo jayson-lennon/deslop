@@ -29,6 +29,30 @@ pub fn line_of(index: &[usize], off: usize) -> usize {
     index.partition_point(|&start| start <= off)
 }
 
+/// Byte offset of each whitespace token's start, in scan order.
+pub fn token_positions(text: &str) -> Vec<usize> {
+    let mut out = Vec::new();
+    let mut in_token = false;
+    for (i, ch) in text.char_indices() {
+        let ws = ch.is_whitespace();
+        if !ws && !in_token {
+            out.push(i);
+        }
+        in_token = !ws;
+    }
+    out
+}
+
+/// Token-index distance between two byte offsets `from` <= `to` (both
+/// should land at token starts): the number of token starts in `[from,
+/// to)`, i.e. the difference of their token indices. Adjacent tokens are
+/// distance 1; identical offsets are 0.
+pub fn tokens_between(positions: &[usize], from: usize, to: usize) -> usize {
+    let from_idx = positions.partition_point(|&p| p < from);
+    let to_idx = positions.partition_point(|&p| p < to);
+    to_idx - from_idx
+}
+
 /// FNV-1a 64-bit with a fixed seed; stable across processes and runs.
 pub fn fnv1a64(bytes: &[u8]) -> u64 {
     let mut hash: u64 = 0xcbf29ce484222325;
@@ -264,6 +288,42 @@ mod tests {
         assert_eq!(line_of(&index, 5), 1);
         assert_eq!(line_of(&index, 6), 2);
         assert_eq!(line_of(&index, 9), 2);
+    }
+
+    #[test]
+    fn token_positions_marks_every_token_start() {
+        // Given a document with runs of whitespace between tokens.
+        let text = "alpha  beta\n\tgamma";
+
+        // When indexing token starts.
+        let positions = token_positions(text);
+
+        // Then each token's first byte is recorded, whitespace runs skipped.
+        assert_eq!(positions, vec![0, 7, 13]);
+    }
+
+    #[test]
+    fn tokens_between_counts_token_advances() {
+        // Given a token index over a short document.
+        let positions = token_positions("one two three four");
+
+        // When measuring token distance between "one" (0) and "four" (14).
+        // Then the index difference is 3 (one -> two -> three -> four).
+        assert_eq!(tokens_between(&positions, 0, 14), 3);
+        // And the distance from "two" (4) to "three" (8) is 1 (adjacent).
+        assert_eq!(tokens_between(&positions, 4, 8), 1);
+        // And a range to itself is zero.
+        assert_eq!(tokens_between(&positions, 4, 4), 0);
+    }
+
+    #[test]
+    fn tokens_between_is_multibyte_safe() {
+        // Given a document whose first token is multibyte ("héllo" = 6 bytes).
+        let positions = token_positions("héllo world");
+
+        // When measuring from the second token's start (6) to the end (11).
+        // Then only "world" counts.
+        assert_eq!(tokens_between(&positions, 6, 11), 1);
     }
 
     #[test]

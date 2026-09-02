@@ -15,7 +15,7 @@ use tracing::{debug, info_span};
 
 use super::repetition::{
     components, content_words, jaccard, lcs_ratio, line_index, line_of, overlap_coef,
-    shingles_adaptive, words_lower,
+    shingles_adaptive, token_positions, tokens_between, words_lower,
 };
 use crate::embedder::Embedder;
 use crate::finding::{Finding, KindTag};
@@ -107,7 +107,7 @@ pub fn repetition_findings(
             RepetitionVariant::NearVerbatim => {
                 let comps = cluster(
                     &prose,
-                    near_verbatim_pairs(&prose, spec.threshold),
+                    near_verbatim_pairs(&prose, spec.threshold, spec.max_distance),
                     spec.min_members,
                     MIN_UNIT_WORDS,
                 );
@@ -121,7 +121,7 @@ pub fn repetition_findings(
                     );
                     continue;
                 };
-                match propositional_pairs(&prose, spec.threshold, embedder) {
+                match propositional_pairs(&prose, spec.threshold, embedder, spec.max_distance) {
                     Ok(pairs) => {
                         debug!(rule = %group.id_base, pairs = pairs.len(), "propositional pairs");
                         let comps = cluster(
@@ -135,7 +135,9 @@ pub fn repetition_findings(
                         // lint's report already; saying it twice is noise.
                         // The near-verbatim similarity bar is its own
                         // canonical constant, not another group's threshold.
-                        let nv = near_verbatim_set(&prose, NEAR_VERBATIM_BAR);
+                        // Same cap as this group's own pairs, so suppression
+                        // coverage and pair coverage can never diverge.
+                        let nv = near_verbatim_set(&prose, NEAR_VERBATIM_BAR, spec.max_distance);
                         // Map each propositional component back to unit indices.
                         let units = sentence_units(&prose, MIN_UNIT_WORDS_PROPOSITIONAL);
                         comps
@@ -197,8 +199,9 @@ fn words_count(text: &str) -> usize {
 
 /// Near-verbatim pairs: sentence pairs whose adaptive-shingle Jaccard
 /// reaches `threshold`.
-fn near_verbatim_pairs(prose: &str, threshold: f64) -> Vec<Pair> {
+fn near_verbatim_pairs(prose: &str, threshold: f64, max_distance: usize) -> Vec<Pair> {
     let units = sentence_units(prose, MIN_UNIT_WORDS);
+    let token_idx = token_positions(prose);
     let shingle_sets: Vec<_> = units
         .iter()
         .map(|&(s, e)| shingles_adaptive(&prose[s..e]))
@@ -214,6 +217,11 @@ fn near_verbatim_pairs(prose: &str, threshold: f64) -> Vec<Pair> {
     let mut pairs = Vec::new();
     for i in 0..units.len() {
         for j in (i + 1)..units.len() {
+            // Distance cap first: a far pair never forms, so it cannot
+            // bridge a transitive chain. Inclusive at the cap.
+            if tokens_between(&token_idx, units[i].0, units[j].0) > max_distance {
+                continue;
+            }
             let shingle_sim = jaccard(&shingle_sets[i], &shingle_sets[j]);
             let lcs_sim = lcs_ratio(&word_sets[i], &word_sets[j]);
             if shingle_sim >= threshold || lcs_sim >= CONTAINMENT_BAR {
@@ -226,9 +234,9 @@ fn near_verbatim_pairs(prose: &str, threshold: f64) -> Vec<Pair> {
 
 /// The full set of near-verbatim components at a given threshold, as UNIT
 /// INDEX groups, used for the propositional suppression rule.
-fn near_verbatim_set(prose: &str, threshold: f64) -> Vec<Vec<usize>> {
+fn near_verbatim_set(prose: &str, threshold: f64, max_distance: usize) -> Vec<Vec<usize>> {
     let units = sentence_units(prose, MIN_UNIT_WORDS);
-    let pairs = near_verbatim_pairs(prose, threshold);
+    let pairs = near_verbatim_pairs(prose, threshold, max_distance);
     components(units.len(), &pairs)
 }
 
@@ -239,8 +247,10 @@ fn propositional_pairs(
     prose: &str,
     threshold: f64,
     embedder: &dyn Embedder,
+    max_distance: usize,
 ) -> Result<Vec<Pair>, error_stack::Report<crate::embedder::EmbedError>> {
     let units = sentence_units(prose, MIN_UNIT_WORDS_PROPOSITIONAL);
+    let token_idx = token_positions(prose);
     let texts: Vec<String> = units
         .iter()
         .map(|&(s, e)| prose[s..e].to_string())
@@ -253,6 +263,10 @@ fn propositional_pairs(
     let mut pairs = Vec::new();
     for i in 0..vectors.len() {
         for j in (i + 1)..vectors.len() {
+            // Distance cap first (inclusive at the cap), same as NV.
+            if tokens_between(&token_idx, units[i].0, units[j].0) > max_distance {
+                continue;
+            }
             // Embeddings are L2-normalized, so the dot product IS cosine.
             let dot: f32 = vectors[i].iter().zip(&vectors[j]).map(|(x, y)| x * y).sum();
             if f64::from(dot) >= threshold {
