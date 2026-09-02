@@ -27,6 +27,13 @@ unicode-segmentation = "1.12"
 pulldown-cmark = { version = "0.13", default-features = false }
 icu_segmenter = "2.3"
 
+# embeddings (repetition scanner; candle keeps builds hermetic - no ONNX runtime)
+candle-core = "0.11"
+candle-nn = "0.11"
+candle-transformers = "0.11"
+tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
+sha2 = "0.10"
+
 # diagnostics rendering
 codespan-reporting = "0.11"
 termcolor = "1"
