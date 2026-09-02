@@ -27,6 +27,16 @@ candle-transformers = { workspace = true }
 tokenizers = { workspace = true }
 sha2 = { workspace = true }
 
+# CUDA acceleration for the embedding model (opt-in: `--features gpu`).
+# Build-time cost is compiling candle's kernels with nvcc; default builds
+# stay hermetic. cudarc loads the driver's libcuda at runtime.
+[features]
+gpu = [
+    "candle-core/cuda",
+    "candle-nn/cuda",
+    "candle-transformers/cuda",
+]
+
 [dev-dependencies]
 rstest = { workspace = true }
 tempfile = { workspace = true }

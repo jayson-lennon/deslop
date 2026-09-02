@@ -42,6 +42,11 @@ struct Cli {
     #[arg(long = "rule-file", value_name = "FILE")]
     rule_files: Vec<camino::Utf8PathBuf>,
 
+    /// Embedding-model compute backend. `cuda` requires a build with the
+    /// `gpu` cargo feature and an NVIDIA device; the default is CPU.
+    #[arg(long, value_enum)]
+    gpu: Option<ArgGpu>,
+
     #[command(subcommand)]
     command: Option<Command>,
 }
@@ -71,6 +76,12 @@ impl From<ArgColor> for deslop_core::config::ColorChoice {
             ArgColor::Never => deslop_core::config::ColorChoice::Never,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum ArgGpu {
+    Cpu,
+    Cuda,
 }
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum)]
@@ -318,12 +329,23 @@ fn run(cli: Cli) -> i32 {
                     let _ = writeln!(lock, "{warning}");
                 }
             }
+            let gpu_backend = cli.gpu.map(|g| match g {
+                ArgGpu::Cpu => deslop_core::embedder::GpuBackend::Cpu,
+                ArgGpu::Cuda => deslop_core::embedder::GpuBackend::Cuda,
+            });
+            if let Some(backend) = gpu_backend {
+                if let Err(msg) = deslop_core::embedder::GpuBackend::validate(backend) {
+                    eprintln!("deslop: {msg}");
+                    return crate::ExitCode::LoadFailure as i32;
+                }
+            }
             let run = cmd::lint_cmd::ScanRun {
                 cfg: &cfg,
                 paths: cli.paths.clone(),
                 format_override: Some(cli.format.into()),
                 color_override: Some(cli.color.into()),
                 width_override: cli.width,
+                gpu: gpu_backend,
                 plugins,
             };
             run.run(loaded)

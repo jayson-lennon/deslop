@@ -114,6 +114,8 @@ pub struct ScanRun<'a> {
     pub width_override: Option<usize>,
     /// Loaded `[plugins]` modules; empty when none configured.
     pub plugins: Vec<Box<dyn deslop_core::plugin::LintPlugin>>,
+    /// Embedding-model compute backend; `None` = CPU default.
+    pub gpu: Option<deslop_core::embedder::GpuBackend>,
 }
 
 impl ScanRun<'_> {
@@ -143,7 +145,11 @@ impl ScanRun<'_> {
         // enabled repetition group actually needs the model. Missing model
         // files already failed the pack at load; a build failure here (bad
         // files, OOM) degrades to the scan-time skip warning.
-        let embedder = repetition_embedder(&loaded.rule_set, &settings);
+        let embedder = repetition_embedder(
+            &loaded.rule_set,
+            &settings,
+            self.gpu.unwrap_or(deslop_core::embedder::GpuBackend::Cpu),
+        );
         let embedder_ref = embedder
             .as_ref()
             .map(|e| e as &dyn deslop_core::embedder::Embedder);
@@ -210,6 +216,7 @@ impl ScanRun<'_> {
 fn repetition_embedder(
     rules: &deslop_core::rule::RuleSet,
     settings: &deslop_core::scanner::LintSettings,
+    backend: deslop_core::embedder::GpuBackend,
 ) -> Option<deslop_core::embedder::CandleEmbedder> {
     let needs_model = rules.groups.iter().any(|g| {
         if !g.enabled {
@@ -238,6 +245,7 @@ fn repetition_embedder(
     };
     match deslop_core::embedder::CandleEmbedder::from_dir(
         &models_root.join("all-MiniLM-L6-v2").into_std_path_buf(),
+        backend,
     ) {
         Ok(e) => Some(e),
         Err(e) => {

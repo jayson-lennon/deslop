@@ -27,6 +27,9 @@ use wherror::Error;
 #[derive(Debug, Error)]
 #[error(debug)]
 pub enum EmbedError {
+    /// A CUDA backend was requested but unavailable (feature off or no
+    /// usable device).
+    CudaUnavailable,
     #[error("model directory {dir} is missing {file}")]
     MissingFile { dir: String, file: &'static str },
     #[error("failed to read {path}")]
@@ -45,6 +48,41 @@ pub enum EmbedError {
 /// a failure as "skip model-based repetition for this run".
 pub trait Embedder {
     fn embed(&self, inputs: &[String]) -> Result<Vec<Vec<f32>>, error_stack::Report<EmbedError>>;
+}
+
+/// Compute backend for the embedding model. `Cpu` is always available;
+/// `Cuda` requires a build with the `gpu` cargo feature and a present
+/// NVIDIA device.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GpuBackend {
+    Cpu,
+    Cuda,
+}
+
+impl GpuBackend {
+    /// Parse a `--gpu` backend name. Case-insensitive.
+    pub fn parse(name: &str) -> Option<Self> {
+        match name.to_ascii_lowercase().as_str() {
+            "cpu" => Some(Self::Cpu),
+            "cuda" => Some(Self::Cuda),
+            _ => None,
+        }
+    }
+
+    /// Check a backend is usable in this binary: Cuda requires the `gpu`
+    /// cargo feature. Returns the failure message on unusable backends.
+    pub fn validate(backend: Self) -> Result<(), String> {
+        match backend {
+            Self::Cpu => Ok(()),
+            #[cfg(feature = "gpu")]
+            Self::Cuda => Ok(()),
+            #[cfg(not(feature = "gpu"))]
+            Self::Cuda => Err(
+                "this binary was built without the `gpu` cargo feature; rebuild with --features gpu"
+                    .to_string(),
+            ),
+        }
+    }
 }
 
 /// Vector-producing closure shared by [`FakeEmbedder`] instances.
@@ -123,7 +161,10 @@ impl CandleEmbedder {
     ///
     /// Returns an error if a file is missing, unreadable, or the tokenizer /
     /// model fails to construct. Hash mismatches only warn (stderr).
-    pub fn from_dir(dir: &Path) -> Result<Self, error_stack::Report<EmbedError>> {
+    pub fn from_dir(
+        dir: &Path,
+        backend: GpuBackend,
+    ) -> Result<Self, error_stack::Report<EmbedError>> {
         let started = Instant::now();
         info!(dir = %dir.display(), "loading embedding model all-MiniLM-L6-v2");
         for (file, pinned) in MODEL_FILES {
@@ -195,7 +236,18 @@ impl CandleEmbedder {
             elapsed_ms = started.elapsed().as_millis() as u64,
             "weights read"
         );
-        let device = Device::Cpu;
+        let device = match backend {
+            GpuBackend::Cpu => Device::Cpu,
+            #[cfg(feature = "gpu")]
+            GpuBackend::Cuda => Device::new_cuda(0).map_err(|e| {
+                error_stack::Report::new(EmbedError::CudaUnavailable).attach(format!("{e}"))
+            })?,
+            #[cfg(not(feature = "gpu"))]
+            GpuBackend::Cuda => {
+                return Err(error_stack::Report::new(EmbedError::CudaUnavailable)
+                    .attach("this binary was built without the `gpu` cargo feature"));
+            }
+        };
         let vb = VarBuilder::from_buffered_safetensors(data, candle_core::DType::F32, &device)
             .map_err(EmbedError::Candle)?;
         let model = BertModel::load(vb, &config).map_err(EmbedError::Candle)?;
@@ -386,7 +438,7 @@ mod tests {
         let dir = tempfile::tempdir().expect("tempdir");
 
         // When loading the embedder.
-        let err = CandleEmbedder::from_dir(dir.path()).expect_err("missing files");
+        let err = CandleEmbedder::from_dir(dir.path(), GpuBackend::Cpu).expect_err("missing files");
 
         // Then the error names the directory and the first missing file.
         let text = format!("{err:?}");
@@ -401,7 +453,7 @@ mod tests {
         let Some(dir) = model_dir_from_env() else {
             return; // not ignored here: the #[ignore] attribute gates this test
         };
-        let embedder = CandleEmbedder::from_dir(&dir).expect("model loads");
+        let embedder = CandleEmbedder::from_dir(&dir, GpuBackend::Cpu).expect("model loads");
 
         // When embedding two sentences twice.
         let inputs = vec![
@@ -429,5 +481,33 @@ mod tests {
             .ok()
             .map(std::path::PathBuf::from)?;
         dir.is_dir().then_some(dir)
+    }
+
+    /// CUDA device smoke test: gated behind the `gpu` feature AND an env
+    /// var, so neither default test runs nor CI touch the GPU.
+    #[test]
+    #[ignore = "GPU test: cargo test -p deslop-core --features gpu -- --ignored cuda_embeds_sentences"]
+    fn cuda_embeds_sentences() {
+        let Some(parent) = model_dir_from_env() else {
+            panic!("set DESLOP_MODELS_DIR to the model parent dir");
+        };
+        let dir = parent.join("all-MiniLM-L6-v2");
+        // Given a CUDA-backed embedder.
+        let embedder = CandleEmbedder::from_dir(&dir, GpuBackend::Cuda).expect("cuda model loads");
+
+        // When embedding two sentences.
+        let got = embedder
+            .embed(&[
+                "The committee approved the plan.".into(),
+                "A red fox runs.".into(),
+            ])
+            .expect("cuda embed");
+
+        // Then vectors are 384-dim and unit norm.
+        for v in &got {
+            assert_eq!(v.len(), 384);
+            let norm: f32 = v.iter().map(|x| x * x).sum::<f32>().sqrt();
+            assert!((norm - 1.0).abs() < 1e-3, "unit norm, got {norm}");
+        }
     }
 }
