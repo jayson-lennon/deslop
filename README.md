@@ -155,18 +155,23 @@ advice = 'Replace "{match}" with "use"'
 
 ### literal-ban
 
-Exact substrings that must never appear — chatbot markup, leaked URLs, rendered citations. Case-insensitive, matched anywhere in the document by default (`scope = 'anywhere'`, where other kinds default to `prose`). Like every kind, it never matches inside code spans, fences, or link targets.
+Exact substrings that must never appear — chatbot markup, leaked URLs, rendered citations. Like every kind, it never matches inside code spans, fences, or link targets.
 
 ```toml
 [[group.entries]]
 slug = 'gemini-cite'
 advice = 'Replace the rendered citation scaffold with a real reference'
 
-# {N} is a wildcard for a run of digits; {{ and }} escape literal braces.
+# Case-insensitive. {N} is a wildcard for a run of digits;
+# {{ and }} escape literal braces.
 terms = [
   '[cite: {N}, {N}, {N}]',
   'utm_source=chatgpt.com',
 ]
+
+# literal-ban defaults to scope = 'anywhere' (whole document);
+# other kinds default to 'prose'.
+scope = 'anywhere'
 ```
 
 ### pattern
@@ -257,25 +262,43 @@ terms = ['crucial', 'robust', 'notably']
 
 Document-level repetition: the same sentence twice, the same proposition rephrased, or one narrow idea spread across many paragraphs. Like `metric`, groups have no `[[entries]]` — everything is group-level — but the detection is similarity-based, not statistical.
 
+All three variants report one anchorless finding per repetition group with a `Repetition members:` context list of `line N` excerpts. Field-by-field reference:
+
 ```toml
 [[group]]
 id-base = 'REPETITION-NEAR-VERBATIM'
 kind = 'repetition'
 tier = 2
 category = 'repetition'
+
+# Required. near-verbatim | propositional | content-family.
+#   near-verbatim  same sentence twice, modulo small edits
+#                  (k-gram shingles + word-subsequence similarity)
+#   propositional  same point in different words (embedding cosine);
+#                  a component already covered by near-verbatim is
+#                  suppressed rather than double-reported
+#   content-family one narrow idea spread across many paragraphs
+#                  (content-word overlap between paragraphs)
 variant = 'near-verbatim'
+
+# Required. Similarity cutoff, 0-1; pairs at or above it are repeats.
+# Tune per variant: near-verbatim ~0.55, propositional ~0.78,
+# content-family ~0.6.
 threshold = 0.55
-message = 'Near-verbatim repetition: {count} sentences say the same thing'
-advice = 'Cut or merge the repeats; each idea earns exactly one sentence'
+
+# Optional, default 2 (3 for content-family). Minimum members before a
+# cluster is reported. {count} in the message carries the member count.
+min-members = 2
+
+# Sentence-level variants only (content-family ignores it). Pairs farther
+# apart than this never form, so deliberate long-range callbacks (a
+# cold-open quote paid off in the outro) stay quiet while close-range
+# restatements still report. Unit: whitespace tokens. Default 200.
+max-distance = 500
+
+message = 'Near word-for-word repeats differing only in minor wording ({count} sentences)'
+advice = 'Keep the best-specified sentence, fold in any unique details from the others, remove the rest.'
 ```
-
-Three variants, all reporting one anchorless finding per repetition group with a `Repetition members:` context list of `line N` excerpts:
-
-- `near-verbatim` — sentences that are the same text modulo small edits (k-gram shingle Jaccard plus order-preserving word-subsequence similarity against `threshold`)
-- `propositional` — sentences that restate the same point (embedding cosine against `threshold`); a component already covered by a near-verbatim finding is suppressed rather than double-reported
-- `content-family` — paragraphs circling one narrow idea (content-word overlap coefficient against `threshold`, at least `min-members` paragraphs)
-
-`threshold` (0–1) is required; `min-members` defaults to 2 for the sentence variants and 3 for `content-family`. The `{count}` placeholder carries the member count. The sentence-level variants also accept `max-distance` (whitespace tokens, default 200): pairs farther apart never form, so deliberate long-range callbacks (a cold-open quote paid off in the outro) stay quiet while close-range restatements still report. `content-family` ignores it.
 
 #### The embedding model
 
@@ -325,12 +348,15 @@ Set `DESLOP_LOG` (or the ecosystem-standard `RUST_LOG`) to emit structured trace
 
 ```toml
 [lints]
+# Keys are id-bases (whole group) or full IDs '<id-base>#<slug>'
+# (one entry; quote keys containing #). Run `deslop rules` to list them.
+# Levels are clippy-style: allow | note | warn | error.
 AATELL = "allow"                 # whole group off
 WSC-PAT-AUDIENCE-HEDGE = "allow" # one pattern group off
-"SLOP#delve-into" = "allow"      # one entry off (quote keys containing #)
+"SLOP#delve-into" = "allow"      # one entry off
 ```
 
-Levels are clippy-style: `allow | note | warn | error`. Because vocab terms deduplicate to a single owner, allowing the owner fully silences the word — there's no shadow copy in another pack. Entry keys match the full ID exactly (`SLOP#delve-into`, not `SLOP#delve`); run `deslop rules` to see the IDs you can silence.
+Because vocab terms deduplicate to a single owner, allowing the owner fully silences the word — there's no shadow copy in another pack.
 
 ## Deduplication
 
