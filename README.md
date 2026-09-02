@@ -465,10 +465,6 @@ Plugin findings behave exactly like native findings: they show up in `deslop rul
 
 A plugin that traps, exceeds its fuel budget, or emits invalid spans is skipped for that document with a warning on stderr. It never changes the exit code or aborts the run.
 
-## Contributing
-
-Before committing: `cargo test --workspace` and `cargo clippy --workspace` must pass.
-
 ## License
 
 MIT. See [LICENSE](LICENSE).
