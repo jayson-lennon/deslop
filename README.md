@@ -275,7 +275,7 @@ Three variants, all reporting one anchorless finding per repetition group with a
 - `propositional` — sentences that restate the same point (embedding cosine against `threshold`); a component already covered by a near-verbatim finding is suppressed rather than double-reported
 - `content-family` — paragraphs circling one narrow idea (content-word overlap coefficient against `threshold`, at least `min-members` paragraphs)
 
-`threshold` (0–1) is required; `min-members` defaults to 2 for the sentence variants and 3 for `content-family`. The `{count}` placeholder carries the member count.
+`threshold` (0–1) is required; `min-members` defaults to 2 for the sentence variants and 3 for `content-family`. The `{count}` placeholder carries the member count. The sentence-level variants also accept `max-distance` (whitespace tokens, default 200): pairs farther apart never form, so deliberate long-range callbacks (a cold-open quote paid off in the outro) stay quiet while close-range restatements still report. `content-family` ignores it.
 
 #### The embedding model
 

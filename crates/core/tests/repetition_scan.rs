@@ -334,3 +334,188 @@ fn repetition_output_is_byte_identical_across_runs() {
     // Then both runs produce identical findings (determinism).
     assert_eq!(a.findings, b.findings);
 }
+
+fn nv_pack_with(max_distance: &str) -> deslop_core::rule::RuleSet {
+    pack(&format!(
+        r#"
+[[group]]
+id-base = "REP-NV"
+kind = "repetition"
+tier = 2
+category = "repetition"
+variant = "near-verbatim"
+threshold = 0.5
+{max_distance}
+
+[group.fixtures]
+must_match = []
+"#
+    ))
+}
+
+fn filler(n_words: usize) -> String {
+    (0..n_words)
+        .map(|i| format!("w{i} "))
+        .collect::<String>()
+        .trim_end()
+        .to_string()
+}
+
+#[test]
+fn close_twins_still_fire_within_default_distance() {
+    // Given twin sentences adjacent to each other.
+    let rules = near_verbatim_pack();
+    let src = "The committee approved the plan on Tuesday morning.\n\n\
+        The committee approved the plan on Tuesday morning today.\n";
+
+    // When scanning.
+    let out = scan_with_plugins(src, &rules, &LintSettings::default(), &[], None);
+
+    // Then the pair fires (distance well under the 200-token default).
+    assert_eq!(
+        out.findings
+            .iter()
+            .filter(|f| f.entry_id == "REP-NV")
+            .count(),
+        1,
+        "{:?}",
+        out.findings
+    );
+}
+
+#[test]
+fn far_twins_go_silent_beyond_max_distance() {
+    // Given twin sentences separated by more than 200 tokens of filler.
+    let src = format!(
+        "The committee approved the plan on Tuesday morning.\n\n{}\n\n\
+        The committee approved the plan on Tuesday morning today.\n",
+        filler(250)
+    );
+    let rules = near_verbatim_pack();
+
+    // When scanning.
+    let out = scan_with_plugins(&src, &rules, &LintSettings::default(), &[], None);
+
+    // Then no finding: the pair is beyond the default cap.
+    assert!(
+        !out.findings.iter().any(|f| f.entry_id == "REP-NV"),
+        "{:?}",
+        out.findings
+    );
+}
+
+#[test]
+fn exactly_at_max_distance_still_fires() {
+    // Given twin sentences separated by filler so the gap equals the cap.
+    // Twin 1 is 8 tokens; twin 2 starts at token index 18 (8 twin words
+    // + 10 filler words — blank lines carry no tokens), so a cap of 18
+    // lands exactly on the inclusive boundary.
+    let src = format!(
+        "The committee approved the plan on Tuesday morning.\n\n{}\n\n\
+        The committee approved the plan on Tuesday morning today.\n",
+        filler(10)
+    );
+    let rules = nv_pack_with("max-distance = 18");
+
+    // When scanning.
+    let out = scan_with_plugins(&src, &rules, &LintSettings::default(), &[], None);
+
+    // Then the pair still fires: the boundary is inclusive.
+    let gap = deslop_core::scanner::repetition::tokens_between(
+        &deslop_core::scanner::repetition::token_positions(&src),
+        0,
+        src.find("The committee approved the plan on Tuesday morning today.")
+            .expect("twin 2"),
+    );
+    eprintln!("DBG actual gap = {gap}");
+    assert_eq!(gap, 18);
+    assert_eq!(
+        out.findings
+            .iter()
+            .filter(|f| f.entry_id == "REP-NV")
+            .count(),
+        1,
+        "{:?}",
+        out.findings
+    );
+}
+
+#[test]
+fn explicit_max_distance_tightens_the_cap() {
+    // Given a cap of 5 and twins separated by ~15 filler tokens.
+    let src = format!(
+        "The committee approved the plan on Tuesday morning.\n\n{}\n\n\
+        The committee approved the plan on Tuesday morning today.\n",
+        filler(15)
+    );
+    let rules = nv_pack_with("max-distance = 5");
+
+    // When scanning.
+    let out = scan_with_plugins(&src, &rules, &LintSettings::default(), &[], None);
+
+    // Then the pair is beyond even its similarity: silent.
+    assert!(
+        !out.findings.iter().any(|f| f.entry_id == "REP-NV"),
+        "{:?}",
+        out.findings
+    );
+}
+
+#[test]
+fn far_member_cannot_bridge_a_chain() {
+    // Given A~B close (near-verbatim pair) and C similar to B but far away.
+    let src = format!(
+        "The committee approved the plan on Tuesday morning.\n\
+        The committee approved the plan on Tuesday morning today.\n\n{}\n\n\
+        The committee approved the plan on Tuesday morning again.\n",
+        filler(250)
+    );
+    let rules = nv_pack_with("max-distance = 5");
+
+    // When scanning.
+    let out = scan_with_plugins(&src, &rules, &LintSettings::default(), &[], None);
+
+    // Then any component that forms has only its close members, never all 3.
+    for f in out.findings.iter().filter(|f| f.entry_id == "REP-NV") {
+        let ctx = f.context.as_deref().expect("context");
+        assert_eq!(ctx.lines().count(), 3, "{ctx}"); // header + 2 members
+    }
+}
+
+#[test]
+fn content_family_ignores_max_distance() {
+    // Given the far-flung canal family (members hundreds of tokens apart)
+    // under a tiny cap on the content-family group.
+    let src = "The canal excavation crews demanded endless volcanic rock.\n\n\
+        The canal excavation crews nearly surrendered twice.\n\n\
+        The canal excavation crews faced the hardest challenge.\n\n\
+        The canal excavation crews called it the greatest dig.\n\n\
+        Unrelated: the price of bread rose sharply that winter.\n";
+    let rules = pack(
+        r#"
+[[group]]
+id-base = "REP-FAM"
+kind = "repetition"
+tier = 3
+category = "repetition"
+variant = "content-family"
+threshold = 0.5
+min-members = 3
+max-distance = 2
+
+[group.fixtures]
+must_match = []
+"#,
+    );
+
+    // When scanning.
+    let out = scan_with_plugins(src, &rules, &LintSettings::default(), &[], None);
+
+    // Then the family still fires: content-family is distance-blind.
+    let fams = out
+        .findings
+        .iter()
+        .filter(|f| f.entry_id == "REP-FAM")
+        .count();
+    assert_eq!(fams, 1, "{:?}", out.findings);
+}
